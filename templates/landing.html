@@ -4,27 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Plateforme officielle de Gestion Electronique des Courriers du Ministere du Tourisme, de la Culture et des Arts.">
-    <title>GEC — Ministere du Tourisme, de la Culture et des Arts</title>
+    <meta name="description" content="Gestion Electronique des Courriers du Ministere du Tourisme, de la Culture et des Arts.">
+    <title>Ministère du Tourisme, de la Culture et des Arts — Courriers</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            /* Couleurs Officielles du Togo */
+            /* Couleurs Togo */
             --togo-vert: #006a4e;
-            --togo-vert-light: #008a66;
+            --togo-vert-fonce: #00503b;
             --togo-jaune: #ffce00;
             --togo-rouge: #d21034;
             
-            /* Couleurs structurelles (Light Mode) */
-            --bg-body: #f8fafc;
-            --text-dark: #0f172a;
-            --text-muted: #475569;
-            --card-bg: rgba(255, 255, 255, 0.85);
-            --border-light: rgba(0, 106, 78, 0.1);
+            /* Couleurs neutres */
+            --bg-body: #f9fafb;
+            --text-dark: #111827;
+            --text-muted: #4b5563;
+            --border-color: #e5e7eb;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,64 +32,30 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-dark);
-            overflow-x: hidden;
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
         }
 
-        /* ===== BACKGROUND BLOBS (Effet Premium Moderne) ===== */
-        .bg-shapes {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100vh;
-            z-index: -1;
-            overflow: hidden;
-            background: #ffffff;
+        /* ===== SEPARATEUR DRAPEAU ===== */
+        .color-stripe {
+            display: flex; height: 5px; width: 100%; position: fixed; top: 0; left: 0; z-index: 101;
         }
+        .color-stripe span { flex: 1; }
+        .stripe-v { background: var(--togo-vert); }
+        .stripe-j { background: var(--togo-jaune); }
+        .stripe-r { background: var(--togo-rouge); }
 
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.15;
-            animation: moveBlob 15s infinite alternate ease-in-out;
-        }
-
-        .blob-1 {
-            width: 600px; height: 600px;
-            background: var(--togo-vert);
-            top: -100px; left: -100px;
-        }
-
-        .blob-2 {
-            width: 500px; height: 500px;
-            background: var(--togo-jaune);
-            bottom: -50px; right: 10%;
-            animation-delay: -5s;
-        }
-
-        .blob-3 {
-            width: 400px; height: 400px;
-            background: var(--togo-rouge);
-            top: 30%; left: 30%;
-            animation-delay: -10s;
-            opacity: 0.08;
-        }
-
-        @keyframes moveBlob {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, 50px) scale(1.1); }
-        }
-
-        /* ===== HEADER GLASSMORPHISM ===== */
+        /* ===== HEADER ===== */
         header {
             position: fixed;
-            top: 0; width: 100%; height: 90px;
+            top: 5px; width: 100%; height: 85px;
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 5%;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
             z-index: 100;
         }
 
@@ -99,224 +64,117 @@
             text-decoration: none;
         }
 
-        .logo-img { height: 55px; width: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+        .logo-img { height: 55px; width: auto; }
         
-        /* Séparateur couleurs Togo pour le logo */
         .logo-divider {
-            width: 3px; height: 40px;
-            background: linear-gradient(to bottom, var(--togo-vert) 33%, var(--togo-jaune) 33% 66%, var(--togo-rouge) 66%);
-            border-radius: 3px;
+            width: 2px; height: 40px; background: var(--border-color);
         }
 
         .logo-texts { display: flex; flex-direction: column; }
         
         .logo-title {
-            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem;
-            color: var(--togo-vert); line-height: 1.1;
+            font-weight: 700; font-size: 1.1rem;
+            color: var(--togo-vert); line-height: 1.2;
         }
         
         .logo-subtitle {
-            font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 1.5px;
+            font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px;
         }
 
         .btn-header {
-            padding: 0.8rem 2rem;
-            border-radius: 50px;
-            font-weight: 700; font-size: 0.95rem;
-            text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 600; font-size: 0.95rem;
+            text-decoration: none; transition: all 0.2s ease;
             border: 2px solid var(--togo-vert);
             color: var(--togo-vert);
         }
 
-        .btn-header:hover { background: var(--togo-vert); color: white; box-shadow: 0 10px 20px rgba(0, 106, 78, 0.2); }
+        .btn-header:hover { background: var(--togo-vert); color: white; }
 
         /* ===== HERO SECTION ===== */
-        .hero {
+        main {
             margin-top: 90px;
-            min-height: calc(100vh - 90px);
-            display: flex; align-items: center; padding: 2rem 5% 5rem;
+            flex: 1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 6rem 5%; text-align: center;
+            background-color: #ffffff;
         }
 
-        .hero-content {
-            display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem;
-            max-width: 1400px; margin: 0 auto; width: 100%; align-items: center;
-        }
-
-        .hero-badge {
-            display: inline-block; padding: 0.5rem 1.2rem;
-            background: white; border-radius: 50px;
-            font-size: 0.8rem; font-weight: 700; color: var(--togo-vert);
-            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2rem;
-            box-shadow: 0 8px 20px rgba(0, 106, 78, 0.1);
-            border-left: 4px solid var(--togo-jaune);
-        }
+        .hero-container { max-width: 900px; margin: 0 auto; }
 
         .hero-title {
-            font-family: 'Outfit', sans-serif; font-size: 4.2rem; font-weight: 900;
-            line-height: 1.05; margin-bottom: 1.5rem; color: var(--text-dark);
-        }
-        
-        .hero-title .highlight {
-            color: var(--togo-vert); position: relative; display: inline-block;
-        }
-        
-        .hero-title .highlight::after {
-            content: ''; position: absolute; left: 0; bottom: 4px; width: 100%; height: 8px;
-            background: var(--togo-jaune); z-index: -1; opacity: 0.6; border-radius: 4px;
+            font-size: 3.5rem; font-weight: 800; line-height: 1.15;
+            margin-bottom: 1.5rem; color: var(--text-dark);
         }
 
         .hero-desc {
-            font-size: 1.15rem; color: var(--text-muted); line-height: 1.7;
-            margin-bottom: 3rem; font-weight: 400; max-width: 90%;
+            font-size: 1.2rem; color: var(--text-muted); line-height: 1.7;
+            margin-bottom: 3rem; font-weight: 400; max-width: 800px; margin-left: auto; margin-right: auto;
         }
 
         .btn-primary {
-            display: inline-flex; align-items: center; gap: 12px;
-            padding: 1.1rem 2.8rem; border-radius: 50px;
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 1rem 2.5rem; border-radius: 6px;
             background: var(--togo-vert); color: white;
-            font-weight: 700; font-size: 1.1rem; text-decoration: none;
-            transition: all 0.3s;
-            box-shadow: 0 15px 30px rgba(0, 106, 78, 0.25);
-            border-bottom: 4px solid var(--togo-vert-light);
+            font-weight: 600; font-size: 1.05rem; text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 106, 78, 0.2);
         }
 
-        .btn-primary:active { border-bottom: 0px; transform: translateY(4px); }
-        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0, 106, 78, 0.35); }
-        .btn-primary svg { transition: transform 0.3s; }
-        .btn-primary:hover svg { transform: translateX(6px); }
-
-        /* ===== HERO VISUEL (DASHBOARD PREVIEW) ===== */
-        .hero-visual { position: relative; perspective: 1000px; }
-        
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.6);
-            border-radius: 24px; padding: 2.5rem;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.08);
-            transform: rotateY(-5deg) rotateX(5deg);
-            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        .glass-card:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-10px); }
-
-        .stat-group { display: flex; flex-direction: column; gap: 1.2rem; }
-        
-        .stat-item {
-            display: flex; align-items: center; gap: 1rem;
-            padding: 1.2rem; background: white; border-radius: 16px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.03);
-            border: 1px solid rgba(0,0,0,0.02);
-        }
-        
-        .stat-icon {
-            width: 45px; height: 45px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .si-vert { background: rgba(0, 106, 78, 0.1); color: var(--togo-vert); }
-        .si-jaune { background: rgba(255, 206, 0, 0.15); color: #c09200; }
-        .si-rouge { background: rgba(210, 16, 52, 0.1); color: var(--togo-rouge); }
-
-        .stat-info { flex: 1; }
-        .stat-line-1 { height: 10px; width: 70%; background: #e2e8f0; border-radius: 5px; margin-bottom: 8px; }
-        .stat-line-2 { height: 8px; width: 40%; background: #f1f5f9; border-radius: 5px; }
-
-        .floating-badge {
-            position: absolute; padding: 1rem; background: white;
-            border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            display: flex; align-items: center; gap: 12px; z-index: 10;
-            border-left: 4px solid var(--togo-vert);
-        }
-
-        .fb-1 { top: -20px; right: -20px; animation: float 6s ease-in-out infinite; }
-        .fb-2 { bottom: -30px; left: -20px; animation: float 7s ease-in-out infinite reverse; border-left-color: var(--togo-jaune); }
-
-        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0); } }
-
-        /* ===== SEPARATEUR DRAPEAU ===== */
-        .color-stripe {
-            display: flex; height: 10px; width: 100%;
-        }
-        .color-stripe span { flex: 1; }
-        .stripe-v { background: var(--togo-vert); }
-        .stripe-j { background: var(--togo-jaune); }
-        .stripe-r { background: var(--togo-rouge); }
+        .btn-primary:hover { background: var(--togo-vert-fonce); box-shadow: 0 6px 12px rgba(0, 106, 78, 0.3); }
 
         /* ===== FEATURES SECTION ===== */
-        .features { padding: 6rem 5%; position: relative; z-index: 5; }
-
-        .section-header { text-align: center; margin-bottom: 4rem; }
-        .section-title { font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 1rem; }
-        .section-sub { font-size: 1.1rem; color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+        .features { padding: 5rem 5%; background: var(--bg-body); border-top: 1px solid var(--border-color); }
 
         .features-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; max-width: 1300px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; max-width: 1200px; margin: 0 auto;
         }
 
-        .f-card {
-            background: white; border-radius: 24px; padding: 3rem 2.5rem;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.02);
-            transition: all 0.4s ease;
-            position: relative; overflow: hidden;
+        .feature-card {
+            background: white; border-radius: 8px; padding: 2.5rem 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            text-align: left;
         }
-
-        .f-card::after {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
-        }
-        
-        .fc-1::after { background: var(--togo-vert); }
-        .fc-2::after { background: var(--togo-jaune); }
-        .fc-3::after { background: var(--togo-rouge); }
-
-        .f-card:hover { transform: translateY(-10px); box-shadow: 0 25px 50px rgba(0,0,0,0.08); }
 
         .f-icon-wrap {
-            width: 70px; height: 70px; border-radius: 20px;
+            width: 50px; height: 50px; border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
-            margin-bottom: 2rem; font-size: 1.8rem;
+            margin-bottom: 1.5rem;
         }
 
-        .fic-1 { background: rgba(0,106,78,0.1); color: var(--togo-vert); }
-        .fic-2 { background: rgba(255,206,0,0.15); color: #b48900; }
-        .fic-3 { background: rgba(210,16,52,0.1); color: var(--togo-rouge); }
+        .fic-vert { background: rgba(0,106,78,0.1); color: var(--togo-vert); }
+        .fic-jaune { background: rgba(255,206,0,0.15); color: #b48900; }
+        .fic-rouge { background: rgba(210,16,52,0.1); color: var(--togo-rouge); }
 
-        .f-title { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-dark); }
-        .f-desc { color: var(--text-muted); line-height: 1.7; font-size: 1rem; }
+        .f-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.8rem; color: var(--text-dark); }
+        .f-desc { color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
 
         /* ===== FOOTER ===== */
         footer {
-            background: white; border-top: 1px solid var(--border-light);
-            padding: 3rem 5%; text-align: center; color: var(--text-muted); font-size: 0.9rem;
-            position: relative; z-index: 5;
+            background: white; border-top: 1px solid var(--border-color);
+            padding: 2.5rem 5%; text-align: center; color: var(--text-muted); font-size: 0.9rem;
         }
 
-        footer strong { color: var(--text-dark); }
-
         @media (max-width: 1024px) {
-            .hero-content { grid-template-columns: 1fr; text-align: center; }
-            .hero-badge { margin-left: auto; margin-right: auto; }
-            .hero-desc { margin: 0 auto 3rem; }
-            .hero-visual { display: none; }
-            .features-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
         }
         
         @media (max-width: 768px) {
-            .hero-title { font-size: 3rem; }
-            header { padding: 0 1rem; }
+            .hero-title { font-size: 2.5rem; }
+            header { flex-direction: column; gap: 10px; padding: 15px 5%; height: auto; position: static; }
+            main { margin-top: 0; padding: 4rem 5%; }
             .logo-subtitle { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Fond décoratif flouté -->
-    <div class="bg-shapes">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+    <!-- Ligne de couleurs du Togo en haut de page -->
+    <div class="color-stripe">
+        <span class="stripe-v"></span><span class="stripe-j"></span><span class="stripe-r"></span><span class="stripe-v"></span><span class="stripe-j"></span>
     </div>
 
     <!-- Header -->
@@ -325,13 +183,13 @@
             <img src="{% static 'images/Blason-rt.svg' %}" alt="Armoiries Togo" class="logo-img">
             <div class="logo-divider"></div>
             <div class="logo-texts">
-                <span class="logo-title">GEC MTCA</span>
-                <span class="logo-subtitle">Gouvernement</span>
+                <span class="logo-title">Ministère du Tourisme, de la Culture et des Arts</span>
+                <span class="logo-subtitle">République Togolaise</span>
             </div>
         </a>
         <div>
             {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="btn-header">Mon espace</a>
+                <a href="{% url 'dashboard' %}" class="btn-header">Espace de travail</a>
             {% else %}
                 <a href="{% url 'login' %}" class="btn-header">Connexion</a>
             {% endif %}
@@ -339,112 +197,57 @@
     </header>
 
     <!-- Hero Section -->
-    <main class="hero">
-        <div class="hero-content">
-            <div class="hero-text">
-                <div class="hero-badge">Plateforme Numérique de l'État</div>
-                <h1 class="hero-title">
-                    Gérez vos courriers avec <br><span class="highlight">rapidité et sécurité</span>
-                </h1>
-                <p class="hero-desc">
-                    La plateforme officielle de Gestion Électronique des Courriers (GEC) centralise tout le circuit de validation pour le Ministère du Tourisme, de la Culture et des Arts.
-                </p>
-                <div class="hero-actions">
-                    {% if request.user.is_authenticated %}
-                        <a href="{% url 'dashboard' %}" class="btn-primary">
-                            Accéder au tableau de bord
-                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </a>
-                    {% else %}
-                        <a href="{% url 'login' %}" class="btn-primary">
-                            Se connecter au système
-                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Visuel Premium (Glassmorphism & Togolese accents) -->
-            <div class="hero-visual">
-                
-                <div class="floating-badge fb-1">
-                    <svg width="24" height="24" fill="none" stroke="var(--togo-vert)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span style="font-weight:700; color:var(--text-dark); font-size:0.9rem;">Courrier Validé</span>
-                </div>
-
-                <div class="floating-badge fb-2">
-                    <svg width="24" height="24" fill="none" stroke="var(--togo-jaune)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <span style="font-weight:700; color:var(--text-dark); font-size:0.9rem;">Action Requise</span>
-                </div>
-
-                <div class="glass-card">
-                    <div style="font-family:'Outfit', sans-serif; font-weight:800; font-size:1.2rem; margin-bottom:1.5rem; color:var(--text-dark);">Flux de travail</div>
-                    <div class="stat-group">
-                        <div class="stat-item">
-                            <div class="stat-icon si-vert">
-                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                            </div>
-                            <div class="stat-info"><div class="stat-line-1"></div><div class="stat-line-2"></div></div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-icon si-jaune">
-                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                            </div>
-                            <div class="stat-info"><div class="stat-line-1" style="width:85%;"></div><div class="stat-line-2" style="width:60%;"></div></div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-icon si-rouge">
-                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            </div>
-                            <div class="stat-info"><div class="stat-line-1" style="width:60%;"></div><div class="stat-line-2" style="width:30%;"></div></div>
-                        </div>
-                    </div>
-                </div>
+    <main>
+        <div class="hero-container">
+            <h1 class="hero-title">Gestion Électronique des Courriers</h1>
+            <p class="hero-desc">
+                Plateforme centrale du Ministère pour le traitement, le suivi et l'archivage sécurisé des correspondances et dossiers administratifs.
+            </p>
+            <div>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="btn-primary">
+                        Accéder au tableau de bord
+                    </a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn-primary">
+                        Se connecter à la plateforme
+                    </a>
+                {% endif %}
             </div>
         </div>
     </main>
 
-    <!-- Transition drapeau togolais discret -->
-    <div class="color-stripe">
-        <span class="stripe-v"></span><span class="stripe-j"></span><span class="stripe-r"></span><span class="stripe-v"></span><span class="stripe-j"></span>
-    </div>
-
     <!-- Features -->
     <section class="features">
-        <div class="section-header">
-            <h2 class="section-title">Pourquoi utiliser GEC MTCA ?</h2>
-            <p class="section-sub">Un outil moderne pensé pour l'administration publique, optimisant chaque étape du traitement documentaire.</p>
-        </div>
-
         <div class="features-grid">
-            <div class="f-card fc-1">
-                <div class="f-icon-wrap fic-1">
-                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-vert">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-                <h3 class="f-title">Suivi & Traçabilité</h3>
-                <p class="f-desc">Ne perdez plus la trace d'un document. Suivez en temps réel son parcours : du Secrétariat au Cabinet, jusqu'à la décision finale du Ministre.</p>
+                <h3 class="f-title">Traçabilité Intégrale</h3>
+                <p class="f-desc">Chaque étape du traitement d'un courrier est enregistrée. Les responsables peuvent suivre l'avancement d'un dossier en temps réel.</p>
             </div>
 
-            <div class="f-card fc-2">
-                <div class="f-icon-wrap fic-2">
-                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-jaune">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <h3 class="f-title">Confidentialité Assurée</h3>
-                <p class="f-desc">L'accès aux courriers est strictement limité par le rôle de l'utilisateur. Seules les personnes affectées peuvent consulter et traiter les documents sensibles.</p>
+                <h3 class="f-title">Confidentialité</h3>
+                <p class="f-desc">Un contrôle d'accès strict garantit que seules les autorités compétentes (Ministre, Directeur de Cabinet, etc.) consultent les dossiers sensibles.</p>
             </div>
 
-            <div class="f-card fc-3">
-                <div class="f-icon-wrap fic-3">
-                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-rouge">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <h3 class="f-title">Efficacité Accélérée</h3>
-                <p class="f-desc">Grâce à la dématérialisation (fiches d'analyse virtuelles, affectations directes), le traitement des dossiers urgents se fait en quelques clics.</p>
+                <h3 class="f-title">Efficacité Administrative</h3>
+                <p class="f-desc">Réduisez les délais grâce à la transmission numérique immédiate des fiches d'analyse et des décisions ministérielles.</p>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2026 <strong>Ministère du Tourisme, de la Culture et des Arts</strong> — République Togolaise. Tous droits réservés.</p>
+        <p>&copy; 2026 Ministère du Tourisme, de la Culture et des Arts — République Togolaise.</p>
     </footer>
 
 </body>
