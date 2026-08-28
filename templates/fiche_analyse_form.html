@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .info-card { background: #fff; padding: 25px; border-radius: var(--radius-md); border-left: 5px solid var(--primary-color); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .form-card { background: #fff; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; }
+    .btn-validate { padding: 12px 25px; background: var(--secondary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block page_title %}Fiche d'Analyse{% endblock %}
+
+{% block content %}
+<div class="info-card">
+    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Détails du Courrier</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <p><strong>Référence :</strong> {{ object.courrier.reference }}</p>
+        <p><strong>Date d'arrivée :</strong> {{ object.courrier.date_arrivee|date:"d/m/Y H:i" }}</p>
+        <p style="grid-column: span 2;"><strong>Résumé :</strong> {{ object.courrier.resume }}</p>
+    </div>
+</div>
+
+<form method="post" class="form-card">
+    {% csrf_token %}
+    <h3 style="margin-bottom: 1.5rem;">Saisie des Observations & Propositions</h3>
+    {% for field in form %}
+        <div class="form-group">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">{{ field.label }}</label>
+            {{ field }}
+        </div>
+    {% endfor %}
+    <button type="submit" class="btn-validate">Valider l'analyse</button>
+</form>
+{% endblock %}

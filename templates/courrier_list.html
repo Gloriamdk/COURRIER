@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Liste des Courriers{% endblock %}
+
+{% block content %}
+<div class="card" style="background: white; padding: 20px; border-radius: 8px;">
+    <a href="{% url 'courrier_nouveau' %}" style="padding: 10px 15px; background: var(--secondary-color); color: white; text-decoration: none; border-radius: 4px;">Nouveau Courrier</a>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead>
+            <tr style="border-bottom: 1px solid #eee;">
+                <th style="text-align: left; padding: 10px;">Référence</th>
+                <th style="text-align: left; padding: 10px;">Désignation</th>
+                <th style="text-align: left; padding: 10px;">Expéditeur</th>
+                <th style="text-align: left; padding: 10px;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in courriers %}
+            <tr>
+                <td style="padding: 10px;">{{ c.reference }}</td>
+                <td style="padding: 10px;">{{ c.designation }}</td>
+                <td style="padding: 10px;">{{ c.expediteur_nom }}</td>
+                <td style="padding: 10px;"><a href="{% url 'courrier_detail' c.pk %}">Voir</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="padding: 10px;">Aucun courrier trouvé.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

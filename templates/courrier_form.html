@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .form-group { margin-bottom: 1rem; }
+    .form-control { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+    .btn-save { padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block page_title %}Enregistrer un nouveau courrier{% endblock %}
+
+{% block content %}
+<form method="post" style="background: white; padding: 20px; border-radius: 8px;">
+    {% csrf_token %}
+    {% if form.errors %}
+        <div style="color: var(--danger-color); margin-bottom: 15px; padding: 10px; border: 1px solid var(--danger-color); border-radius: var(--radius-sm);">
+            <p>Veuillez corriger les erreurs suivantes :</p>
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    
+    {% for field in form %}
+        <div class="form-group">
+            <label>{{ field.label }}</label>
+            {{ field }}
+        </div>
+    {% endfor %}
+    
+    <button type="submit" class="btn-save">Enregistrer</button>
+</form>
+{% endblock %}

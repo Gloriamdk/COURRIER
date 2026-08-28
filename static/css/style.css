@@ -1,0 +1,174 @@
+/* 
+   Style global - Gestion Électronique des Courriers (Ministère)
+   Fait en Vanilla CSS moderne (Variables, Flexbox, Grid)
+*/
+
+:root {
+    /* Palette administrative & élégante */
+    --primary-color: #1e3a8a;      /* Bleu foncé royal */
+    --primary-hover: #172554;
+    --secondary-color: #0d9488;    /* Vert d'eau / Sarcelle pour les actions de validation */
+    --secondary-hover: #0f766e;
+    --danger-color: #be123c;       /* Rouge bordeaux pour les urgences/erreurs */
+    --warning-color: #b45309;      /* Ambre pour les alertes */
+    --success-color: #15803d;      /* Vert pour les validations */
+    
+    /* Couleurs de fond et de neutres */
+    --bg-main: #f8fafc;            /* Gris très clair */
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;       /* Gris de bordure */
+    --text-primary: #1e293b;       /* Gris charbon pour lisibilité */
+    --text-muted: #64748b;        /* Gris moyen pour textes secondaires */
+    --sidebar-width: 260px;
+    
+    /* Ombres et arrondis */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Layout structural de l'application */
+#app-container {
+    display: flex;
+    width: 100%;
+}
+
+/* Barre latérale (Sidebar) */
+aside.sidebar {
+    width: var(--sidebar-width);
+    background-color: #0f172a; /* Bleu nuit ardoise */
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #1e293b;
+    text-align: center;
+}
+
+.sidebar-header h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 1rem 0;
+    flex-grow: 1;
+}
+
+.sidebar-item a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.sidebar-item a:hover, .sidebar-item.active a {
+    background-color: #1e293b;
+    color: #ffffff;
+    border-left: 4px solid var(--secondary-color);
+}
+
+/* Zone principale de contenu */
+main.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* Barre d'en-tête (Navbar) */
+header.top-navbar {
+    background-color: var(--bg-card);
+    height: 60px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-role {
+    font-size: 0.8rem;
+    background-color: #eff6ff;
+    color: var(--primary-color);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+}
+
+/* Conteneur principal */
+.container {
+    padding: 2rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Alertes & Messages de notification flash */
+.messages-container {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+}
+
+.alert-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.alert-error, .alert-danger {
+    background-color: #ffe4e6;
+    color: #b91c1c;
+    border: 1px solid #fecdd3;
+}
+
+/* Footer administratif */
+footer.main-footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+}

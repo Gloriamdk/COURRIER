@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Détail du Courrier: {{ courrier.reference }}{% endblock %}
+
+{% block content %}
+<div class="card" style="background: white; padding: 20px; border-radius: 8px;">
+    <h3>Informations</h3>
+    <p><strong>Référence :</strong> {{ courrier.reference }}</p>
+    <p><strong>Désignation :</strong> {{ courrier.designation }}</p>
+    <p><strong>Expéditeur :</strong> {{ courrier.expediteur_nom }} ({{ courrier.expediteur_institution }})</p>
+    <p><strong>Résumé :</strong> {{ courrier.resume }}</p>
+    
+    {% if request.user.role == 'DC' and not courrier.fiche_analyse %}
+        <br>
+        <a href="{% url 'fiche_nouveau' courrier.pk %}" style="padding: 10px 15px; background: var(--secondary-color); color: white; text-decoration: none; border-radius: 4px;">Rédiger fiche d'analyse</a>
+    {% endif %}
+
+    {% if request.user.role == 'MINISTRE' and courrier.fiche_analyse and not courrier.decision %}
+        <br>
+        <a href="{% url 'decision_nouveau' courrier.pk %}" style="padding: 10px 15px; background: var(--primary-color); color: white; text-decoration: none; border-radius: 4px;">Prendre une décision</a>
+    {% endif %}
+</div>
+{% endblock %}
