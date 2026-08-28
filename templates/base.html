@@ -4,98 +4,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Gestion des Courriers - Ministère{% endblock %}</title>
-    
-    <!-- Google Fonts - Inter -->
+    <meta name="description" content="Système de Gestion Électronique des Courriers — Ministère de la Culture, du Tourisme et de l'Artisanat">
+    <title>{% block title %}GEC — Gestion des Courriers{% endblock %} | MCTA</title>
+
+    <!-- Google Fonts — Inter (typographie moderne et lisible) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- CSS Principal -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-    <div id="app-container">
-        <!-- Barre latérale (Sidebar) -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1>GEC-MINISTÈRE</h1>
-            </div>
-            
-            <nav class="sidebar-menu">
-                <ul>
-                    <li class="sidebar-item">
-                        <a href="{% url 'dashboard' %}">Tableau de bord</a>
-                    </li>
-                    
-                    {% if user.role == 'SECRETARIAT_CENTRAL' %}
-                    <li class="sidebar-item">
-                        <a href="{% url 'courrier_nouveau' %}">Enregistrer un Courrier</a>
-                    </li>
-                    {% endif %}
-                    
-                    <li class="sidebar-item">
-                        <a href="{% url 'courrier_liste' %}">Tous les Courriers</a>
-                    </li>
-                </ul>
-            </nav>
-            
-            <div class="sidebar-footer" style="padding: 1rem; font-size: 0.8rem; border-top: 1px solid #1e293b;">
-                <strong>{{ user.first_name }} {{ user.last_name }}</strong><br>
-                <span class="user-role">{{ user.get_role_display }}</span>
-                <br><br>
-                <a href="{% url 'logout' %}" style="color: #f87171; text-decoration: none;">Déconnexion</a>
-            </div>
-        </aside>
+<div id="app-container">
 
-        <!-- Zone de contenu principale -->
-        <main class="main-content">
-            <!-- Barre de navigation haute -->
-            <header class="top-navbar">
-                <div class="navbar-left">
-                    <h2 style="font-size: 1.1rem; font-weight: 600;">{% block page_title %}Accueil{% endblock %}</h2>
-                </div>
-                
-                <div class="navbar-right">
-                    <div class="user-profile">
-                        <span class="user-role">ADMIN</span>
-                        <a href="#" style="text-decoration: none; color: var(--primary-color); font-weight: 500;">Déconnexion</a>
-                    </div>
-                </div>
-            </header>
+    <!-- ===== BARRE LATÉRALE (SIDEBAR) ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">GEC</div>
+            <h1 class="sidebar-title">GEC-MCTA</h1>
+            <p class="sidebar-subtitle">Gestion des Courriers</p>
+        </div>
 
-            <!-- Conteneur de messages Django (Alertes) -->
-            <div class="container" style="padding-bottom: 0;">
-                {% if messages %}
-                    <div class="messages-container">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">
-                                {{ message }}
-                                <span class="close-alert" style="cursor:pointer;">&times;</span>
-                            </div>
-                        {% endfor %}
-                    </div>
+        <nav class="sidebar-menu" aria-label="Navigation principale">
+            <ul>
+                <!-- Tableau de bord — accessible à tous -->
+                <li class="sidebar-item {% block nav_dashboard %}{% endblock %}">
+                    <a href="{% url 'dashboard' %}" id="nav-dashboard">
+                        <span class="nav-icon"></span>
+                        <span>Tableau de bord</span>
+                        {% if nb_notifications > 0 %}
+                            <span class="notif-badge">{{ nb_notifications }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+
+                <!-- Secrétariat Central -->
+                {% if user.role == 'SECRETARIAT_CENTRAL' %}
+                <li class="sidebar-item {% block nav_nouveau %}{% endblock %}">
+                    <a href="{% url 'courrier_nouveau' %}" id="nav-courrier-nouveau">
+                        <span class="nav-icon"></span>
+                        <span>Enregistrer un courrier</span>
+                    </a>
+                </li>
                 {% endif %}
+
+                <!-- Tous les courriers accessibles -->
+                <li class="sidebar-item {% block nav_liste %}{% endblock %}">
+                    <a href="{% url 'courrier_liste' %}" id="nav-courrier-liste">
+                        <span class="nav-icon"></span>
+                        <span>Tous les courriers</span>
+                    </a>
+                </li>
+
+                <!-- Section Administration (superuser) -->
+                {% if user.is_superuser %}
+                <li class="sidebar-section-title">Administration</li>
+                <li class="sidebar-item">
+                    <a href="{% url 'admin:index' %}" id="nav-admin" target="_blank">
+                        <span class="nav-icon"></span>
+                        <span>Administration</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <!-- Profil utilisateur en bas de la sidebar -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                </div>
+                <div class="user-info">
+                    <strong>{{ user.get_full_name|default:user.username }}</strong>
+                    <span class="user-role-text">{{ user.get_role_display }}</span>
+                    {% if user.service_direction %}
+                        <span class="user-service">{{ user.service_direction }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn" id="btn-logout">
+                <span></span> Déconnexion
+            </a>
+        </div>
+    </aside>
+
+    <!-- ===== ZONE DE CONTENU PRINCIPALE ===== -->
+    <main class="main-content">
+
+        <!-- Barre de navigation haute -->
+        <header class="top-navbar">
+            <div class="navbar-left">
+                <button class="sidebar-toggle" id="btn-sidebar-toggle" aria-label="Ouvrir/fermer le menu"></button>
+                <h2 class="page-title">{% block page_title %}Accueil{% endblock %}</h2>
             </div>
 
-            <!-- Contenu spécifique à chaque page -->
-            <div class="container">
-                {% block content %}
-                {% endblock %}
+            <div class="navbar-right">
+                <!-- Badge notifications cliquable -->
+                <div class="notif-dropdown" id="notif-dropdown">
+                    <button class="notif-toggle" id="btn-notif-toggle" aria-label="Notifications">
+                        
+                        {% if nb_notifications > 0 %}
+                            <span class="notif-count" id="notif-count">{{ nb_notifications }}</span>
+                        {% endif %}
+                    </button>
+
+                    <div class="notif-panel" id="notif-panel" hidden>
+                        <div class="notif-panel-header">
+                            <strong>Notifications</strong>
+                            {% if nb_notifications > 0 %}
+                                <span class="notif-new">{{ nb_notifications }} nouvelle(s)</span>
+                            {% endif %}
+                        </div>
+                        <ul class="notif-list" id="notif-list">
+                            {% for notif in notifications_non_lues %}
+                            <li class="notif-item {% if not notif.lu %}notif-unread{% endif %}" data-notif-id="{{ notif.pk }}">
+                                <div class="notif-message">{{ notif.message }}</div>
+                                {% if notif.courrier %}
+                                <a href="{% url 'courrier_detail' notif.courrier.pk %}" class="notif-link">
+                                    Voir le courrier →
+                                </a>
+                                {% endif %}
+                                <small class="notif-date">{{ notif.date_notification|date:"d/m/Y H:i" }}</small>
+                            </li>
+                            {% empty %}
+                            <li class="notif-item notif-empty">Aucune nouvelle notification.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Info utilisateur dans la navbar -->
+                <div class="user-profile">
+                    <span class="user-role-badge">{{ user.get_role_display }}</span>
+                    <span class="user-name-nav">{{ user.get_full_name|default:user.username }}</span>
+                </div>
             </div>
+        </header>
 
-            <!-- Footer -->
-            <footer class="main-footer">
-                &copy; 2026 Ministère - Système de Gestion Électronique des Courriers (GEC)
-            </footer>
-        </main>
-    </div>
+        <!-- Messages Django (alertes flash) -->
+        {% if messages %}
+        <div class="messages-container" role="alert" aria-live="polite">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <span>{{ message }}</span>
+                <button class="close-alert" aria-label="Fermer">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
-    <!-- JS Principal -->
-    <script src="{% static 'js/main.js' %}"></script>
-    {% block extra_js %}{% endblock %}
+        <!-- Contenu spécifique à chaque page -->
+        <div class="container">
+            {% block content %}
+            {% endblock %}
+        </div>
+
+        <!-- Footer administratif -->
+        <footer class="main-footer">
+            &copy; 2026 Ministère de la Culture, du Tourisme et de l'Artisanat — Système GEC v1.0
+        </footer>
+    </main>
+</div>
+
+<!-- JS Principal -->
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+
 </body>
 </html>

@@ -12,8 +12,8 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Courrier)
 class CourrierAdmin(admin.ModelAdmin):
-    list_display = ('reference', 'designation', 'expediteur_nom', 'confidentialite', 'statut', 'date_arrivee')
-    list_filter = ('confidentialite', 'statut')
+    list_display = ('reference', 'designation', 'expediteur_nom', 'statut', 'date_arrivee')
+    list_filter = ('statut',)
     search_fields = ('reference', 'designation', 'expediteur_nom', 'expediteur_institution')
 
 @admin.register(Document)

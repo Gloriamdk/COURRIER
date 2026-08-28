@@ -1,23 +1,304 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Détail du Courrier: {{ courrier.reference }}{% endblock %}
+{% block title %}{{ courrier.reference }} — Détail{% endblock %}
+{% block page_title %}Détail du courrier{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .card { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 24px; margin-bottom: 20px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .field-group { margin-bottom: 16px; }
+    .field-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 4px; }
+    .field-value { font-size: 0.95rem; color: var(--text-primary); }
+
+    .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block; }
+    .status-ARRIVE { background: #eff6ff; color: #1e40af; }
+    .status-EN_COURS_DC { background: #fefce8; color: #713f12; }
+    .status-ANALYSE_VALIDE { background: #f0fdf4; color: #166534; }
+    .status-DECIDE { background: #faf5ff; color: #6b21a8; }
+    .status-AFFECTE { background: #fff7ed; color: #c2410c; }
+    .status-TERMINE { background: #dcfce7; color: #166534; }
+
+    .priority-badge { padding: 4px 12px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
+    .priority-NORMAL { background: #f1f5f9; color: #475569; }
+    .priority-URGENT { background: #fffbeb; color: #b45309; }
+    .priority-TRES_URGENT { background: #fef2f2; color: #b91c1c; }
+
+    .doc-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8fafc; border-radius: var(--radius-sm); margin-bottom: 10px; border: 1px solid var(--border-color); }
+    .doc-item a { color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+    .doc-item a:hover { text-decoration: underline; }
+    .doc-size { font-size: 0.8rem; color: var(--text-muted); }
+
+    .workflow-section { background: #f0fdf4; border-left: 4px solid var(--secondary-color); padding: 16px 20px; border-radius: var(--radius-sm); margin-bottom: 15px; }
+    .decision-section { background: #faf5ff; border-left: 4px solid #7c3aed; padding: 16px 20px; border-radius: var(--radius-sm); margin-bottom: 15px; }
+
+    .history-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+    .history-item:last-child { border-bottom: none; }
+    .history-dot { width: 36px; height: 36px; border-radius: 50%; background: #eff6ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
+    .history-action { font-weight: 700; font-size: 0.85rem; color: var(--primary-color); }
+    .history-desc { font-size: 0.85rem; color: var(--text-primary); margin-top: 3px; }
+    .history-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+    .affectation-item { padding: 12px 16px; background: #fff7ed; border-radius: var(--radius-sm); margin-bottom: 10px; border-left: 3px solid #f97316; }
+    .affectation-status { font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .statut-RECU { background: #dbeafe; color: #1e40af; }
+    .statut-EN_COURS { background: #fefce8; color: #713f12; }
+    .statut-TRAITE { background: #dcfce7; color: #166534; }
+
+    .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .btn { padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-block; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary-color); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--secondary-color); color: white; }
+    .btn-success:hover { background: var(--secondary-hover); }
+    .btn-danger { background: var(--danger-color); color: white; }
+    .btn-danger:hover { background: #9f1239; }
+    .btn-warning { background: var(--warning-color); color: white; }
+    .btn-back { background: #f1f5f9; color: var(--text-primary); }
+    .btn-back:hover { background: #e2e8f0; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card" style="background: white; padding: 20px; border-radius: 8px;">
-    <h3>Informations</h3>
-    <p><strong>Référence :</strong> {{ courrier.reference }}</p>
-    <p><strong>Désignation :</strong> {{ courrier.designation }}</p>
-    <p><strong>Expéditeur :</strong> {{ courrier.expediteur_nom }} ({{ courrier.expediteur_institution }})</p>
-    <p><strong>Résumé :</strong> {{ courrier.resume }}</p>
-    
-    {% if request.user.role == 'DC' and not courrier.fiche_analyse %}
-        <br>
-        <a href="{% url 'fiche_nouveau' courrier.pk %}" style="padding: 10px 15px; background: var(--secondary-color); color: white; text-decoration: none; border-radius: 4px;">Rédiger fiche d'analyse</a>
-    {% endif %}
 
-    {% if request.user.role == 'MINISTRE' and courrier.fiche_analyse and not courrier.decision %}
-        <br>
-        <a href="{% url 'decision_nouveau' courrier.pk %}" style="padding: 10px 15px; background: var(--primary-color); color: white; text-decoration: none; border-radius: 4px;">Prendre une décision</a>
-    {% endif %}
+<!-- En-tête du courrier -->
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 4px;">{{ courrier.reference }}</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">{{ courrier.designation }}</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="status-badge status-{{ courrier.statut }}">{{ courrier.get_statut_display }}</span>
+        <span class="priority-badge priority-{{ courrier.priorite }}">{{ courrier.get_priorite_display }}</span>
+        <a href="{% url 'courrier_liste' %}" class="btn btn-back" id="btn-retour-liste">← Retour</a>
+    </div>
 </div>
+
+<div class="detail-grid">
+
+    <!-- Colonne principale -->
+    <div>
+
+        <!-- Informations du courrier -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Informations</span>
+                <small style="color: var(--text-muted);">Enregistré le {{ courrier.date_enregistrement|date:"d/m/Y à H:i" }}</small>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="field-group">
+                    <span class="field-label">Date d'arrivée</span>
+                    <span class="field-value">{{ courrier.date_arrivee|date:"d/m/Y à H:i" }}</span>
+                </div>
+                <div class="field-group">
+                    <span class="field-label">Expéditeur</span>
+                    <span class="field-value">
+                        <strong>{{ courrier.expediteur_nom }}</strong>
+                        {% if courrier.expediteur_institution %}<br>{{ courrier.expediteur_institution }}{% endif %}
+                        {% if courrier.expediteur_telephone %}<br>{{ courrier.expediteur_telephone }}{% endif %}
+                    </span>
+                </div>
+                <div class="field-group">
+                    <span class="field-label">Enregistré par</span>
+                    <span class="field-value">{{ courrier.cree_par.get_full_name|default:courrier.cree_par.username }}</span>
+                </div>
+
+                {% if courrier.resume %}
+                <div class="field-group" style="grid-column: span 2;">
+                    <span class="field-label">Résumé analytique</span>
+                    <div style="background: #f8fafc; padding: 14px; border-radius: var(--radius-sm); font-size: 0.9rem; line-height: 1.6;">
+                        {{ courrier.resume|linebreaksbr }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Fiche d'analyse du DC -->
+        {% if fiche_analyse %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Analyse du Directeur de Cabinet</span>
+                <small style="color: var(--text-muted);">
+                    {{ fiche_analyse.analyse_par.get_full_name }} — {{ fiche_analyse.date_analyse|date:"d/m/Y" }}
+                    {% if fiche_analyse.valide %}
+                        <span style="color: var(--success-color); font-weight: 700; margin-left: 6px;"> Validée</span>
+                    {% else %}
+                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation</span>
+                    {% endif %}
+                </small>
+            </div>
+            <div class="workflow-section">
+                {% if fiche_analyse.observations_dc %}
+                <div class="field-group">
+                    <span class="field-label">Observations</span>
+                    <p class="field-value">{{ fiche_analyse.observations_dc|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if fiche_analyse.propositions_dc %}
+                <div class="field-group">
+                    <span class="field-label">Propositions</span>
+                    <p class="field-value">{{ fiche_analyse.propositions_dc|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if fiche_analyse.date_validation %}
+                <small style="color: var(--text-muted);">Validée le {{ fiche_analyse.date_validation|date:"d/m/Y à H:i" }}</small>
+                {% endif %}
+            </div>
+
+            <!-- Bouton valider la fiche (DC seulement) -->
+            {% if peut_valider_fiche %}
+            <form method="post" action="{% url 'fiche_valider' courrier.pk %}" style="margin-top: 16px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" id="btn-valider-fiche"
+                        onclick="return confirm('Confirmer la validation et la transmission au Ministre ?')">
+                     Valider et transmettre au Ministre
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Décision du Ministre -->
+        {% if decision %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">️ Décision du Ministre</span>
+                <small style="color: var(--text-muted);">
+                    {{ decision.signe_par.get_full_name }} — {{ decision.date_decision|date:"d/m/Y à H:i" }}
+                </small>
+            </div>
+            <div class="decision-section">
+                <span class="field-label">Instructions finales</span>
+                <p class="field-value" style="font-size: 1rem; line-height: 1.6;">{{ decision.instructions_finales|linebreaksbr }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Affectations -->
+        {% if affectations %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Affectations aux services</span>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">{{ affectations.count }} affectation(s)</span>
+            </div>
+            {% for aff in affectations %}
+            <div class="affectation-item" id="affectation-{{ aff.pk }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <strong>{{ aff.service_concerne }}</strong>
+                        <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.85rem;">
+                            → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
+                        </span>
+                    </div>
+                    <span class="affectation-status statut-{{ aff.statut_traitement }}">
+                        {{ aff.get_statut_traitement_display }}
+                    </span>
+                </div>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
+                    Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}
+                    {% if aff.note_traitement %}— {{ aff.note_traitement }}{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div><!-- /colonne principale -->
+
+    <!-- Colonne latérale : documents + actions + historique -->
+    <div>
+
+        <!-- Actions disponibles selon le rôle -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Actions</span>
+            </div>
+            <div class="action-buttons" style="flex-direction: column;">
+
+                {% if peut_analyser %}
+                <a href="{% url 'fiche_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
+                     Rédiger la fiche d'analyse
+                </a>
+                {% endif %}
+
+                {% if peut_decider %}
+                <a href="{% url 'decision_nouveau' courrier.pk %}" class="btn btn-danger" id="btn-prendre-decision">
+                    ️ Prendre la décision
+                </a>
+                {% endif %}
+
+                {% if peut_affecter %}
+                <a href="{% url 'affectation_nouveau' courrier.pk %}" class="btn btn-warning" id="btn-affecter" style="background: var(--warning-color); color: white;">
+                     Affecter aux services
+                </a>
+                {% endif %}
+
+                {% if not peut_analyser and not peut_decider and not peut_affecter %}
+                <p style="font-size: 0.88rem; color: var(--text-muted); font-style: italic;">
+                    Aucune action disponible pour ce courrier à ce stade.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Documents joints -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Documents ({{ documents.count }})</span>
+            </div>
+            {% if documents %}
+            {% for doc in documents %}
+            <div class="doc-item">
+                <div>
+                    <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener" id="doc-{{ doc.pk }}">
+                         {{ doc.nom }}
+                    </a>
+                    {% if doc.taille_octets %}
+                    <br><span class="doc-size">{{ doc.taille_octets|filesizeformat }}</span>
+                    {% endif %}
+                </div>
+                <small style="color: var(--text-muted);">{{ doc.date_televersement|date:"d/m" }}</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 20px 0;">
+                Aucun document joint.
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Historique d'audit -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Historique ({{ historiques.count }})</span>
+            </div>
+            {% if historiques %}
+            {% for h in historiques %}
+            <div class="history-item">
+                <div class="history-dot">
+                    {{ h.action|slice:":2" }}
+                </div>
+                <div>
+                    <div class="history-action">{{ h.action }}</div>
+                    <div class="history-desc">{{ h.description|truncatechars:100 }}</div>
+                    <div class="history-meta">
+                        {{ h.utilisateur.get_full_name|default:h.utilisateur.username|default:"Système" }}
+                        — {{ h.date_action|date:"d/m/Y à H:i" }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="font-size: 0.88rem; color: var(--text-muted); text-align: center; padding: 20px 0; font-style: italic;">
+                Aucune action enregistrée.
+            </p>
+            {% endif %}
+        </div>
+
+    </div><!-- /colonne latérale -->
+</div><!-- /detail-grid -->
+
 {% endblock %}

@@ -1,38 +1,220 @@
 {% extends 'base.html' %}
 
+{% block title %}Enregistrer un courrier{% endblock %}
+{% block page_title %}Enregistrer un nouveau courrier{% endblock %}
+{% block nav_nouveau %}active{% endblock %}
+
 {% block extra_css %}
 <style>
-    .form-group { margin-bottom: 1rem; }
-    .form-control { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
-    .btn-save { padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+    .form-container { max-width: 900px; }
+    .form-card { background: white; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .form-section-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { margin-bottom: 0; }
+    .form-group.full { grid-column: span 2; }
+    .form-label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    .form-label .required { color: var(--danger-color); margin-left: 2px; }
+    .form-control { width: 100%; padding: 0.7rem 0.9rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; font-family: var(--font-sans); background: white; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
+    .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(30,58,138,0.1); }
+    .form-help { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+    .form-error { font-size: 0.8rem; color: var(--danger-color); margin-top: 4px; }
+    .error-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px; }
+    .error-summary h4 { color: var(--danger-color); font-size: 0.9rem; margin-bottom: 8px; }
+    .error-summary ul { padding-left: 20px; font-size: 0.85rem; color: var(--danger-color); }
+
+    /* Zone de dépôt du fichier */
+    .file-drop-zone { border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8fafc; }
+    .file-drop-zone:hover, .file-drop-zone.dragover { border-color: var(--primary-color); background: #eff6ff; }
+    .file-drop-zone .drop-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+    .file-drop-zone p { color: var(--text-muted); font-size: 0.88rem; }
+    .file-drop-zone input[type="file"] { display: none; }
+    .file-name-display { margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: var(--primary-color); display: none; }
+
+    /* Boutons du formulaire */
+    .form-actions { display: flex; align-items: center; gap: 12px; margin-top: 1.5rem; }
+    .btn-submit { padding: 12px 28px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 1rem; transition: all 0.2s; }
+    .btn-submit:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-cancel { padding: 12px 20px; background: #f1f5f9; color: var(--text-primary); border-radius: var(--radius-sm); text-decoration: none; font-weight: 600; font-size: 0.95rem; }
+    .btn-cancel:hover { background: #e2e8f0; }
+
+    /* Indicateurs de priorité */
+    select#id_priorite option[value="URGENT"] { color: #b45309; }
+    select#id_priorite option[value="TRES_URGENT"] { color: #b91c1c; font-weight: bold; }
 </style>
 {% endblock %}
 
-{% block page_title %}Enregistrer un nouveau courrier{% endblock %}
-
 {% block content %}
-<form method="post" style="background: white; padding: 20px; border-radius: 8px;">
-    {% csrf_token %}
+<div class="form-container">
+
     {% if form.errors %}
-        <div style="color: var(--danger-color); margin-bottom: 15px; padding: 10px; border: 1px solid var(--danger-color); border-radius: var(--radius-sm);">
-            <p>Veuillez corriger les erreurs suivantes :</p>
-            <ul>
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ field.label }}: {{ error }}</li>
-                    {% endfor %}
+    <div class="error-summary">
+        <h4> Veuillez corriger les erreurs suivantes :</h4>
+        <ul>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li>{{ field.label }} : {{ error }}</li>
                 {% endfor %}
-            </ul>
-        </div>
+            {% endfor %}
+        </ul>
+    </div>
     {% endif %}
-    
-    {% for field in form %}
-        <div class="form-group">
-            <label>{{ field.label }}</label>
-            {{ field }}
+
+    <form method="post" enctype="multipart/form-data" id="form-nouveau-courrier" novalidate>
+        {% csrf_token %}
+
+        <!-- Section 1 : Identification du courrier -->
+        <div class="form-card">
+            <p class="form-section-title"> Identification du courrier</p>
+            <div class="form-grid">
+
+                <div class="form-group full">
+                    <label class="form-label" for="{{ form.designation.id_for_label }}">
+                        {{ form.designation.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.designation }}
+                    {% if form.designation.errors %}
+                    <p class="form-error">{{ form.designation.errors.as_text }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="form-group full">
+                    <label class="form-label" for="{{ form.resume.id_for_label }}">{{ form.resume.label }}</label>
+                    {{ form.resume }}
+                    <p class="form-help">{{ form.resume.help_text }}</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.date_arrivee.id_for_label }}">
+                        {{ form.date_arrivee.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.date_arrivee }}
+                </div>
+
+
+            </div>
         </div>
-    {% endfor %}
-    
-    <button type="submit" class="btn-save">Enregistrer</button>
-</form>
+
+        <!-- Section 2 : Informations de l'expéditeur -->
+        <div class="form-card">
+            <p class="form-section-title"> Expéditeur</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.expediteur_nom.id_for_label }}">
+                        {{ form.expediteur_nom.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.expediteur_nom }}
+                    {% if form.expediteur_nom.errors %}
+                    <p class="form-error">{{ form.expediteur_nom.errors.as_text }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.expediteur_institution.id_for_label }}">
+                        {{ form.expediteur_institution.label }}
+                    </label>
+                    {{ form.expediteur_institution }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.expediteur_telephone.id_for_label }}">
+                        {{ form.expediteur_telephone.label }}
+                    </label>
+                    {{ form.expediteur_telephone }}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Section 3 : Classification -->
+        <div class="form-card">
+            <p class="form-section-title"> Classification</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.priorite.id_for_label }}">{{ form.priorite.label }}</label>
+                    {{ form.priorite }}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Section 4 : Document numérisé -->
+        <div class="form-card">
+            <p class="form-section-title"> Document numérisé</p>
+
+            <div class="file-drop-zone" id="file-drop-zone" onclick="document.getElementById('{{ form.fichier_scan.id_for_label }}').click()">
+                <span class="drop-icon"></span>
+                <p>Glissez-déposez votre fichier ici ou <strong>cliquez pour parcourir</strong></p>
+                <p style="font-size: 0.78rem; margin-top: 4px;">PDF, JPG, PNG — max 10 Mo</p>
+                {{ form.fichier_scan }}
+                <div class="file-name-display" id="file-name-display">
+                     Fichier sélectionné : <span id="file-name-text"></span>
+                </div>
+            </div>
+            {% if form.fichier_scan.errors %}
+            <p class="form-error">{{ form.fichier_scan.errors.as_text }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="form-actions">
+            <button type="submit" class="btn-submit" id="btn-enregistrer">
+                 Enregistrer le courrier
+            </button>
+            <a href="{% url 'courrier_liste' %}" class="btn-cancel">Annuler</a>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Afficher le nom du fichier sélectionné
+    const fileInput = document.getElementById('{{ form.fichier_scan.id_for_label }}');
+    const fileDisplay = document.getElementById('file-name-display');
+    const fileNameText = document.getElementById('file-name-text');
+    const dropZone = document.getElementById('file-drop-zone');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files.length > 0) {
+                const file = this.files[0];
+                fileNameText.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' Ko)';
+                fileDisplay.style.display = 'block';
+            }
+        });
+    }
+
+    // Drag & drop visuel sur la zone
+    if (dropZone) {
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', function () {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0 && fileInput) {
+                fileInput.files = e.dataTransfer.files;
+                const file = e.dataTransfer.files[0];
+                fileNameText.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' Ko)';
+                fileDisplay.style.display = 'block';
+            }
+        });
+    }
+
+    // Pré-remplir la date d'arrivée avec la date/heure actuelle
+    const dateInput = document.getElementById('id_date_arrivee');
+    if (dateInput && !dateInput.value) {
+        const now = new Date();
+        // Format attendu : YYYY-MM-DDTHH:MM
+        now.setSeconds(0, 0);
+        dateInput.value = now.toISOString().slice(0, 16);
+    }
+</script>
 {% endblock %}

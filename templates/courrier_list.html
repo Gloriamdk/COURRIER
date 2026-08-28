@@ -1,33 +1,174 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Liste des Courriers{% endblock %}
+{% block title %}Liste des Courriers{% endblock %}
+{% block page_title %}Tous les courriers{% endblock %}
+{% block nav_liste %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar { background: white; padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: 0.9rem; }
+    .filter-bar button { padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+    .filter-bar a { padding: 8px 14px; background: #f1f5f9; color: var(--text-muted); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; }
+
+    .table-card { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .table-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #f8fafc; }
+    th { padding: 12px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border-color); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-primary); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+    .status-ARRIVE { background: #eff6ff; color: #1e40af; }
+    .status-EN_COURS_DC { background: #fefce8; color: #713f12; }
+    .status-ANALYSE_VALIDE { background: #f0fdf4; color: #166534; }
+    .status-DECIDE { background: #faf5ff; color: #6b21a8; }
+    .status-AFFECTE { background: #fff7ed; color: #c2410c; }
+    .status-TERMINE { background: #f0fdf4; color: #166534; }
+
+    .priority-badge { padding: 3px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
+    .priority-NORMAL { background: #f1f5f9; color: #475569; }
+    .priority-URGENT { background: #fffbeb; color: #b45309; }
+    .priority-TRES_URGENT { background: #fef2f2; color: #b91c1c; }
+
+
+    .action-btn { padding: 5px 12px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.82rem; font-weight: 600; display: inline-block; transition: all 0.2s; }
+    .action-btn.primary { background: var(--primary-color); color: white; }
+    .action-btn.primary:hover { background: var(--primary-hover); }
+
+    .pagination { display: flex; justify-content: center; gap: 8px; padding: 20px; }
+    .pagination a, .pagination span { padding: 8px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; color: var(--text-primary); }
+    .pagination a:hover { background: #eff6ff; border-color: var(--primary-color); color: var(--primary-color); }
+    .pagination .current { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card" style="background: white; padding: 20px; border-radius: 8px;">
-    <a href="{% url 'courrier_nouveau' %}" style="padding: 10px 15px; background: var(--secondary-color); color: white; text-decoration: none; border-radius: 4px;">Nouveau Courrier</a>
-    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+
+<!-- Barre de filtres -->
+<form method="get" class="filter-bar" id="form-filtres">
+    <label style="font-weight: 600; font-size: 0.9rem; white-space: nowrap;">Filtrer par :</label>
+    <select name="statut" id="filter-statut">
+        <option value="">— Tous les statuts —</option>
+        {% for val, label in statuts %}
+        <option value="{{ val }}" {% if statut_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="priorite" id="filter-priorite">
+        <option value="">— Toutes les priorités —</option>
+        {% for val, label in priorites %}
+        <option value="{{ val }}" {% if priorite_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" id="btn-filtrer">Filtrer</button>
+    {% if statut_filter or priorite_filter %}
+    <a href="{% url 'courrier_liste' %}" id="btn-reset-filtres"> Réinitialiser</a>
+    {% endif %}
+</form>
+
+<!-- Tableau principal -->
+<div class="table-card">
+    <div class="table-header">
+        <div>
+            <h3 style="font-size: 1rem; font-weight: 600;">
+                Courriers
+                {% if statut_filter or priorite_filter %}<span style="color: var(--text-muted); font-weight: 400;">(filtrés)</span>{% endif %}
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                {{ page_obj.paginator.count }} courrier{% if page_obj.paginator.count > 1 %}s{% endif %} au total
+            </p>
+        </div>
+        {% if request.user.role == 'SECRETARIAT_CENTRAL' %}
+        <a href="{% url 'courrier_nouveau' %}" class="action-btn primary" id="btn-nouveau-courrier" style="font-size: 0.9rem; padding: 9px 18px;">
+            + Enregistrer un courrier
+        </a>
+        {% endif %}
+    </div>
+
+    {% if courriers %}
+    <table>
         <thead>
-            <tr style="border-bottom: 1px solid #eee;">
-                <th style="text-align: left; padding: 10px;">Référence</th>
-                <th style="text-align: left; padding: 10px;">Désignation</th>
-                <th style="text-align: left; padding: 10px;">Expéditeur</th>
-                <th style="text-align: left; padding: 10px;">Action</th>
+            <tr>
+                <th>Référence</th>
+                <th>Désignation / Objet</th>
+                <th>Expéditeur</th>
+                <th>Priorité</th>
+                <th>Statut</th>
+                <th>Date arrivée</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
             {% for c in courriers %}
-            <tr>
-                <td style="padding: 10px;">{{ c.reference }}</td>
-                <td style="padding: 10px;">{{ c.designation }}</td>
-                <td style="padding: 10px;">{{ c.expediteur_nom }}</td>
-                <td style="padding: 10px;"><a href="{% url 'courrier_detail' c.pk %}">Voir</a></td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" style="padding: 10px;">Aucun courrier trouvé.</td>
+            <tr id="row-courrier-{{ c.pk }}">
+                <td>
+                    <strong>{{ c.reference }}</strong>
+                </td>
+                <td style="max-width: 280px;">{{ c.designation|truncatechars:60 }}</td>
+                <td>
+                    <span>{{ c.expediteur_nom }}</span>
+                    {% if c.expediteur_institution %}
+                        <br><small style="color: var(--text-muted);">{{ c.expediteur_institution }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="priority-badge priority-{{ c.priorite }}">
+                        {{ c.get_priorite_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ c.statut }}">
+                        {{ c.get_statut_display }}
+                    </span>
+                </td>
+                <td style="white-space: nowrap;">{{ c.date_arrivee|date:"d/m/Y" }}<br><small style="color: var(--text-muted);">{{ c.date_arrivee|time:"H:i" }}</small></td>
+                <td>
+                    <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary" id="btn-detail-{{ c.pk }}">
+                        Consulter →
+                    </a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&statut={{ statut_filter }}&priorite={{ priorite_filter }}">&laquo; Préc.</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="current">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}&statut={{ statut_filter }}&priorite={{ priorite_filter }}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&statut={{ statut_filter }}&priorite={{ priorite_filter }}">Suiv. &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <span class="icon"></span>
+        <p style="font-size: 1rem; font-weight: 600; margin-bottom: 6px;">Aucun courrier trouvé</p>
+        <p style="font-size: 0.9rem;">
+            {% if statut_filter or priorite_filter %}
+                Aucun courrier ne correspond aux filtres sélectionnés.
+                <a href="{% url 'courrier_liste' %}">Réinitialiser les filtres</a>
+            {% else %}
+                Aucun courrier enregistré pour le moment.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
 </div>
+
 {% endblock %}

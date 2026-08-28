@@ -30,27 +30,10 @@ class CourrierModelsTestCase(TestCase):
             designation="Demande d'audience pour projet routier",
             resume="Demande d'audience formulée par l'entreprise XYZ.",
             expediteur_nom="Entreprise XYZ",
-            confidentialite=Courrier.Confidentialite.NORMAL,
             cree_par=self.sc
         )
 
-        self.courrier_confidentiel = Courrier.objects.create(
-            reference="CR-2026-002",
-            designation="Rapport trimestriel d'audit interne",
-            resume="Rapport contenant des données financières sensibles.",
-            expediteur_nom="Audit Interne",
-            confidentialite=Courrier.Confidentialite.CONFIDENTIEL,
-            cree_par=self.sc
-        )
 
-        self.courrier_tres_confidentiel = Courrier.objects.create(
-            reference="CR-2026-003",
-            designation="Note stratégique de défense nationale",
-            resume="Note confidentielle adressée uniquement au Ministre.",
-            expediteur_nom="Cabinet Militaire",
-            confidentialite=Courrier.Confidentialite.TRES_CONFIDENTIEL,
-            cree_par=self.sc
-        )
 
     def test_user_creation_and_roles(self):
         """Vérifie la bonne création des utilisateurs et l'attribution des rôles."""
@@ -60,23 +43,22 @@ class CourrierModelsTestCase(TestCase):
         self.assertEqual(self.dir_daf.service_direction, "DAF")
         self.assertTrue("Jean Dupont" in str(self.sc) or "sc_user" in str(self.sc))
 
-    def test_confidentiality_filters(self):
+    def test_role_filters(self):
         """
         Vérifie la sécurité ORM (Risque 1) : Les utilisateurs n'accèdent qu'aux
-        courriers autorisés par leur rôle et niveau de confidentialité.
+        courriers autorisés par leur rôle.
         """
-        # Ministre doit avoir accès à TOUT (3 courriers)
+        # Ministre doit avoir accès à TOUT (1 courrier)
         courriers_ministre = Courrier.objects.pour_utilisateur(self.ministre)
-        self.assertEqual(courriers_ministre.count(), 3)
+        self.assertEqual(courriers_ministre.count(), 1)
 
-        # DC doit avoir accès à TOUT (3 courriers)
+        # DC doit avoir accès à TOUT (1 courrier)
         courriers_dc = Courrier.objects.pour_utilisateur(self.dc)
-        self.assertEqual(courriers_dc.count(), 3)
+        self.assertEqual(courriers_dc.count(), 1)
 
-        # Secrétariat Central enregistre tout, mais n'accède pas aux Très Confidentiels (2 courriers)
+        # Secrétariat Central enregistre tout et accède à tout (1 courrier)
         courriers_sc = Courrier.objects.pour_utilisateur(self.sc)
-        self.assertEqual(courriers_sc.count(), 2)
-        self.assertNotIn(self.courrier_tres_confidentiel, courriers_sc)
+        self.assertEqual(courriers_sc.count(), 1)
 
         # Un Directeur d'un département non affecté n'accède à aucun courrier au début
         courriers_daf = Courrier.objects.pour_utilisateur(self.dir_daf)

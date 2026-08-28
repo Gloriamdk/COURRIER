@@ -125,18 +125,13 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (Scanned PDFs, attachments)
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
-# Email
+# Email — affichage console en développement (à remplacer par SMTP en production)
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.1/ref/settings/#default-auto-field

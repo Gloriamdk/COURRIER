@@ -55,23 +55,18 @@ class CourrierQuerySet(models.QuerySet):
         if user.is_superuser:
             return self
         
-        # Le Ministre et le DC ont un accès total
-        if user.role in [User.Role.MINISTRE, User.Role.DC]:
+        # Le Ministre, le DC et leurs secrétariats, ainsi que le Secrétariat Central ont un accès total
+        if user.role in [
+            User.Role.MINISTRE, User.Role.DC, 
+            User.Role.SECRETAIRE_MINISTRE, User.Role.SECRETAIRE_DC, 
+            User.Role.SECRETARIAT_CENTRAL
+        ]:
             return self
             
-        # Les secrétariats de cabinet ont accès à tout sauf très confidentiel
-        if user.role in [User.Role.SECRETAIRE_MINISTRE, User.Role.SECRETAIRE_DC]:
-            return self.exclude(confidentialite=Courrier.Confidentialite.TRES_CONFIDENTIEL)
-            
-        # Le Secrétariat central enregistre tout, mais n'accède pas aux courriers TRÈS CONFIDENTIELS
-        if user.role == User.Role.SECRETARIAT_CENTRAL:
-            return self.exclude(confidentialite=Courrier.Confidentialite.TRES_CONFIDENTIEL)
-            
         # Les directeurs et agents ne voient que les courriers qui leur sont explicitement affectés
-        # et dont le niveau de confidentialité est compatible.
         return self.filter(
             affectations__destinataire=user
-        ).exclude(confidentialite=Courrier.Confidentialite.TRES_CONFIDENTIEL).distinct()
+        ).distinct()
 
 
 class CourrierManager(models.Manager):
@@ -86,11 +81,6 @@ class Courrier(models.Model):
     """
     Modèle principal de gestion d'un courrier enregistré au Secrétariat Central.
     """
-    class Confidentialite(models.TextChoices):
-        NORMAL = 'NORMAL', 'Normal'
-        CONFIDENTIEL = 'CONFIDENTIEL', 'Confidentiel'
-        TRES_CONFIDENTIEL = 'TRES_CONFIDENTIEL', 'Très Confidentiel'
-
     class Statut(models.TextChoices):
         ARRIVE = 'ARRIVE', 'Enregistré (Secrétariat Central)'
         EN_COURS_DC = 'EN_COURS_DC', 'En cours d\'analyse (DC)'
@@ -127,18 +117,7 @@ class Courrier(models.Model):
         blank=True,
         verbose_name="Téléphone de l'expéditeur"
     )
-    destinataire_initial = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True,
-        verbose_name="Destinataire ou Orientation Initiale"
-    )
-    confidentialite = models.CharField(
-        max_length=50,
-        choices=Confidentialite.choices,
-        default=Confidentialite.NORMAL,
-        verbose_name="Niveau de Confidentialité"
-    )
+
     class Priorite(models.TextChoices):
         NORMAL = 'NORMAL', 'Normal'
         URGENT = 'URGENT', 'Urgent'
