@@ -9,419 +9,321 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            /* Couleurs Togo Premium */
-            --vert-togo: #006a4e;
-            --vert-togo-light: #008a66;
-            --jaune-togo: #ffce00;
-            --rouge-togo: #d21034;
+            /* Couleurs Officielles du Togo */
+            --togo-vert: #006a4e;
+            --togo-vert-light: #008a66;
+            --togo-jaune: #ffce00;
+            --togo-rouge: #d21034;
             
-            /* Thème */
-            --bg-dark: #06110e; /* Très sombre, légèrement vert */
-            --bg-card: rgba(255, 255, 255, 0.03);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-subtle: rgba(255, 255, 255, 0.08);
+            /* Couleurs structurelles (Light Mode) */
+            --bg-body: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --border-light: rgba(0, 106, 78, 0.1);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(0, 106, 78, 0.15), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(255, 206, 0, 0.08), transparent 25%);
+            position: relative;
+        }
+
+        /* ===== BACKGROUND BLOBS (Effet Premium Moderne) ===== */
+        .bg-shapes {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: moveBlob 15s infinite alternate ease-in-out;
+        }
+
+        .blob-1 {
+            width: 600px; height: 600px;
+            background: var(--togo-vert);
+            top: -100px; left: -100px;
+        }
+
+        .blob-2 {
+            width: 500px; height: 500px;
+            background: var(--togo-jaune);
+            bottom: -50px; right: 10%;
+            animation-delay: -5s;
+        }
+
+        .blob-3 {
+            width: 400px; height: 400px;
+            background: var(--togo-rouge);
+            top: 30%; left: 30%;
+            animation-delay: -10s;
+            opacity: 0.08;
+        }
+
+        @keyframes moveBlob {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 50px) scale(1.1); }
         }
 
         /* ===== HEADER GLASSMORPHISM ===== */
         header {
             position: fixed;
-            top: 0;
-            width: 100%;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            top: 0; width: 100%; height: 90px;
+            display: flex; align-items: center; justify-content: space-between;
             padding: 0 5%;
-            background: rgba(6, 17, 14, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
             z-index: 100;
         }
 
         .logo-group {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            display: flex; align-items: center; gap: 15px;
             text-decoration: none;
         }
 
-        .logo-img {
-            height: 48px;
-            width: auto;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+        .logo-img { height: 55px; width: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+        
+        /* Séparateur couleurs Togo pour le logo */
+        .logo-divider {
+            width: 3px; height: 40px;
+            background: linear-gradient(to bottom, var(--togo-vert) 33%, var(--togo-jaune) 33% 66%, var(--togo-rouge) 66%);
+            border-radius: 3px;
         }
 
-        .logo-texts {
-            display: flex;
-            flex-direction: column;
-        }
-
+        .logo-texts { display: flex; flex-direction: column; }
+        
         .logo-title {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 800;
-            font-size: 1.2rem;
-            color: #ffffff;
-            letter-spacing: 0.5px;
-            line-height: 1.2;
+            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem;
+            color: var(--togo-vert); line-height: 1.1;
         }
-
+        
         .logo-subtitle {
-            font-size: 0.7rem;
-            color: var(--vert-togo-light);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
+            font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1.5px;
         }
 
-        .btn-nav {
-            padding: 0.7rem 1.8rem;
+        .btn-header {
+            padding: 0.8rem 2rem;
             border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
+            font-weight: 700; font-size: 0.95rem;
+            text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid var(--togo-vert);
+            color: var(--togo-vert);
         }
 
-        .btn-outline {
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .btn-outline:hover {
-            background: white;
-            color: var(--bg-dark);
-        }
+        .btn-header:hover { background: var(--togo-vert); color: white; box-shadow: 0 10px 20px rgba(0, 106, 78, 0.2); }
 
         /* ===== HERO SECTION ===== */
         .hero {
-            margin-top: 80px; /* Pour le header fixe */
-            min-height: calc(100vh - 80px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem 5%;
-            position: relative;
+            margin-top: 90px;
+            min-height: calc(100vh - 90px);
+            display: flex; align-items: center; padding: 2rem 5% 5rem;
         }
 
         .hero-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            max-width: 1300px;
-            width: 100%;
-            align-items: center;
+            display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem;
+            max-width: 1400px; margin: 0 auto; width: 100%; align-items: center;
         }
 
         .hero-badge {
-            display: inline-block;
-            padding: 0.4rem 1.2rem;
-            background: rgba(0, 106, 78, 0.2);
-            border: 1px solid rgba(0, 106, 78, 0.4);
-            color: #4ade80;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 2rem;
-            box-shadow: 0 0 20px rgba(0, 106, 78, 0.2);
+            display: inline-block; padding: 0.5rem 1.2rem;
+            background: white; border-radius: 50px;
+            font-size: 0.8rem; font-weight: 700; color: var(--togo-vert);
+            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2rem;
+            box-shadow: 0 8px 20px rgba(0, 106, 78, 0.1);
+            border-left: 4px solid var(--togo-jaune);
         }
 
         .hero-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 3.8rem;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-family: 'Outfit', sans-serif; font-size: 4.2rem; font-weight: 900;
+            line-height: 1.05; margin-bottom: 1.5rem; color: var(--text-dark);
+        }
+        
+        .hero-title .highlight {
+            color: var(--togo-vert); position: relative; display: inline-block;
+        }
+        
+        .hero-title .highlight::after {
+            content: ''; position: absolute; left: 0; bottom: 4px; width: 100%; height: 8px;
+            background: var(--togo-jaune); z-index: -1; opacity: 0.6; border-radius: 4px;
         }
 
         .hero-desc {
-            font-size: 1.15rem;
-            color: var(--text-muted);
-            line-height: 1.7;
-            margin-bottom: 3rem;
-            max-width: 90%;
-            font-weight: 300;
-        }
-
-        .hero-actions {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
+            font-size: 1.15rem; color: var(--text-muted); line-height: 1.7;
+            margin-bottom: 3rem; font-weight: 400; max-width: 90%;
         }
 
         .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 1rem 2.5rem;
-            background: linear-gradient(135deg, var(--vert-togo) 0%, #004d38 100%);
-            color: white;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 1.05rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 106, 78, 0.4);
-            border: 1px solid rgba(255,255,255,0.1);
+            display: inline-flex; align-items: center; gap: 12px;
+            padding: 1.1rem 2.8rem; border-radius: 50px;
+            background: var(--togo-vert); color: white;
+            font-weight: 700; font-size: 1.1rem; text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 15px 30px rgba(0, 106, 78, 0.25);
+            border-bottom: 4px solid var(--togo-vert-light);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0, 106, 78, 0.6);
+        .btn-primary:active { border-bottom: 0px; transform: translateY(4px); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0, 106, 78, 0.35); }
+        .btn-primary svg { transition: transform 0.3s; }
+        .btn-primary:hover svg { transform: translateX(6px); }
+
+        /* ===== HERO VISUEL (DASHBOARD PREVIEW) ===== */
+        .hero-visual { position: relative; perspective: 1000px; }
+        
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.6);
+            border-radius: 24px; padding: 2.5rem;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+            transform: rotateY(-5deg) rotateX(5deg);
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        .btn-primary svg {
-            transition: transform 0.3s;
+        .glass-card:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-10px); }
+
+        .stat-group { display: flex; flex-direction: column; gap: 1.2rem; }
+        
+        .stat-item {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 1.2rem; background: white; border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+        
+        .stat-icon {
+            width: 45px; height: 45px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .btn-primary:hover svg {
-            transform: translateX(5px);
+        .si-vert { background: rgba(0, 106, 78, 0.1); color: var(--togo-vert); }
+        .si-jaune { background: rgba(255, 206, 0, 0.15); color: #c09200; }
+        .si-rouge { background: rgba(210, 16, 52, 0.1); color: var(--togo-rouge); }
+
+        .stat-info { flex: 1; }
+        .stat-line-1 { height: 10px; width: 70%; background: #e2e8f0; border-radius: 5px; margin-bottom: 8px; }
+        .stat-line-2 { height: 8px; width: 40%; background: #f1f5f9; border-radius: 5px; }
+
+        .floating-badge {
+            position: absolute; padding: 1rem; background: white;
+            border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 12px; z-index: 10;
+            border-left: 4px solid var(--togo-vert);
         }
 
-        /* ===== HERO VISUAL (MOCKUP ABSTRAIT) ===== */
-        .hero-visual {
-            position: relative;
-            height: 500px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        .fb-1 { top: -20px; right: -20px; animation: float 6s ease-in-out infinite; }
+        .fb-2 { bottom: -30px; left: -20px; animation: float 7s ease-in-out infinite reverse; border-left-color: var(--togo-jaune); }
 
-        .mockup-card {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0); } }
 
-        .mc-main {
-            width: 85%;
-            height: 380px;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        /* ===== SEPARATEUR DRAPEAU ===== */
+        .color-stripe {
+            display: flex; height: 10px; width: 100%;
         }
-
-        .mc-main:hover {
-            transform: translateY(-10px) scale(1.02);
-        }
-
-        .mc-skeleton-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 1rem;
-        }
-
-        .mc-line {
-            height: 12px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-        }
-
-        .mc-row {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: rgba(255,255,255,0.02);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.03);
-        }
-
-        .mc-circle {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--vert-togo);
-            opacity: 0.8;
-        }
-
-        .mc-float-1 {
-            width: 250px;
-            height: 120px;
-            right: -5%;
-            top: 10%;
-            z-index: 3;
-            background: linear-gradient(135deg, rgba(255, 206, 0, 0.1), rgba(255, 255, 255, 0.05));
-            border-left: 3px solid var(--jaune-togo);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .mc-float-2 {
-            width: 220px;
-            height: 100px;
-            left: -10%;
-            bottom: 15%;
-            z-index: 3;
-            background: linear-gradient(135deg, rgba(210, 16, 52, 0.1), rgba(255, 255, 255, 0.05));
-            border-left: 3px solid var(--rouge-togo);
-            animation: float 8s ease-in-out infinite reverse;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
-            100% { transform: translateY(0px); }
-        }
+        .color-stripe span { flex: 1; }
+        .stripe-v { background: var(--togo-vert); }
+        .stripe-j { background: var(--togo-jaune); }
+        .stripe-r { background: var(--togo-rouge); }
 
         /* ===== FEATURES SECTION ===== */
-        .features {
-            padding: 5rem 5%;
-            background: #040d0a;
-            border-top: 1px solid var(--border-subtle);
-            position: relative;
-        }
+        .features { padding: 6rem 5%; position: relative; z-index: 5; }
+
+        .section-header { text-align: center; margin-bottom: 4rem; }
+        .section-title { font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 1rem; }
+        .section-sub { font-size: 1.1rem; color: var(--text-muted); max-width: 600px; margin: 0 auto; }
 
         .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            max-width: 1300px;
-            margin: 0 auto;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; max-width: 1300px; margin: 0 auto;
         }
 
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            padding: 3rem 2.5rem;
+        .f-card {
+            background: white; border-radius: 24px; padding: 3rem 2.5rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.02);
             transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
+            position: relative; overflow: hidden;
         }
 
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent 50%);
-            opacity: 0;
-            transition: opacity 0.4s;
+        .f-card::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+        }
+        
+        .fc-1::after { background: var(--togo-vert); }
+        .fc-2::after { background: var(--togo-jaune); }
+        .fc-3::after { background: var(--togo-rouge); }
+
+        .f-card:hover { transform: translateY(-10px); box-shadow: 0 25px 50px rgba(0,0,0,0.08); }
+
+        .f-icon-wrap {
+            width: 70px; height: 70px; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 2rem; font-size: 1.8rem;
         }
 
-        .feature-card:hover {
-            transform: translateY(-8px);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
+        .fic-1 { background: rgba(0,106,78,0.1); color: var(--togo-vert); }
+        .fic-2 { background: rgba(255,206,0,0.15); color: #b48900; }
+        .fic-3 { background: rgba(210,16,52,0.1); color: var(--togo-rouge); }
 
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-
-        .f-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2rem;
-            font-size: 1.5rem;
-        }
-
-        .f-icon-vert { background: rgba(0, 106, 78, 0.2); color: #4ade80; }
-        .f-icon-jaune { background: rgba(255, 206, 0, 0.15); color: var(--jaune-togo); }
-        .f-icon-rouge { background: rgba(210, 16, 52, 0.15); color: #fb7185; }
-
-        .f-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: white;
-        }
-
-        .f-desc {
-            color: var(--text-muted);
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
+        .f-title { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-dark); }
+        .f-desc { color: var(--text-muted); line-height: 1.7; font-size: 1rem; }
 
         /* ===== FOOTER ===== */
         footer {
-            padding: 2.5rem 5%;
-            text-align: center;
-            border-top: 1px solid var(--border-subtle);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            background: #020705;
+            background: white; border-top: 1px solid var(--border-light);
+            padding: 3rem 5%; text-align: center; color: var(--text-muted); font-size: 0.9rem;
+            position: relative; z-index: 5;
         }
 
-        /* ===== RESPONSIVE ===== */
+        footer strong { color: var(--text-dark); }
+
         @media (max-width: 1024px) {
-            .hero-content {
-                grid-template-columns: 1fr;
-                text-align: center;
-                gap: 2rem;
-            }
-            .hero-desc {
-                margin: 0 auto 3rem;
-            }
-            .hero-actions {
-                justify-content: center;
-            }
-            .hero-visual {
-                display: none;
-            }
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
+            .hero-content { grid-template-columns: 1fr; text-align: center; }
+            .hero-badge { margin-left: auto; margin-right: auto; }
+            .hero-desc { margin: 0 auto 3rem; }
+            .hero-visual { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
         }
+        
         @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2.5rem;
-            }
+            .hero-title { font-size: 3rem; }
+            header { padding: 0 1rem; }
+            .logo-subtitle { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header Glassmorphism -->
+    <!-- Fond décoratif flouté -->
+    <div class="bg-shapes">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Header -->
     <header>
         <a href="/" class="logo-group">
             <img src="{% static 'images/Blason-rt.svg' %}" alt="Armoiries Togo" class="logo-img">
+            <div class="logo-divider"></div>
             <div class="logo-texts">
                 <span class="logo-title">GEC MTCA</span>
                 <span class="logo-subtitle">Gouvernement</span>
@@ -429,113 +331,120 @@
         </a>
         <div>
             {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="btn-nav btn-outline">Tableau de bord</a>
+                <a href="{% url 'dashboard' %}" class="btn-header">Mon espace</a>
             {% else %}
-                <a href="{% url 'login' %}" class="btn-nav btn-outline">Connexion</a>
+                <a href="{% url 'login' %}" class="btn-header">Connexion</a>
             {% endif %}
         </div>
     </header>
 
-    <!-- Hero Section Premium -->
+    <!-- Hero Section -->
     <main class="hero">
         <div class="hero-content">
             <div class="hero-text">
-                <div class="hero-badge">Système Administratif Sécurisé</div>
-                <h1 class="hero-title">Modernisez la gestion de vos courriers officiels</h1>
+                <div class="hero-badge">Plateforme Numérique de l'État</div>
+                <h1 class="hero-title">
+                    Gérez vos courriers avec <br><span class="highlight">rapidité et sécurité</span>
+                </h1>
                 <p class="hero-desc">
-                    GEC MTCA centralise et sécurise l'intégralité du traitement documentaire pour le Ministère du Tourisme, de la Culture et des Arts. Suivi en temps réel, zéro papier et prise de décision accélérée.
+                    La plateforme officielle de Gestion Électronique des Courriers (GEC) centralise tout le circuit de validation pour le Ministère du Tourisme, de la Culture et des Arts.
                 </p>
                 <div class="hero-actions">
                     {% if request.user.is_authenticated %}
                         <a href="{% url 'dashboard' %}" class="btn-primary">
-                            Accéder à mon espace
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            Accéder au tableau de bord
+                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </a>
                     {% else %}
                         <a href="{% url 'login' %}" class="btn-primary">
                             Se connecter au système
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </a>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Mockup abstrait (Wow factor) -->
+            <!-- Visuel Premium (Glassmorphism & Togolese accents) -->
             <div class="hero-visual">
-                <div class="mockup-card mc-main">
-                    <div class="mc-skeleton-header">
-                        <div class="mc-line" style="width: 120px;"></div>
-                        <div class="mc-line" style="width: 40px; background: rgba(74,222,128,0.3);"></div>
-                    </div>
-                    <div class="mc-row">
-                        <div class="mc-circle"></div>
-                        <div style="flex:1;">
-                            <div class="mc-line" style="width: 60%; margin-bottom: 8px;"></div>
-                            <div class="mc-line" style="width: 30%; height: 8px; opacity: 0.5;"></div>
-                        </div>
-                    </div>
-                    <div class="mc-row">
-                        <div class="mc-circle" style="background: var(--jaune-togo);"></div>
-                        <div style="flex:1;">
-                            <div class="mc-line" style="width: 80%; margin-bottom: 8px;"></div>
-                            <div class="mc-line" style="width: 40%; height: 8px; opacity: 0.5;"></div>
-                        </div>
-                    </div>
-                    <div class="mc-row">
-                        <div class="mc-circle" style="background: var(--rouge-togo);"></div>
-                        <div style="flex:1;">
-                            <div class="mc-line" style="width: 50%; margin-bottom: 8px;"></div>
-                            <div class="mc-line" style="width: 25%; height: 8px; opacity: 0.5;"></div>
-                        </div>
-                    </div>
+                
+                <div class="floating-badge fb-1">
+                    <svg width="24" height="24" fill="none" stroke="var(--togo-vert)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span style="font-weight:700; color:var(--text-dark); font-size:0.9rem;">Courrier Validé</span>
                 </div>
 
-                <!-- Floating elements -->
-                <div class="mockup-card mc-float-1">
-                    <div class="mc-line" style="width: 40px; background: rgba(255,206,0,0.5); margin-bottom: 15px;"></div>
-                    <div class="mc-line" style="width: 100%; margin-bottom: 8px;"></div>
-                    <div class="mc-line" style="width: 70%;"></div>
+                <div class="floating-badge fb-2">
+                    <svg width="24" height="24" fill="none" stroke="var(--togo-jaune)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span style="font-weight:700; color:var(--text-dark); font-size:0.9rem;">Action Requise</span>
                 </div>
 
-                <div class="mockup-card mc-float-2">
-                    <div class="mc-line" style="width: 40px; background: rgba(210,16,52,0.5); margin-bottom: 15px;"></div>
-                    <div class="mc-line" style="width: 80%; margin-bottom: 8px;"></div>
+                <div class="glass-card">
+                    <div style="font-family:'Outfit', sans-serif; font-weight:800; font-size:1.2rem; margin-bottom:1.5rem; color:var(--text-dark);">Flux de travail</div>
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-icon si-vert">
+                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            </div>
+                            <div class="stat-info"><div class="stat-line-1"></div><div class="stat-line-2"></div></div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon si-jaune">
+                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            </div>
+                            <div class="stat-info"><div class="stat-line-1" style="width:85%;"></div><div class="stat-line-2" style="width:60%;"></div></div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon si-rouge">
+                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <div class="stat-info"><div class="stat-line-1" style="width:60%;"></div><div class="stat-line-2" style="width:30%;"></div></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Features Section Premium -->
+    <!-- Transition drapeau togolais discret -->
+    <div class="color-stripe">
+        <span class="stripe-v"></span><span class="stripe-j"></span><span class="stripe-r"></span><span class="stripe-v"></span><span class="stripe-j"></span>
+    </div>
+
+    <!-- Features -->
     <section class="features">
+        <div class="section-header">
+            <h2 class="section-title">Pourquoi utiliser GEC MTCA ?</h2>
+            <p class="section-sub">Un outil moderne pensé pour l'administration publique, optimisant chaque étape du traitement documentaire.</p>
+        </div>
+
         <div class="features-grid">
-            <div class="feature-card">
-                <div class="f-icon f-icon-vert">
-                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="f-card fc-1">
+                <div class="f-icon-wrap fic-1">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <h3 class="f-title">Traçabilité Intégrale</h3>
-                <p class="f-desc">Chaque action sur un courrier est horodatée et archivée. Suivez le cheminement complet, du Secrétariat au Cabinet, en toute transparence.</p>
+                <h3 class="f-title">Suivi & Traçabilité</h3>
+                <p class="f-desc">Ne perdez plus la trace d'un document. Suivez en temps réel son parcours : du Secrétariat au Cabinet, jusqu'à la décision finale du Ministre.</p>
             </div>
 
-            <div class="feature-card">
-                <div class="f-icon f-icon-jaune">
-                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <div class="f-card fc-2">
+                <div class="f-icon-wrap fic-2">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <h3 class="f-title">Sécurité Accrue</h3>
-                <p class="f-desc">Un système de rôles strict assure que seules les personnes habilitées consultent et traitent les documents. Vos données sont cloisonnées et protégées.</p>
+                <h3 class="f-title">Confidentialité Assurée</h3>
+                <p class="f-desc">L'accès aux courriers est strictement limité par le rôle de l'utilisateur. Seules les personnes affectées peuvent consulter et traiter les documents sensibles.</p>
             </div>
 
-            <div class="feature-card">
-                <div class="f-icon f-icon-rouge">
-                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <div class="f-card fc-3">
+                <div class="f-icon-wrap fic-3">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <h3 class="f-title">Zéro Papier & Rapidité</h3>
-                <p class="f-desc">Éliminez les pertes de documents physiques. La numérisation permet une diffusion instantanée et des prises de décisions sans délai de transmission.</p>
+                <h3 class="f-title">Efficacité Accélérée</h3>
+                <p class="f-desc">Grâce à la dématérialisation (fiches d'analyse virtuelles, affectations directes), le traitement des dossiers urgents se fait en quelques clics.</p>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2026 Ministère du Tourisme, de la Culture et des Arts — République Togolaise.</p>
+        <p>&copy; 2026 <strong>Ministère du Tourisme, de la Culture et des Arts</strong> — République Togolaise. Tous droits réservés.</p>
     </footer>
 
 </body>
