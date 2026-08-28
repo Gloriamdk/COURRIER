@@ -1,41 +1,43 @@
 /*
-   Style global — Gestion Électronique des Courriers (GEC-MCTA)
-   Vanilla CSS moderne : Variables CSS, Flexbox, Grid, Animations
-   Palette administrative sobre, professionnelle et élégante
+   Style global — Gestion Electronique des Courriers (GEC-MTCA)
+   Charte graphique officielle — Republique Togolaise
+   Vert | Jaune | Rouge | Blanc
 */
 
 /* ============================================================
    1. VARIABLES GLOBALES (Design Tokens)
    ============================================================ */
 :root {
-    /* Palette principale */
-    --primary-color:   #1e3a8a;   /* Bleu royal foncé */
-    --primary-hover:   #172554;
-    --secondary-color: #0d9488;   /* Vert sarcelle — validation */
-    --secondary-hover: #0f766e;
-    --danger-color:    #be123c;   /* Rouge bordeaux — urgences */
-    --warning-color:   #b45309;   /* Ambre — alertes */
-    --success-color:   #15803d;   /* Vert — confirmations */
+    /* Palette Togo officielle */
+    --primary-color:   #006a4e;   /* Vert Togo */
+    --primary-hover:   #005a40;
+    --secondary-color: #006a4e;   /* Vert Togo */
+    --secondary-hover: #005a40;
+    --danger-color:    #d21034;   /* Rouge Togo */
+    --warning-color:   #c09200;   /* Jaune Togo foncé */
+    --success-color:   #006a4e;
+    --accent-yellow:   #ffce00;   /* Jaune Togo */
+    --accent-red:      #d21034;   /* Rouge Togo */
 
     /* Neutres et fonds */
-    --bg-main:    #f1f5f9;
+    --bg-main:    #f4f6f9;
     --bg-card:    #ffffff;
-    --border-color: #e2e8f0;
-    --text-primary: #1e293b;
-    --text-muted:   #64748b;
+    --border-color: #e0e7ef;
+    --text-primary: #1a2233;
+    --text-muted:   #52637a;
 
     /* Dimensions */
     --sidebar-width: 270px;
 
     /* Ombres */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 10px 24px rgba(0,0,0,0.1);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.09);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
 
     /* Arrondis */
-    --radius-sm: 5px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
 
     /* Typographie */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -74,7 +76,7 @@ body {
    ============================================================ */
 aside.sidebar {
     width: var(--sidebar-width);
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(180deg, #052b1f 0%, #0a4a33 100%);
     color: #f1f5f9;
     display: flex;
     flex-direction: column;
@@ -85,11 +87,12 @@ aside.sidebar {
     overflow-y: auto;
     z-index: 100;
     transition: width 0.3s ease;
+    border-right: 3px solid var(--accent-yellow);
 }
 
 .sidebar-header {
-    padding: 1.5rem 1.2rem;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255,206,0,0.15);
     text-align: center;
 }
 
@@ -155,9 +158,9 @@ aside.sidebar {
 
 .sidebar-item a:hover,
 .sidebar-item.active a {
-    background-color: rgba(255,255,255,0.07);
+    background-color: rgba(255,206,0,0.1);
     color: #ffffff;
-    border-left-color: var(--secondary-color);
+    border-left-color: var(--accent-yellow);
 }
 
 .nav-icon {
@@ -267,9 +270,9 @@ main.main-content {
    6. BARRE DE NAVIGATION HAUTE (top-navbar)
    ============================================================ */
 header.top-navbar {
-    background-color: var(--bg-card);
-    height: 62px;
-    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #f4f9f6, #fff);
+    height: 64px;
+    border-bottom: 2px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -318,7 +321,7 @@ header.top-navbar {
 
 .user-role-badge {
     font-size: 0.72rem;
-    background-color: #eff6ff;
+    background-color: #e8f5f0;
     color: var(--primary-color);
     padding: 3px 9px;
     border-radius: 20px;
@@ -499,6 +502,11 @@ footer.main-footer {
     padding: 24px;
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 /* Boutons globaux */
@@ -547,7 +555,7 @@ footer.main-footer {
 .form-control:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 106, 78, 0.12);
 }
 
 /* ============================================================
