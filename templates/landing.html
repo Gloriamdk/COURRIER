@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Plateforme officielle de Gestion Électronique des Courriers du Ministère de la Culture, du Tourisme et de l'Artisanat.">
-    <title>GEC — Ministère de la Culture, du Tourisme et de l'Artisanat</title>
+    <meta name="description" content="Plateforme officielle de Gestion Électronique des Courriers du Ministère du Tourisme, de la Culture et des Arts.">
+    <title>GEC — Ministère du Tourisme, de la Culture et des Arts</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,11 +14,12 @@
 
     <style>
         :root {
-            --primary: #1e3a8a;
-            --primary-light: #3b82f6;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --accent: #0ea5e9;
+            --primary: #006a4e; /* Vert Togo */
+            --primary-light: #008a66;
+            --dark: #1e293b;
+            --light: #ffffff;
+            --accent: #ffce00; /* Jaune Togo */
+            --danger: #d21034; /* Rouge Togo */
         }
 
         * {
@@ -43,8 +44,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 1.5rem 4rem;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: fixed;
             width: 100%;
             top: 0;
@@ -58,18 +59,9 @@
             gap: 1rem;
         }
 
-        .logo-badge {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        .logo-img {
+            height: 60px;
+            width: auto;
         }
 
         .logo-text {
@@ -77,7 +69,7 @@
             font-size: 1.2rem;
             font-weight: 700;
             letter-spacing: 0.5px;
-            color: #fff;
+            color: var(--primary);
         }
 
         .logo-sub {
@@ -85,26 +77,15 @@
             font-family: 'Inter', sans-serif;
             font-size: 0.7rem;
             font-weight: 400;
-            color: #94a3b8;
+            color: var(--danger);
             letter-spacing: 1px;
             text-transform: uppercase;
         }
 
         .nav-btn {
             padding: 0.7rem 1.8rem;
-            background: transparent;
+            background: var(--primary);
             color: #fff;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-btn:hover {
-            background: #fff;
-            color: var(--dark);
         }
 
         /* Hero Section */
@@ -126,7 +107,7 @@
             left: -10%;
             width: 50vw;
             height: 50vw;
-            background: radial-gradient(circle, rgba(30,58,138,0.15) 0%, rgba(15,23,42,0) 70%);
+            background: radial-gradient(circle, rgba(0,106,78,0.15) 0%, rgba(255,255,255,0) 70%);
             border-radius: 50%;
             z-index: 1;
             pointer-events: none;
@@ -138,7 +119,7 @@
             right: -10%;
             width: 60vw;
             height: 60vw;
-            background: radial-gradient(circle, rgba(14,165,233,0.1) 0%, rgba(15,23,42,0) 70%);
+            background: radial-gradient(circle, rgba(255,206,0,0.1) 0%, rgba(255,255,255,0) 70%);
             border-radius: 50%;
             z-index: 1;
             pointer-events: none;
@@ -169,14 +150,14 @@
             font-size: 4rem;
             line-height: 1.1;
             margin-bottom: 1.5rem;
-            background: linear-gradient(to right, #ffffff, #94a3b8);
+            background: linear-gradient(to right, var(--primary), var(--dark));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .hero-desc {
             font-size: 1.1rem;
-            color: #cbd5e1;
+            color: #475569;
             line-height: 1.6;
             margin-bottom: 3rem;
             max-width: 650px;
@@ -206,18 +187,17 @@
         .cta-primary {
             background: linear-gradient(135deg, var(--primary), var(--accent));
             color: white;
-            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.4);
+            box-shadow: 0 10px 25px rgba(0, 106, 78, 0.3);
         }
 
         .cta-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(14, 165, 233, 0.5);
+            box-shadow: 0 15px 35px rgba(0, 106, 78, 0.4);
         }
 
-        .cta-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #f1f5f9;
+            color: var(--primary);
+            border: 1px solid #cbd5e1;
         }
 
         .cta-secondary:hover {
@@ -237,8 +217,9 @@
         }
 
         .feature-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             padding: 2rem;
             border-radius: var(--radius-lg, 16px);
             text-align: left;
@@ -247,8 +228,8 @@
 
         .feature-card:hover {
             transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(255, 255, 255, 0.1);
+            background: #f8fafc;
+            border-color: #cbd5e1;
         }
 
         .feature-icon {
@@ -261,7 +242,7 @@
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 0.8rem;
-            color: #f1f5f9;
+            color: var(--dark);
         }
 
         .feature-desc {
@@ -298,9 +279,9 @@
 
     <header>
         <div class="logo-container">
-            <div class="logo-badge">GEC</div>
+            <img src="{% static 'images/Blason-rt.svg' %}" alt="Logo Gouvernement Togolais" class="logo-img">
             <div>
-                <div class="logo-text">GEC MCTA</div>
+                <div class="logo-text">GEC MTCA</div>
                 <span class="logo-sub">Gouvernement</span>
             </div>
         </div>
@@ -318,7 +299,7 @@
             <div class="badge-system">Système Sécurisé</div>
             <h1 class="hero-title">Modernisez la gestion de vos courriers</h1>
             <p class="hero-desc">
-                Une plateforme centralisée, sécurisée et intelligente conçue exclusivement pour le Ministère de la Culture, du Tourisme et de l'Artisanat. Suivez chaque document, de la réception à la décision finale.
+                Une plateforme centralisée, sécurisée et intelligente conçue exclusivement pour le Ministère du Tourisme, de la Culture et des Arts. Suivez chaque document, de la réception à la décision finale.
             </p>
             <div class="cta-container">
                 {% if request.user.is_authenticated %}
@@ -349,7 +330,7 @@
     </section>
 
     <footer>
-        &copy; 2026 Ministère de la Culture, du Tourisme et de l'Artisanat. Tous droits réservés.
+        &copy; 2026 Ministère du Tourisme, de la Culture et des Arts. Tous droits réservés.
     </footer>
 
 </body>
