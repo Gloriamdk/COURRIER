@@ -9,18 +9,22 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --vert: #006a4e;
-            --vert-hover: #005a40;
-            --jaune: #ffce00;
-            --rouge: #d21034;
-            --texte-principal: #1f2937;
-            --texte-secondaire: #4b5563;
-            --fond: #f9fafb;
-            --bordure: #e5e7eb;
+            /* Couleurs Togo Premium */
+            --vert-togo: #006a4e;
+            --vert-togo-light: #008a66;
+            --jaune-togo: #ffce00;
+            --rouge-togo: #d21034;
+            
+            /* Thème */
+            --bg-dark: #06110e; /* Très sombre, légèrement vert */
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-subtle: rgba(255, 255, 255, 0.08);
         }
 
         * {
@@ -31,279 +35,507 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--fond);
-            color: var(--texte-principal);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
-            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 106, 78, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 206, 0, 0.08), transparent 25%);
         }
 
-        /* En-tête (Header) */
+        /* ===== HEADER GLASSMORPHISM ===== */
         header {
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--bordure);
-            padding: 1rem 5%;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 80px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-top: 4px solid var(--vert); /* Accent de couleur subtil */
+            justify-content: space-between;
+            padding: 0 5%;
+            background: rgba(6, 17, 14, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            z-index: 100;
         }
 
-        .logo-container {
+        .logo-group {
             display: flex;
             align-items: center;
             gap: 1rem;
             text-decoration: none;
-            color: var(--texte-principal);
         }
 
         .logo-img {
-            height: 50px;
+            height: 48px;
             width: auto;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
         }
 
-        .logo-text-wrapper {
+        .logo-texts {
             display: flex;
             flex-direction: column;
         }
 
         .logo-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--vert);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #ffffff;
+            letter-spacing: 0.5px;
             line-height: 1.2;
         }
 
         .logo-subtitle {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--texte-secondaire);
+            font-size: 0.7rem;
+            color: var(--vert-togo-light);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 1px;
+            font-weight: 600;
         }
 
-        /* Bouton de connexion dans le header */
-        .btn-outline {
-            display: inline-block;
-            padding: 0.5rem 1.2rem;
-            border: 1px solid var(--vert);
-            color: var(--vert);
-            border-radius: 6px;
+        .btn-nav {
+            padding: 0.7rem 1.8rem;
+            border-radius: 50px;
             font-weight: 600;
             font-size: 0.9rem;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline {
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
         }
 
         .btn-outline:hover {
-            background-color: var(--vert);
-            color: white;
+            background: white;
+            color: var(--bg-dark);
         }
 
-        /* Section Principale (Hero) */
-        main {
-            flex: 1;
+        /* ===== HERO SECTION ===== */
+        .hero {
+            margin-top: 80px; /* Pour le header fixe */
+            min-height: calc(100vh - 80px);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 4rem 5%;
-            text-align: center;
-            background-color: #ffffff;
+            position: relative;
         }
 
-        .hero-container {
-            max-width: 800px;
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            max-width: 1300px;
+            width: 100%;
+            align-items: center;
         }
 
-        .badge-info {
+        .hero-badge {
             display: inline-block;
-            background-color: #ecfdf5;
-            color: var(--vert);
-            padding: 0.4rem 1rem;
+            padding: 0.4rem 1.2rem;
+            background: rgba(0, 106, 78, 0.2);
+            border: 1px solid rgba(0, 106, 78, 0.4);
+            color: #4ade80;
             border-radius: 50px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 1.5rem;
-            border: 1px solid #d1fae5;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 20px rgba(0, 106, 78, 0.2);
         }
 
         .hero-title {
-            font-size: 2.8rem;
-            font-weight: 700;
-            color: var(--texte-principal);
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 800;
+            line-height: 1.1;
             margin-bottom: 1.5rem;
-            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .hero-description {
-            font-size: 1.1rem;
-            color: var(--texte-secondaire);
-            margin-bottom: 2.5rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
+        .hero-desc {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 3rem;
+            max-width: 90%;
+            font-weight: 300;
         }
 
-        /* Bouton principal (CTA) */
+        .hero-actions {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
         .btn-primary {
-            display: inline-block;
-            padding: 0.8rem 2rem;
-            background-color: var(--vert);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, var(--vert-togo) 0%, #004d38 100%);
             color: white;
-            border-radius: 6px;
+            border-radius: 50px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 1.05rem;
             text-decoration: none;
-            transition: background-color 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 106, 78, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 106, 78, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .btn-primary:hover {
-            background-color: var(--vert-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 106, 78, 0.6);
         }
 
-        /* Section Fonctionnalités */
+        .btn-primary svg {
+            transition: transform 0.3s;
+        }
+
+        .btn-primary:hover svg {
+            transform: translateX(5px);
+        }
+
+        /* ===== HERO VISUAL (MOCKUP ABSTRAIT) ===== */
+        .hero-visual {
+            position: relative;
+            height: 500px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mockup-card {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .mc-main {
+            width: 85%;
+            height: 380px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .mc-main:hover {
+            transform: translateY(-10px) scale(1.02);
+        }
+
+        .mc-skeleton-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 1rem;
+        }
+
+        .mc-line {
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .mc-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .mc-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--vert-togo);
+            opacity: 0.8;
+        }
+
+        .mc-float-1 {
+            width: 250px;
+            height: 120px;
+            right: -5%;
+            top: 10%;
+            z-index: 3;
+            background: linear-gradient(135deg, rgba(255, 206, 0, 0.1), rgba(255, 255, 255, 0.05));
+            border-left: 3px solid var(--jaune-togo);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .mc-float-2 {
+            width: 220px;
+            height: 100px;
+            left: -10%;
+            bottom: 15%;
+            z-index: 3;
+            background: linear-gradient(135deg, rgba(210, 16, 52, 0.1), rgba(255, 255, 255, 0.05));
+            border-left: 3px solid var(--rouge-togo);
+            animation: float 8s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* ===== FEATURES SECTION ===== */
         .features {
-            background-color: var(--fond);
-            padding: 4rem 5%;
-            border-top: 1px solid var(--bordure);
+            padding: 5rem 5%;
+            background: #040d0a;
+            border-top: 1px solid var(--border-subtle);
+            position: relative;
         }
 
         .features-grid {
-            max-width: 1100px;
-            margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 2rem;
+            max-width: 1300px;
+            margin: 0 auto;
         }
 
         .feature-card {
-            background-color: #ffffff;
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--bordure);
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            text-align: left;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        .feature-icon {
-            display: inline-flex;
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent 50%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .f-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            background-color: #f3f4f6;
-            color: var(--texte-principal);
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+        }
+
+        .f-icon-vert { background: rgba(0, 106, 78, 0.2); color: #4ade80; }
+        .f-icon-jaune { background: rgba(255, 206, 0, 0.15); color: var(--jaune-togo); }
+        .f-icon-rouge { background: rgba(210, 16, 52, 0.15); color: #fb7185; }
+
+        .f-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
             font-weight: 700;
-            font-size: 1.2rem;
-            margin-bottom: 1.2rem;
-        }
-        
-        .fc-vert { background-color: #ecfdf5; color: var(--vert); }
-        .fc-rouge { background-color: #fef2f2; color: var(--rouge); }
-        .fc-jaune { background-color: #fffbeb; color: #b45309; }
-
-        .feature-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.8rem;
-            color: var(--texte-principal);
+            margin-bottom: 1rem;
+            color: white;
         }
 
-        .feature-description {
+        .f-desc {
+            color: var(--text-muted);
+            line-height: 1.6;
             font-size: 0.95rem;
-            color: var(--texte-secondaire);
         }
 
-        /* Pied de page (Footer) */
+        /* ===== FOOTER ===== */
         footer {
-            background-color: #ffffff;
-            border-top: 1px solid var(--bordure);
-            padding: 2rem 5%;
+            padding: 2.5rem 5%;
             text-align: center;
-            color: var(--texte-secondaire);
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
             font-size: 0.85rem;
+            background: #020705;
         }
 
-        /* Responsive */
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+            }
+            .hero-desc {
+                margin: 0 auto 3rem;
+            }
+            .hero-actions {
+                justify-content: center;
+            }
+            .hero-visual {
+                display: none;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
         @media (max-width: 768px) {
             .hero-title {
-                font-size: 2.2rem;
-            }
-            header {
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem;
+                font-size: 2.5rem;
             }
         }
     </style>
 </head>
 <body>
 
+    <!-- Header Glassmorphism -->
     <header>
-        <a href="/" class="logo-container">
-            <img src="{% static 'images/Blason-rt.svg' %}" alt="Armoiries du Togo" class="logo-img">
-            <div class="logo-text-wrapper">
-                <span class="logo-title">GEC — MTCA</span>
-                <span class="logo-subtitle">République Togolaise</span>
+        <a href="/" class="logo-group">
+            <img src="{% static 'images/Blason-rt.svg' %}" alt="Armoiries Togo" class="logo-img">
+            <div class="logo-texts">
+                <span class="logo-title">GEC MTCA</span>
+                <span class="logo-subtitle">Gouvernement</span>
             </div>
         </a>
         <div>
             {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="btn-outline">Mon Espace</a>
+                <a href="{% url 'dashboard' %}" class="btn-nav btn-outline">Tableau de bord</a>
             {% else %}
-                <a href="{% url 'login' %}" class="btn-outline">Connexion</a>
+                <a href="{% url 'login' %}" class="btn-nav btn-outline">Connexion</a>
             {% endif %}
         </div>
     </header>
 
-    <main>
-        <div class="hero-container">
-            <div class="badge-info">Plateforme sécurisée de l'État</div>
-            <h1 class="hero-title">Gestion Électronique des Courriers</h1>
-            <p class="hero-description">
-                Simplifiez, tracez et sécurisez le traitement des courriers officiels au sein du 
-                Ministère du Tourisme, de la Culture et des Arts.
-            </p>
-            {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="btn-primary">Accéder au tableau de bord</a>
-            {% else %}
-                <a href="{% url 'login' %}" class="btn-primary">Se connecter à la plateforme</a>
-            {% endif %}
+    <!-- Hero Section Premium -->
+    <main class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-badge">Système Administratif Sécurisé</div>
+                <h1 class="hero-title">Modernisez la gestion de vos courriers officiels</h1>
+                <p class="hero-desc">
+                    GEC MTCA centralise et sécurise l'intégralité du traitement documentaire pour le Ministère du Tourisme, de la Culture et des Arts. Suivi en temps réel, zéro papier et prise de décision accélérée.
+                </p>
+                <div class="hero-actions">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn-primary">
+                            Accéder à mon espace
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn-primary">
+                            Se connecter au système
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mockup abstrait (Wow factor) -->
+            <div class="hero-visual">
+                <div class="mockup-card mc-main">
+                    <div class="mc-skeleton-header">
+                        <div class="mc-line" style="width: 120px;"></div>
+                        <div class="mc-line" style="width: 40px; background: rgba(74,222,128,0.3);"></div>
+                    </div>
+                    <div class="mc-row">
+                        <div class="mc-circle"></div>
+                        <div style="flex:1;">
+                            <div class="mc-line" style="width: 60%; margin-bottom: 8px;"></div>
+                            <div class="mc-line" style="width: 30%; height: 8px; opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                    <div class="mc-row">
+                        <div class="mc-circle" style="background: var(--jaune-togo);"></div>
+                        <div style="flex:1;">
+                            <div class="mc-line" style="width: 80%; margin-bottom: 8px;"></div>
+                            <div class="mc-line" style="width: 40%; height: 8px; opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                    <div class="mc-row">
+                        <div class="mc-circle" style="background: var(--rouge-togo);"></div>
+                        <div style="flex:1;">
+                            <div class="mc-line" style="width: 50%; margin-bottom: 8px;"></div>
+                            <div class="mc-line" style="width: 25%; height: 8px; opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating elements -->
+                <div class="mockup-card mc-float-1">
+                    <div class="mc-line" style="width: 40px; background: rgba(255,206,0,0.5); margin-bottom: 15px;"></div>
+                    <div class="mc-line" style="width: 100%; margin-bottom: 8px;"></div>
+                    <div class="mc-line" style="width: 70%;"></div>
+                </div>
+
+                <div class="mockup-card mc-float-2">
+                    <div class="mc-line" style="width: 40px; background: rgba(210,16,52,0.5); margin-bottom: 15px;"></div>
+                    <div class="mc-line" style="width: 80%; margin-bottom: 8px;"></div>
+                </div>
+            </div>
         </div>
     </main>
 
+    <!-- Features Section Premium -->
     <section class="features">
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon fc-vert">1</div>
-                <h3 class="feature-title">Traçabilité et Suivi</h3>
-                <p class="feature-description">
-                    Historique complet des actions et suivi en temps réel du parcours de chaque courrier (réception, analyse, décision, affectation).
-                </p>
+                <div class="f-icon f-icon-vert">
+                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="f-title">Traçabilité Intégrale</h3>
+                <p class="f-desc">Chaque action sur un courrier est horodatée et archivée. Suivez le cheminement complet, du Secrétariat au Cabinet, en toute transparence.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon fc-rouge">2</div>
-                <h3 class="feature-title">Sécurité des Données</h3>
-                <p class="feature-description">
-                    Contrôle d'accès rigoureux basé sur les rôles (Ministre, Directeur de Cabinet, Secrétariat Central, etc.) garantissant la confidentialité.
-                </p>
+                <div class="f-icon f-icon-jaune">
+                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <h3 class="f-title">Sécurité Accrue</h3>
+                <p class="f-desc">Un système de rôles strict assure que seules les personnes habilitées consultent et traitent les documents. Vos données sont cloisonnées et protégées.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon fc-jaune">3</div>
-                <h3 class="feature-title">Zéro Papier</h3>
-                <p class="feature-description">
-                    Dématérialisation totale des fiches d'analyse et des décisions ministérielles pour une administration moderne et rapide.
-                </p>
+                <div class="f-icon f-icon-rouge">
+                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h3 class="f-title">Zéro Papier & Rapidité</h3>
+                <p class="f-desc">Éliminez les pertes de documents physiques. La numérisation permet une diffusion instantanée et des prises de décisions sans délai de transmission.</p>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2026 Ministère du Tourisme, de la Culture et des Arts — République Togolaise. Tous droits réservés.</p>
+        <p>&copy; 2026 Ministère du Tourisme, de la Culture et des Arts — République Togolaise.</p>
     </footer>
 
 </body>
