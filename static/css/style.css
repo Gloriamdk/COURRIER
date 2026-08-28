@@ -119,11 +119,12 @@ aside.sidebar {
 }
 
 .sidebar-subtitle {
-    font-size: 0.72rem;
-    color: #94a3b8;
-    margin-top: 2px;
+    font-size: 0.75rem;
+    color: #ffffff;
+    margin-top: 4px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    font-weight: 600;
 }
 
 /* Menu de navigation */
