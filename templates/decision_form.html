@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Décision Ministre — {{ courrier.reference }}{% endblock %}
+{% block page_title %}Décision Finale du Ministre{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card { background: #fff; padding: 25px; border-radius: var(--radius-md); border-left: 5px solid var(--danger-color); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .fiche-card { background: #f0fdf4; padding: 20px; border-radius: var(--radius-md); border-left: 5px solid var(--secondary-color); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .form-card { background: #fff; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .info-field label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: var(--font-sans); }
+    .form-control:focus { outline: none; border-color: var(--danger-color); box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.1); }
+    .btn-submit { padding: 14px 32px; background: var(--danger-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 1rem; transition: background 0.2s; }
+    .btn-submit:hover { background: #9f1239; }
+    .btn-back { padding: 12px 20px; background: #f1f5f9; color: var(--text-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 10px; }
+    .quick-decisions { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .quick-btn { padding: 8px 16px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); transition: all 0.2s; }
+    .quick-btn:hover { background: #fff1f2; border-color: var(--danger-color); color: var(--danger-color); }
+    .priority-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .priority-normal { background: #f1f5f9; color: #475569; }
+    .priority-urgent { background: #fffbeb; color: #b45309; }
+    .priority-tres_urgent { background: #fef2f2; color: #b91c1c; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Informations du courrier -->
+<div class="info-card">
+    <h3 style="color: var(--danger-color); margin-bottom: 1.2rem; font-size: 1.1rem;">
+         Courrier soumis à décision
+    </h3>
+    <div class="info-grid">
+        <div class="info-field">
+            <label>Référence</label>
+            <p><strong>{{ courrier.reference }}</strong></p>
+        </div>
+        <div class="info-field">
+            <label>Date d'arrivée</label>
+            <p>{{ courrier.date_arrivee|date:"d/m/Y à H:i" }}</p>
+        </div>
+        <div class="info-field">
+            <label>Expéditeur</label>
+            <p>{{ courrier.expediteur_nom }}
+                {% if courrier.expediteur_institution %}
+                    <em>({{ courrier.expediteur_institution }})</em>
+                {% endif %}
+            </p>
+        </div>
+        <div class="info-field">
+            <label>Priorité</label>
+            <p>
+                <span class="priority-badge priority-{{ courrier.priorite|lower }}">
+                    {{ courrier.get_priorite_display }}
+                </span>
+            </p>
+        </div>
+        <div class="info-field" style="grid-column: span 2;">
+            <label>Désignation / Objet</label>
+            <p><strong>{{ courrier.designation }}</strong></p>
+        </div>
+        {% if courrier.resume %}
+        <div class="info-field" style="grid-column: span 2;">
+            <label>Résumé (Secrétariat Central)</label>
+            <p style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm);">{{ courrier.resume }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if courrier.documents.all %}
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 8px;">
+            Documents ({{ courrier.documents.count }})
+        </label>
+        {% for doc in courrier.documents.all %}
+        <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener"
+           style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff1f2; color: var(--danger-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; margin-right: 8px;">
+             {{ doc.nom }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Analyse du DC -->
+{% if fiche_analyse %}
+<div class="fiche-card">
+    <h3 style="color: var(--secondary-color); margin-bottom: 1rem; font-size: 1rem;">
+         Analyse du Directeur de Cabinet — {{ fiche_analyse.analyse_par.get_full_name }}
+        <small style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;">
+            (rédigée le {{ fiche_analyse.date_analyse|date:"d/m/Y à H:i" }})
+        </small>
+    </h3>
+    {% if fiche_analyse.observations_dc %}
+    <div style="margin-bottom: 12px;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Observations :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse.observations_dc }}</p>
+    </div>
+    {% endif %}
+    {% if fiche_analyse.propositions_dc %}
+    <div>
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse.propositions_dc }}</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div style="padding: 15px; background: #fffbeb; border-left: 4px solid var(--warning-color); border-radius: var(--radius-sm); margin-bottom: 20px;">
+     Aucune fiche d'analyse n'a été jointe à ce courrier.
+</div>
+{% endif %}
+
+<!-- Formulaire de décision -->
+<form method="post" class="form-card">
+    {% csrf_token %}
+
+    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"> Saisie de la Décision</h3>
+
+    <!-- Décisions rapides prédéfinies -->
+    <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 10px;">
+        Décisions administratives rapides (cliquez pour pré-remplir) :
+    </label>
+    <div class="quick-decisions">
+        <button type="button" class="quick-btn" onclick="prefill('M\'en parler d\'urgence.')"> M'en parler</button>
+        <button type="button" class="quick-btn" onclick="prefill('En instance, en attente de compléments d\'information.')"> En instance</button>
+        <button type="button" class="quick-btn" onclick="prefill('Accordé. Transmettre à la DAF pour exécution immédiate.')"> Accordé (DAF)</button>
+        <button type="button" class="quick-btn" onclick="prefill('Approuvé. Transmettre aux services compétents pour suite à donner.')"> Approuvé</button>
+        <button type="button" class="quick-btn" onclick="prefill('Refusé. Retourner à l\'expéditeur avec motif de rejet.')"> Refusé</button>
+        <button type="button" class="quick-btn" onclick="prefill('À classer aux archives.')"> Classer</button>
+        <button type="button" class="quick-btn" onclick="prefill('Transmettre au Secrétaire Général pour information.')"> Pour info SG</button>
+    </div>
+
+    {% if form.errors %}
+    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        <span>Veuillez remplir tous les champs obligatoires.</span>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+        <label class="form-label" for="{{ form.instructions_finales.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
+            {{ form.instructions_finales.label }}
+        </label>
+        {{ form.instructions_finales }}
+        {% if form.instructions_finales.errors %}
+            <small style="color: var(--danger-color);">{{ form.instructions_finales.errors }}</small>
+        {% endif %}
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-top: 1.5rem;">
+        <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">
+            ← Retour au courrier
+        </a>
+        <button type="submit" class="btn-submit" id="btn-submit-decision">
+             Valider et Signer la Décision
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function prefill(text) {
+        const textarea = document.querySelector('textarea[name="instructions_finales"]');
+        if (textarea) {
+            textarea.value = text;
+            textarea.focus();
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Affectation — {{ courrier.reference }}{% endblock %}
+{% block page_title %}Affectation du courrier{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card { background: #fff; padding: 24px; border-radius: var(--radius-md); border-left: 5px solid var(--warning-color); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .decision-recap { background: #faf5ff; padding: 18px; border-radius: var(--radius-sm); border-left: 4px solid #7c3aed; margin-top: 15px; }
+    .form-card { background: #fff; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: var(--font-sans); }
+    .form-control:focus { outline: none; border-color: var(--warning-color); box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1); }
+    .help-text { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+    .btn-affecter { padding: 12px 28px; background: var(--warning-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 1rem; }
+    .btn-affecter:hover { background: #92400e; }
+    .btn-back { padding: 12px 20px; background: #f1f5f9; color: var(--text-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 10px; }
+
+    .existing-aff { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 20px; }
+    .aff-item { padding: 14px; background: #f8fafc; border-radius: var(--radius-sm); margin-bottom: 10px; border-left: 3px solid #f97316; }
+    .aff-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .aff-item small { color: var(--text-muted); font-size: 0.82rem; }
+
+    /* Style en cartes pour les boutons radio */
+    .actor-list { display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px; }
+    .actor-card { position: relative; border: 1px solid var(--border-color); border-radius: var(--radius-sm); transition: all 0.2s; }
+    .actor-card:hover { border-color: var(--warning-color); background: #fffbeb; }
+    .actor-card input[type="radio"] { position: absolute; opacity: 0; }
+    .actor-card label { display: block; padding: 12px 16px; cursor: pointer; margin: 0; }
+    .actor-card input[type="radio"]:checked + label { background: #fffbeb; border: 2px solid var(--warning-color); border-radius: var(--radius-sm); }
+    .actor-name { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Récapitulatif du courrier et de la décision -->
+<div class="info-card">
+    <h3 style="color: var(--warning-color); margin-bottom: 1rem;"> Affectation du courrier {{ courrier.reference }}</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Objet</small>
+            <p style="font-weight: 600; margin-top: 4px;">{{ courrier.designation }}</p>
+        </div>
+        <div>
+            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Expéditeur</small>
+            <p style="margin-top: 4px;">{{ courrier.expediteur_nom }}</p>
+        </div>
+    </div>
+
+    {% if decision %}
+    <div class="decision-recap">
+        <small style="font-size: 0.78rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Décision du Ministre ({{ decision.date_decision|date:"d/m/Y" }})</small>
+        <p style="margin-top: 8px; font-style: italic;">« {{ decision.instructions_finales }} »</p>
+    </div>
+    {% endif %}
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <!-- Formulaire d'affectation -->
+    <div>
+        <form method="post" class="form-card">
+            {% csrf_token %}
+            <h3 style="margin-bottom: 1.5rem; font-size: 1rem;"> Nouvelle affectation</h3>
+
+            {% if form.errors %}
+            <div style="background: #fee2e2; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 1rem; color: #b91c1c;">
+                Veuillez corriger les erreurs ci-dessous.
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            <div class="form-group">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {% if field.name == 'destinataire' %}
+                <div class="actor-list">
+                    {% for radio in field %}
+                    <div class="actor-card">
+                        {{ radio.tag }}
+                        <label for="{{ radio.id_for_label }}">
+                            <div class="actor-name">{{ radio.choice_label }}</div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                {{ field }}
+                {% endif %}
+                {% if field.help_text %}
+                    <p class="help-text">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                    <small style="color: var(--danger-color);">{{ field.errors }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 12px;">
+                <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">← Retour</a>
+                <button type="submit" class="btn-affecter" id="btn-confirmer-affectation">
+                     Confirmer l'affectation
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Affectations déjà enregistrées -->
+    <div class="existing-aff">
+        <h3 style="margin-bottom: 15px; font-size: 1rem; font-weight: 600;">
+            Affectations enregistrées ({{ affectations_existantes.count }})
+        </h3>
+        {% if affectations_existantes %}
+        {% for aff in affectations_existantes %}
+        <div class="aff-item" id="aff-existante-{{ aff.pk }}">
+            <h4>{{ aff.service_concerne }}</h4>
+            <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 4px;">
+                → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
+                <span style="color: var(--text-muted);">({{ aff.destinataire.get_role_display }})</span>
+            </p>
+            <small>Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}</small>
+            {% if aff.note_traitement %}
+            <p style="font-size: 0.85rem; font-style: italic; margin-top: 6px; color: var(--text-muted);">{{ aff.note_traitement }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 30px 0;">
+            Aucune affectation pour ce courrier.
+        </p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
