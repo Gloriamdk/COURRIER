@@ -6,23 +6,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="Plateforme officielle de Gestion Électronique des Courriers du Ministère de la Culture, du Tourisme et de l'Artisanat.">
-    <title>GEC — Ministère du Tourisme, de la Culture et de l'Art</title>
+        content="Gestion Electronique des Courriers du Ministere du Tourisme, de la Culture et des Arts.">
+    <title>Ministère du Tourisme, de la Culture et des Arts — Courriers</title>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --primary: #1e3a8a;
-            --primary-light: #3b82f6;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --accent: #0ea5e9;
+            /* Couleurs Togo */
+            --togo-vert: #006a4e;
+            --togo-vert-fonce: #00503b;
+            --togo-jaune: #ffce00;
+            --togo-rouge: #d21034;
+
+            /* Couleurs neutres */
+            --bg-body: #f9fafb;
+            --text-dark: #111827;
+            --text-muted: #4b5563;
+            --border-color: #e5e7eb;
         }
 
         * {
@@ -33,279 +36,266 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--dark);
-            color: var(--light);
-            min-height: 100vh;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
         }
 
-        /* Navbar */
-        header {
+        /* ===== SEPARATEUR DRAPEAU ===== */
+        .color-stripe {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem 4rem;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            position: fixed;
+            height: 5px;
             width: 100%;
+            position: fixed;
             top: 0;
+            left: 0;
+            z-index: 101;
+        }
+
+        .color-stripe span {
+            flex: 1;
+        }
+
+        .stripe-v {
+            background: var(--togo-vert);
+        }
+
+        .stripe-j {
+            background: var(--togo-jaune);
+        }
+
+        .stripe-r {
+            background: var(--togo-rouge);
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            position: fixed;
+            top: 5px;
+            width: 100%;
+            height: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
             z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .logo-container {
+        .logo-group {
             display: flex;
             align-items: center;
-            gap: 1rem;
-        }
-
-        .logo-badge {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
-        }
-
-        .logo-text {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: #fff;
-        }
-
-        .logo-sub {
-            display: block;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.7rem;
-            font-weight: 400;
-            color: #94a3b8;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .nav-btn {
-            padding: 0.7rem 1.8rem;
-            background: transparent;
-            color: #fff;
+            gap: 15px;
             text-decoration: none;
+        }
+
+        .logo-img {
+            height: 55px;
+            width: auto;
+        }
+
+        .logo-divider {
+            width: 2px;
+            height: 40px;
+            background: var(--border-color);
+        }
+
+        .logo-texts {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--togo-vert);
+            line-height: 1.2;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
             font-weight: 600;
-            font-size: 0.9rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50px;
-            transition: all 0.3s ease;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .nav-btn:hover {
-            background: #fff;
-            color: var(--dark);
+        .btn-header {
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 2px solid var(--togo-vert);
+            color: var(--togo-vert);
         }
 
-        /* Hero Section */
-        .hero {
+        .btn-header:hover {
+            background: var(--togo-vert);
+            color: white;
+        }
+
+        /* ===== HERO SECTION ===== */
+        main {
+            margin-top: 90px;
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 6rem 5%;
             text-align: center;
-            padding: 8rem 2rem 4rem;
-            position: relative;
-            z-index: 10;
+            background-color: #ffffff;
         }
 
-        /* Background Effects */
-        .glow-1 {
-            position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
-            border-radius: 50%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .glow-2 {
-            position: absolute;
-            bottom: -20%;
-            right: -10%;
-            width: 60vw;
-            height: 60vw;
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0) 70%);
-            border-radius: 50%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            z-index: 10;
-            animation: fadeIn 1s ease-out forwards;
-        }
-
-        .badge-system {
-            display: inline-block;
-            padding: 0.5rem 1.2rem;
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary-light);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 2rem;
+        .hero-container {
+            max-width: 900px;
+            margin: 0 auto;
         }
 
         .hero-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 4rem;
-            line-height: 1.1;
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.15;
             margin-bottom: 1.5rem;
-            background: linear-gradient(to right, #ffffff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-dark);
         }
 
         .hero-desc {
-            font-size: 1.1rem;
-            color: #cbd5e1;
-            line-height: 1.6;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            line-height: 1.7;
             margin-bottom: 3rem;
-            max-width: 650px;
+            font-weight: 400;
+            max-width: 800px;
             margin-left: auto;
             margin-right: auto;
-            font-weight: 300;
         }
 
-        .cta-container {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        .cta-btn {
+        .btn-primary {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
             padding: 1rem 2.5rem;
-            font-size: 1rem;
+            border-radius: 6px;
+            background: var(--togo-vert);
+            color: white;
             font-weight: 600;
+            font-size: 1.05rem;
             text-decoration: none;
-            border-radius: 50px;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 106, 78, 0.2);
         }
 
-        .cta-primary {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.4);
+        .btn-primary:hover {
+            background: var(--togo-vert-fonce);
+            box-shadow: 0 6px 12px rgba(0, 106, 78, 0.3);
         }
 
-        .cta-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(14, 165, 233, 0.5);
-        }
-
-        .cta-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .cta-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-3px);
-        }
-
-        /* Features */
+        /* ===== FEATURES SECTION ===== */
         .features {
+            padding: 5rem 5%;
+            background: var(--bg-body);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .features-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2rem;
-            max-width: 1000px;
-            margin: 0 auto 5rem;
-            padding: 0 2rem;
-            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .feature-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 2rem;
-            border-radius: var(--radius-lg, 16px);
+            background: white;
+            border-radius: 8px;
+            padding: 2.5rem 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
             text-align: left;
-            transition: transform 0.3s ease, background 0.3s ease;
         }
 
-        .feature-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(255, 255, 255, 0.1);
+        .f-icon-wrap {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
         }
 
-        .feature-icon {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--accent);
+        .fic-vert {
+            background: rgba(0, 106, 78, 0.1);
+            color: var(--togo-vert);
         }
 
-        .feature-title {
-            font-size: 1.1rem;
-            font-weight: 600;
+        .fic-jaune {
+            background: rgba(255, 206, 0, 0.15);
+            color: #b48900;
+        }
+
+        .fic-rouge {
+            background: rgba(210, 16, 52, 0.1);
+            color: var(--togo-rouge);
+        }
+
+        .f-title {
+            font-size: 1.25rem;
+            font-weight: 700;
             margin-bottom: 0.8rem;
-            color: #f1f5f9;
+            color: var(--text-dark);
         }
 
-        .feature-desc {
-            font-size: 0.9rem;
-            color: #94a3b8;
-            line-height: 1.5;
+        .f-desc {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
         }
 
+        /* ===== FOOTER ===== */
         footer {
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: 2.5rem 5%;
             text-align: center;
-            padding: 2rem;
-            font-size: 0.8rem;
-            color: #64748b;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 10;
+            color: var(--text-muted);
+            font-size: 0.9rem;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             }
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
             .hero-title {
-                font-size: 3rem;
-            }
-
-            .features {
-                grid-template-columns: 1fr;
+                font-size: 2.5rem;
             }
 
             header {
-                padding: 1.5rem 2rem;
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px 5%;
+                height: auto;
+                position: static;
+            }
+
+            main {
+                margin-top: 0;
+                padding: 4rem 5%;
+            }
+
+            .logo-subtitle {
+                display: none;
             }
         }
     </style>
@@ -313,67 +303,100 @@
 
 <body>
 
-    <div class="glow-1"></div>
-    <div class="glow-2"></div>
+    <!-- Ligne de couleurs du Togo en haut de page -->
+    <div class="color-stripe">
+        <span class="stripe-v"></span><span class="stripe-j"></span><span class="stripe-r"></span><span
+            class="stripe-v"></span><span class="stripe-j"></span>
+    </div>
 
+    <!-- Header -->
     <header>
-        <div class="logo-container">
-            <div class="logo-badge">GEC</div>
-            <div>
-                <div class="logo-text">GEC MTCA</div>
-                <span class="logo-sub">Gouvernement</span>
+        <a href="/" class="logo-group">
+            <img src="{% static 'images/Blason-rt.svg' %}" alt="Armoiries Togo" class="logo-img">
+            <div class="logo-divider"></div>
+            <div class="logo-texts">
+                <span class="logo-title">Ministère du Tourisme, de la Culture et des Arts</span>
+                <span class="logo-subtitle">République Togolaise</span>
             </div>
-        </div>
+        </a>
         <div>
             {% if request.user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="nav-btn">Tableau de bord</a>
+            <a href="{% url 'dashboard' %}" class="btn-header">Espace de travail</a>
             {% else %}
-            <a href="{% url 'login' %}" class="nav-btn">Connexion</a>
+            <a href="{% url 'login' %}" class="btn-header">Connexion</a>
             {% endif %}
         </div>
     </header>
 
-    <main class="hero">
-        <div class="hero-content">
-            <div class="badge-system">Système Sécurisé</div>
-            <h1 class="hero-title">Modernisez la gestion de vos courriers</h1>
+    <!-- Hero Section -->
+    <main>
+        <div class="hero-container">
+            <h1 class="hero-title">Plateforme de Gestion des Courriers</h1>
             <p class="hero-desc">
-                Une plateforme centralisée, sécurisée et intelligente conçue exclusivement pour le Ministère de la
-                Culture, du Tourisme et de l'Artisanat. Suivez chaque document, de la réception à la décision finale.
+                Plateforme centrale du Ministère du Tourisme, de la Culture et des Arts pour le traitement, le suivi et l'archivage sécurisé des correspondances et dossiers administratifs.
             </p>
-            <div class="cta-container">
+            <div>
                 {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="cta-btn cta-primary">Accéder à mon espace</a>
+                <a href="{% url 'dashboard' %}" class="btn-primary">
+                    Accéder au tableau de bord
+                </a>
                 {% else %}
-                <a href="{% url 'login' %}" class="cta-btn cta-primary">Se connecter au système</a>
+                <a href="{% url 'login' %}" class="btn-primary">
+                    Se connecter à la plateforme
+                </a>
                 {% endif %}
+            </div>
+            
+            <div class="color-stripe" style="position: relative; max-width: 150px; margin: 3.5rem auto 0; border-radius: 4px; overflow: hidden; height: 4px;">
+                <span class="stripe-v"></span><span class="stripe-j"></span><span class="stripe-r"></span><span class="stripe-v"></span><span class="stripe-j"></span>
             </div>
         </div>
     </main>
 
+    <!-- Features -->
     <section class="features">
-        <div class="feature-card">
-            <div class="feature-icon">1</div>
-            <h3 class="feature-title">Traçabilité complète</h3>
-            <p class="feature-desc">Suivez le parcours exact de chaque courrier grâce à un historique immuable et un
-                système de notifications en temps réel.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">2</div>
-            <h3 class="feature-title">Sécurité renforcée</h3>
-            <p class="feature-desc">Contrôle d'accès strict selon votre rôle (Ministre, Directeur de Cabinet,
-                Secrétariat ou Agent).</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">3</div>
-            <h3 class="feature-title">Zéro papier</h3>
-            <p class="feature-desc">Numérisez vos processus. Fiches d'analyses, décisions et affectations sont désormais
-                entièrement digitales et instantanées.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-vert">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="f-title">Traçabilité Intégrale</h3>
+                <p class="f-desc">Chaque étape du traitement d'un courrier est enregistrée. Les responsables peuvent
+                    suivre l'avancement d'un dossier en temps réel.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-jaune">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="f-title">Confidentialité</h3>
+                <p class="f-desc">Un contrôle d'accès strict garantit que seules les autorités compétentes (Ministre,
+                    Directeur de Cabinet, etc.) consultent les dossiers sensibles.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="f-icon-wrap fic-rouge">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="f-title">Efficacité Administrative</h3>
+                <p class="f-desc">Réduisez les délais grâce à la transmission numérique immédiate des fiches d'analyse
+                    et des décisions ministérielles.</p>
+            </div>
         </div>
     </section>
 
     <footer>
-        &copy; 2026 Ministère de la Culture, du Tourisme et de l'Artisanat. Tous droits réservés.
+        <p>&copy; 2026 Ministère du Tourisme, de la Culture et des Arts — République Togolaise.</p>
     </footer>
 
 </body>
