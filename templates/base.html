@@ -1,11 +1,13 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Système de Gestion Électronique des Courriers — Ministère de la Culture, du Tourisme et de l'Artisanat">
-    <title>{% block title %}GEC — Gestion des Courriers{% endblock %} | MCTA</title>
+    <meta name="description"
+        content="Système de Gestion Électronique des Courriers — Ministère de la Culture, du Tourisme et de l'Artisanat">
+    <title>{% block title %}GEC — Gestion des Courriers{% endblock %} | MTCA</title>
 
     <!-- Google Fonts — Inter (typographie moderne et lisible) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,163 +19,216 @@
 
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
 
-<div id="app-container">
+    <div id="app-container">
 
-    <!-- ===== BARRE LATÉRALE (SIDEBAR) ===== -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">GEC</div>
-            <h1 class="sidebar-title">GEC-MCTA</h1>
-            <p class="sidebar-subtitle">Gestion des Courriers</p>
-        </div>
+        <!-- ===== BARRE LATÉRALE (SIDEBAR) ===== -->
+        <aside class="sidebar" id="sidebar">
 
-        <nav class="sidebar-menu" aria-label="Navigation principale">
-            <ul>
-                <!-- Tableau de bord — accessible à tous -->
-                <li class="sidebar-item {% block nav_dashboard %}{% endblock %}">
-                    <a href="{% url 'dashboard' %}" id="nav-dashboard">
-                        <span class="nav-icon"></span>
-                        <span>Tableau de bord</span>
-                        {% if nb_notifications > 0 %}
-                            <span class="notif-badge">{{ nb_notifications }}</span>
-                        {% endif %}
-                    </a>
-                </li>
-
-                <!-- Secrétariat Central -->
-                {% if user.role == 'SECRETARIAT_CENTRAL' %}
-                <li class="sidebar-item {% block nav_nouveau %}{% endblock %}">
-                    <a href="{% url 'courrier_nouveau' %}" id="nav-courrier-nouveau">
-                        <span class="nav-icon"></span>
-                        <span>Enregistrer un courrier</span>
-                    </a>
-                </li>
-                {% endif %}
-
-                <!-- Tous les courriers accessibles -->
-                <li class="sidebar-item {% block nav_liste %}{% endblock %}">
-                    <a href="{% url 'courrier_liste' %}" id="nav-courrier-liste">
-                        <span class="nav-icon"></span>
-                        <span>Tous les courriers</span>
-                    </a>
-                </li>
-
-                <!-- Section Administration (superuser) -->
-                {% if user.is_superuser %}
-                <li class="sidebar-section-title">Administration</li>
-                <li class="sidebar-item">
-                    <a href="{% url 'admin:index' %}" id="nav-admin" target="_blank">
-                        <span class="nav-icon"></span>
-                        <span>Administration</span>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-
-        <!-- Profil utilisateur en bas de la sidebar -->
-        <div class="sidebar-footer">
-            <div class="sidebar-user">
-                <div class="user-avatar">
-                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+            <!-- Bandeau officiel République Togolaise -->
+            <div class="gov-header">
+                <!-- Armoiries SVG inline -->
+                <div class="gov-emblem">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130">
+                        <ellipse cx="60" cy="65" rx="58" ry="63" fill="white" stroke="#006A4E" stroke-width="5"/>
+                        <polygon points="60,7 63,16 73,16 65,22 68,31 60,25 52,31 55,22 47,16 57,16" fill="#FFD100" stroke="#c9a227" stroke-width="0.5"/>
+                        <path d="M43,33 L77,33 L77,72 L60,84 L43,72 Z" fill="#006A4E" stroke="#004d38" stroke-width="1.2"/>
+                        <path d="M60,33 L77,33 L77,72 L60,84 Z" fill="#FFD100"/>
+                        <rect x="43" y="33" width="34" height="24" rx="2" fill="white"/>
+                        <text x="60" y="52" text-anchor="middle" fill="#D21034" font-size="16" font-weight="bold" font-family="Georgia,serif">RT</text>
+                        <g>
+                            <ellipse cx="22" cy="60" rx="12" ry="8" fill="#D4A000"/>
+                            <circle cx="30" cy="50" r="9" fill="#B8860B" opacity="0.7"/>
+                            <circle cx="30" cy="50" r="7" fill="#D4A000"/>
+                            <circle cx="33" cy="48" r="2" fill="#8B6500"/>
+                            <line x1="30" y1="56" x2="36" y2="43" stroke="#D4A000" stroke-width="4" stroke-linecap="round"/>
+                            <rect x="13" y="66" width="5" height="10" rx="2.5" fill="#D4A000"/>
+                            <rect x="21" y="66" width="5" height="10" rx="2.5" fill="#D4A000"/>
+                            <path d="M11,60 Q4,50 8,40" stroke="#D4A000" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </g>
+                        <g transform="translate(120,0) scale(-1,1)">
+                            <ellipse cx="22" cy="60" rx="12" ry="8" fill="#D4A000"/>
+                            <circle cx="30" cy="50" r="9" fill="#B8860B" opacity="0.7"/>
+                            <circle cx="30" cy="50" r="7" fill="#D4A000"/>
+                            <circle cx="33" cy="48" r="2" fill="#8B6500"/>
+                            <line x1="30" y1="56" x2="36" y2="43" stroke="#D4A000" stroke-width="4" stroke-linecap="round"/>
+                            <rect x="13" y="66" width="5" height="10" rx="2.5" fill="#D4A000"/>
+                            <rect x="21" y="66" width="5" height="10" rx="2.5" fill="#D4A000"/>
+                            <path d="M11,60 Q4,50 8,40" stroke="#D4A000" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </g>
+                        <path d="M10,95 Q60,110 110,95 L108,106 Q60,121 12,106 Z" fill="#f5f5f5" stroke="#ddd" stroke-width="0.8"/>
+                        <text x="60" y="106" text-anchor="middle" fill="#333" font-size="7" font-family="Georgia,serif" font-style="italic">Travail - Liberté - Patrie</text>
+                    </svg>
                 </div>
-                <div class="user-info">
-                    <strong>{{ user.get_full_name|default:user.username }}</strong>
-                    <span class="user-role-text">{{ user.get_role_display }}</span>
-                    {% if user.service_direction %}
-                        <span class="user-service">{{ user.service_direction }}</span>
-                    {% endif %}
+                <div class="gov-republic">République Togolaise</div>
+                <div class="gov-tricolor">
+                    <span class="tc-green"></span>
+                    <span class="tc-yellow"></span>
+                    <span class="tc-red"></span>
+                </div>
+                <div class="gov-ministry-block">
+                    <span class="gov-ministry-acronym">MTCA</span>
+                    <span class="gov-ministry-name">Ministère du Tourisme,<br>de la Culture et des Arts</span>
                 </div>
             </div>
-            <a href="{% url 'logout' %}" class="logout-btn" id="btn-logout">
-                <span></span> Déconnexion
-            </a>
-        </div>
-    </aside>
 
-    <!-- ===== ZONE DE CONTENU PRINCIPALE ===== -->
-    <main class="main-content">
-
-        <!-- Barre de navigation haute -->
-        <header class="top-navbar">
-            <div class="navbar-left">
-                <button class="sidebar-toggle" id="btn-sidebar-toggle" aria-label="Ouvrir/fermer le menu"></button>
-                <h2 class="page-title">{% block page_title %}Accueil{% endblock %}</h2>
+            <!-- En-tête système GEC -->
+            <div class="sidebar-header">
+                <div class="sidebar-logo">GEC</div>
+                <h1 class="sidebar-title">GEC-MTCA</h1>
+                <p class="sidebar-subtitle">Gestion des Courriers</p>
             </div>
 
-            <div class="navbar-right">
-                <!-- Badge notifications cliquable -->
-                <div class="notif-dropdown" id="notif-dropdown">
-                    <button class="notif-toggle" id="btn-notif-toggle" aria-label="Notifications">
-                        
-                        {% if nb_notifications > 0 %}
-                            <span class="notif-count" id="notif-count">{{ nb_notifications }}</span>
-                        {% endif %}
-                    </button>
+            <nav class="sidebar-menu" aria-label="Navigation principale">
+                <ul>
 
-                    <div class="notif-panel" id="notif-panel" hidden>
-                        <div class="notif-panel-header">
-                            <strong>Notifications</strong>
+                    <!-- Tableau de bord — accessible à tous -->
+                    <li class="sidebar-item {% block nav_dashboard %}{% endblock %}">
+                        <a href="{% url 'dashboard' %}" id="nav-dashboard">
+                            <span class="nav-icon"></span>
+                            <span>Tableau de bord</span>
                             {% if nb_notifications > 0 %}
-                                <span class="notif-new">{{ nb_notifications }} nouvelle(s)</span>
+                            <span class="notif-badge">{{ nb_notifications }}</span>
                             {% endif %}
-                        </div>
-                        <ul class="notif-list" id="notif-list">
-                            {% for notif in notifications_non_lues %}
-                            <li class="notif-item {% if not notif.lu %}notif-unread{% endif %}" data-notif-id="{{ notif.pk }}">
-                                <div class="notif-message">{{ notif.message }}</div>
-                                {% if notif.courrier %}
-                                <a href="{% url 'courrier_detail' notif.courrier.pk %}" class="notif-link">
-                                    Voir le courrier →
-                                </a>
-                                {% endif %}
-                                <small class="notif-date">{{ notif.date_notification|date:"d/m/Y H:i" }}</small>
-                            </li>
-                            {% empty %}
-                            <li class="notif-item notif-empty">Aucune nouvelle notification.</li>
-                            {% endfor %}
-                        </ul>
+                        </a>
+                    </li>
+
+                    <!-- Secrétariat Central -->
+                    {% if user.role == 'SECRETARIAT_CENTRAL' %}
+                    <li class="sidebar-item {% block nav_nouveau %}{% endblock %}">
+                        <a href="{% url 'courrier_nouveau' %}" id="nav-courrier-nouveau">
+                            <span class="nav-icon"></span>
+                            <span>Enregistrer un courrier</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Tous les courriers accessibles -->
+                    <li class="sidebar-item {% block nav_liste %}{% endblock %}">
+                        <a href="{% url 'courrier_liste' %}" id="nav-courrier-liste">
+                            <span class="nav-icon"></span>
+                            <span>Tous les courriers</span>
+                        </a>
+                    </li>
+
+                    <!-- Section Administration (superuser) -->
+                    {% if user.is_superuser %}
+                    <li class="sidebar-section-title">Administration</li>
+                    <li class="sidebar-item">
+                        <a href="{% url 'admin:index' %}" id="nav-admin" target="_blank">
+                            <span class="nav-icon"></span>
+                            <span>Administration</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <!-- Profil utilisateur en bas de la sidebar -->
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar">
+                        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                    </div>
+                    <div class="user-info">
+                        <strong>{{ user.get_full_name|default:user.username }}</strong>
+                        <span class="user-role-text">{{ user.get_role_display }}</span>
+                        {% if user.service_direction %}
+                        <span class="user-service">{{ user.service_direction }}</span>
+                        {% endif %}
                     </div>
                 </div>
+                <a href="{% url 'logout' %}" class="logout-btn" id="btn-logout">
+                    <span></span> Déconnexion
+                </a>
+            </div>
+        </aside>
 
-                <!-- Info utilisateur dans la navbar -->
-                <div class="user-profile">
-                    <span class="user-role-badge">{{ user.get_role_display }}</span>
-                    <span class="user-name-nav">{{ user.get_full_name|default:user.username }}</span>
+        <!-- ===== ZONE DE CONTENU PRINCIPALE ===== -->
+        <main class="main-content">
+
+            <!-- Barre de navigation haute -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <button class="sidebar-toggle" id="btn-sidebar-toggle" aria-label="Ouvrir/fermer le menu"></button>
+                    <h2 class="page-title">{% block page_title %}Accueil{% endblock %}</h2>
                 </div>
+
+                <div class="navbar-right">
+                    <!-- Badge notifications cliquable -->
+                    <div class="notif-dropdown" id="notif-dropdown">
+                        <button class="notif-toggle" id="btn-notif-toggle" aria-label="Notifications">
+
+                            {% if nb_notifications > 0 %}
+                            <span class="notif-count" id="notif-count">{{ nb_notifications }}</span>
+                            {% endif %}
+                        </button>
+
+                        <div class="notif-panel" id="notif-panel" hidden>
+                            <div class="notif-panel-header">
+                                <strong>Notifications</strong>
+                                {% if nb_notifications > 0 %}
+                                <span class="notif-new">{{ nb_notifications }} nouvelle(s)</span>
+                                {% endif %}
+                            </div>
+                            <ul class="notif-list" id="notif-list">
+                                {% for notif in notifications_non_lues %}
+                                <li class="notif-item {% if not notif.lu %}notif-unread{% endif %}"
+                                    data-notif-id="{{ notif.pk }}">
+                                    <div class="notif-message">{{ notif.message }}</div>
+                                    {% if notif.courrier %}
+                                    <a href="{% url 'courrier_detail' notif.courrier.pk %}" class="notif-link">
+                                        Voir le courrier →
+                                    </a>
+                                    {% endif %}
+                                    <small class="notif-date">{{ notif.date_notification|date:"d/m/Y H:i" }}</small>
+                                </li>
+                                {% empty %}
+                                <li class="notif-item notif-empty">Aucune nouvelle notification.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Info utilisateur dans la navbar -->
+                    <div class="user-profile">
+                        <span class="user-role-badge">{{ user.get_role_display }}</span>
+                        <span class="user-name-nav">{{ user.get_full_name|default:user.username }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Messages Django (alertes flash) -->
+            {% if messages %}
+            <div class="messages-container" role="alert" aria-live="polite">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button class="close-alert" aria-label="Fermer">&times;</button>
+                </div>
+                {% endfor %}
             </div>
-        </header>
+            {% endif %}
 
-        <!-- Messages Django (alertes flash) -->
-        {% if messages %}
-        <div class="messages-container" role="alert" aria-live="polite">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                <span>{{ message }}</span>
-                <button class="close-alert" aria-label="Fermer">&times;</button>
+            <!-- Contenu spécifique à chaque page -->
+            <div class="container">
+                {% block content %}
+                {% endblock %}
             </div>
-            {% endfor %}
-        </div>
-        {% endif %}
 
-        <!-- Contenu spécifique à chaque page -->
-        <div class="container">
-            {% block content %}
-            {% endblock %}
-        </div>
+            <!-- Footer administratif -->
+            <footer class="main-footer">
+                &copy; 2026 Ministère de la Culture, du Tourisme et de l'Artisanat — Système GEC v1.0
+            </footer>
+        </main>
+    </div>
 
-        <!-- Footer administratif -->
-        <footer class="main-footer">
-            &copy; 2026 Ministère de la Culture, du Tourisme et de l'Artisanat — Système GEC v1.0
-        </footer>
-    </main>
-</div>
-
-<!-- JS Principal -->
-<script src="{% static 'js/main.js' %}"></script>
-{% block extra_js %}{% endblock %}
+    <!-- JS Principal -->
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 
 </body>
+
 </html>

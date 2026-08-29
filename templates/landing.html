@@ -1,16 +1,20 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Plateforme officielle de Gestion Électronique des Courriers du Ministère de la Culture, du Tourisme et de l'Artisanat.">
-    <title>GEC — Ministère de la Culture, du Tourisme et de l'Artisanat</title>
+    <meta name="description"
+        content="Plateforme officielle de Gestion Électronique des Courriers du Ministère de la Culture, du Tourisme et de l'Artisanat.">
+    <title>GEC — Ministère du Tourisme, de la Culture et de l'Art</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
@@ -49,7 +53,7 @@
             width: 100%;
             top: 0;
             z-index: 100;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .logo-container {
@@ -97,7 +101,7 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 50px;
             transition: all 0.3s ease;
         }
@@ -126,7 +130,7 @@
             left: -10%;
             width: 50vw;
             height: 50vw;
-            background: radial-gradient(circle, rgba(30,58,138,0.15) 0%, rgba(15,23,42,0) 70%);
+            background: radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
             border-radius: 50%;
             z-index: 1;
             pointer-events: none;
@@ -138,7 +142,7 @@
             right: -10%;
             width: 60vw;
             height: 60vw;
-            background: radial-gradient(circle, rgba(14,165,233,0.1) 0%, rgba(15,23,42,0) 70%);
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0) 70%);
             border-radius: 50%;
             z-index: 1;
             pointer-events: none;
@@ -275,22 +279,38 @@
             padding: 2rem;
             font-size: 0.8rem;
             color: #64748b;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             z-index: 10;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @media (max-width: 900px) {
-            .hero-title { font-size: 3rem; }
-            .features { grid-template-columns: 1fr; }
-            header { padding: 1.5rem 2rem; }
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 1.5rem 2rem;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="glow-1"></div>
@@ -300,15 +320,15 @@
         <div class="logo-container">
             <div class="logo-badge">GEC</div>
             <div>
-                <div class="logo-text">GEC MCTA</div>
+                <div class="logo-text">GEC MTCA</div>
                 <span class="logo-sub">Gouvernement</span>
             </div>
         </div>
         <div>
             {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="nav-btn">Tableau de bord</a>
+            <a href="{% url 'dashboard' %}" class="nav-btn">Tableau de bord</a>
             {% else %}
-                <a href="{% url 'login' %}" class="nav-btn">Connexion</a>
+            <a href="{% url 'login' %}" class="nav-btn">Connexion</a>
             {% endif %}
         </div>
     </header>
@@ -318,13 +338,14 @@
             <div class="badge-system">Système Sécurisé</div>
             <h1 class="hero-title">Modernisez la gestion de vos courriers</h1>
             <p class="hero-desc">
-                Une plateforme centralisée, sécurisée et intelligente conçue exclusivement pour le Ministère de la Culture, du Tourisme et de l'Artisanat. Suivez chaque document, de la réception à la décision finale.
+                Une plateforme centralisée, sécurisée et intelligente conçue exclusivement pour le Ministère de la
+                Culture, du Tourisme et de l'Artisanat. Suivez chaque document, de la réception à la décision finale.
             </p>
             <div class="cta-container">
                 {% if request.user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="cta-btn cta-primary">Accéder à mon espace</a>
+                <a href="{% url 'dashboard' %}" class="cta-btn cta-primary">Accéder à mon espace</a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="cta-btn cta-primary">Se connecter au système</a>
+                <a href="{% url 'login' %}" class="cta-btn cta-primary">Se connecter au système</a>
                 {% endif %}
             </div>
         </div>
@@ -334,17 +355,20 @@
         <div class="feature-card">
             <div class="feature-icon">1</div>
             <h3 class="feature-title">Traçabilité complète</h3>
-            <p class="feature-desc">Suivez le parcours exact de chaque courrier grâce à un historique immuable et un système de notifications en temps réel.</p>
+            <p class="feature-desc">Suivez le parcours exact de chaque courrier grâce à un historique immuable et un
+                système de notifications en temps réel.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">2</div>
             <h3 class="feature-title">Sécurité renforcée</h3>
-            <p class="feature-desc">Contrôle d'accès strict selon votre rôle (Ministre, Directeur de Cabinet, Secrétariat ou Agent).</p>
+            <p class="feature-desc">Contrôle d'accès strict selon votre rôle (Ministre, Directeur de Cabinet,
+                Secrétariat ou Agent).</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">3</div>
             <h3 class="feature-title">Zéro papier</h3>
-            <p class="feature-desc">Numérisez vos processus. Fiches d'analyses, décisions et affectations sont désormais entièrement digitales et instantanées.</p>
+            <p class="feature-desc">Numérisez vos processus. Fiches d'analyses, décisions et affectations sont désormais
+                entièrement digitales et instantanées.</p>
         </div>
     </section>
 
@@ -353,4 +377,5 @@
     </footer>
 
 </body>
+
 </html>
