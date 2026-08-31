@@ -105,16 +105,6 @@
     {% endif %}
 
     <div class="form-group">
-        <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
-            {{ form.direction_proposee.label }}
-        </label>
-        {{ form.direction_proposee }}
-        {% if form.direction_proposee.errors %}
-            <small style="color: var(--danger-color);">{{ form.direction_proposee.errors }}</small>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
         <label class="form-label" for="{{ form.observations_dc.id_for_label }}">
             {{ form.observations_dc.label }}
         </label>
@@ -125,14 +115,17 @@
     </div>
 
     <div class="form-group">
-        <label class="form-label" for="{{ form.propositions_dc.id_for_label }}">
-            {{ form.propositions_dc.label }}
+        <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
+            Proposition d'affectation (Direction)
         </label>
-        {{ form.propositions_dc }}
-        {% if form.propositions_dc.errors %}
-            <small style="color: var(--danger-color);">{{ form.propositions_dc.errors }}</small>
+        {{ form.direction_proposee }}
+        <p class="help-text" style="color: var(--text-muted); margin-top:6px;">Sélectionnez la direction/service proposé pour l'affectation.</p>
+        {% if form.direction_proposee.errors %}
+            <small style="color: var(--danger-color);">{{ form.direction_proposee.errors }}</small>
         {% endif %}
     </div>
+
+    <!-- propositions_dc removed: direction_proposee dropdown is used for affectation proposals -->
 
     <div style="display: flex; align-items: center; gap: 12px; margin-top: 1rem;">
         <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">

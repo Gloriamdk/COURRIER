@@ -74,7 +74,6 @@ class CourrierModelsTestCase(TestCase):
             courrier=self.courrier_normal,
             analyse_par=self.dc,
             observations_dc="Dossier éligible et d'intérêt public.",
-            propositions_dc="Transmettre à la DAF pour exécution.",
             valide=True,
             date_validation=timezone.now()
         )

@@ -166,25 +166,39 @@
 
 <!-- Récapitulatif du courrier et de la décision -->
 <div class="info-card">
-    <h3 style="color: var(--warning-color); margin-bottom: 1rem;">Affectation du courrier {{ courrier.reference }}</h3>
+    <h3 style="color: var(--warning-color); margin-bottom: 1rem;">
+        Affectation du courrier {{ courrier.reference }}
+    </h3>
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div>
-            <small
-                style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Objet</small>
-            <p style="font-weight: 600; margin-top: 4px;">{{ courrier.designation }}</p>
+            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                Objet
+            </small>
+            <p style="font-weight: 600; margin-top: 4px;">
+                {{ courrier.designation }}
+            </p>
         </div>
+
         <div>
-            <small
-                style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Expéditeur</small>
-            <p style="margin-top: 4px;">{{ courrier.expediteur_nom }}</p>
+            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                Expéditeur
+            </small>
+            <p style="margin-top: 4px;">
+                {{ courrier.expediteur_nom }}
+            </p>
         </div>
     </div>
 
     {% if decision %}
     <div class="decision-recap">
-        <small style="font-size: 0.78rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Décision du
-            Ministre ({{ decision.date_decision|date:"d/m/Y" }})</small>
-        <p style="margin-top: 8px; font-style: italic;">« {{ decision.instructions_finales }} »</p>
+        <small style="font-size: 0.78rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">
+            Décision du Ministre ({{ decision.date_decision|date:"d/m/Y" }})
+        </small>
+
+        <p style="margin-top: 8px; font-style: italic;">
+            « {{ decision.instructions_finales }} »
+        </p>
     </div>
     {% endif %}
 </div>
@@ -195,7 +209,10 @@
     <div>
         <form method="post" class="form-card">
             {% csrf_token %}
-            <h3 style="margin-bottom: 1.5rem; font-size: 1rem;">Nouvelle affectation</h3>
+
+            <h3 style="margin-bottom: 1.5rem; font-size: 1rem;">
+                Nouvelle affectation
+            </h3>
 
             {% if form.errors %}
             <div
@@ -210,40 +227,76 @@
                     Agent
                     <span class="optional-tag">Optionnel</span>
                 </label>
+
                 <select name="destinataire" id="id_destinataire" class="form-control">
-                    <option value="">— Sélectionner un destinataire (optionnel) —</option>
+                    <option value="">
+                        — Sélectionner un destinataire (optionnel) —
+                    </option>
+
                     {% regroup form.fields.destinataire.queryset by service_direction as acteurs_par_service %}
+
                     {% for groupe in acteurs_par_service %}
+
                     {% if groupe.grouper %}
+
                     <optgroup label="{{ groupe.grouper }}">
+
                         {% for acteur in groupe.list %}
-                        <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
-                            {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
+
+                        <option value="{{ acteur.pk }}">
+                            {{ acteur.get_full_name|default:acteur.username }}
+                            ({{ acteur.get_role_display }})
                         </option>
+
                         {% endfor %}
+
                     </optgroup>
+
                     {% else %}
+
                     <optgroup label="Agents (sans département)">
+
                         {% for acteur in groupe.list %}
-                        <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
-                            {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
+
+                        <option value="{{ acteur.pk }}">
+                            {{ acteur.get_full_name|default:acteur.username }}
+                            ({{ acteur.get_role_display }})
                         </option>
+
                         {% endfor %}
+
                     </optgroup>
+
                     {% endif %}
+
                     {% endfor %}
+
                 </select>
-                <p class="help-text">Sélectionnez la direction ou l'agent concerné dans la liste.</p>
+
+                <p class="help-text">
+                    Sélectionnez l'agent concerné dans la liste.
+                </p>
             </div>
 
             <!-- Autres champs du formulaire -->
             <div class="form-group">
-                <label class="form-label" for="id_service_concerne">{{ form.service_concerne.label }}</label>
+                <label class="form-label" for="id_service_concerne">
+                    {{ form.service_concerne.label }}
+                </label>
+
                 {{ form.service_concerne }}
-                {% if form.service_concerne.help_text %}<p class="help-text">{{ form.service_concerne.help_text }}</p>{%
-                endif %}
-                {% if form.service_concerne.errors %}<small style="color: var(--danger-color);">{{
-                    form.service_concerne.errors }}</small>{% endif %}
+
+                {% if form.service_concerne.help_text %}
+                <p class="help-text">
+                    {{ form.service_concerne.help_text }}
+                </p>
+                {% endif %}
+
+                {% if form.service_concerne.errors %}
+                <small style="color: var(--danger-color);">
+                    {{ form.service_concerne.errors }}
+                </small>
+                {% endif %}
             </div>
 
             <div class="form-group">
@@ -251,49 +304,87 @@
                     {{ form.note_traitement.label }}
                     <span class="optional-tag">Optionnel</span>
                 </label>
+
                 {{ form.note_traitement }}
             </div>
 
             <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 12px;">
-                <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">← Retour</a>
+                <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">
+                    ← Retour
+                </a>
+
                 <button type="submit" class="btn-affecter" id="btn-confirmer-affectation">
                     Confirmer l'affectation
                 </button>
             </div>
+
         </form>
     </div>
 
     <!-- Affectations déjà enregistrées -->
     <div class="existing-aff">
+
         <h3 style="margin-bottom: 15px; font-size: 1rem; font-weight: 600;">
             Affectations enregistrées ({{ affectations_existantes.count }})
         </h3>
+
         {% if affectations_existantes %}
+
         {% for aff in affectations_existantes %}
+
         <div class="aff-item" id="aff-existante-{{ aff.pk }}">
-            <h4>{{ aff.service_concerne }}</h4>
+
+            <h4>
+                {{ aff.service_concerne }}
+            </h4>
+
             <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 4px;">
+
                 {% if aff.destinataire %}
+
                 → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
-                <span style="color: var(--text-muted);">({{ aff.destinataire.get_role_display }})</span>
+
+                <span style="color: var(--text-muted);">
+                    ({{ aff.destinataire.get_role_display }})
+                </span>
+
                 {% else %}
-                → <em style="color: var(--text-muted);">Aucun agent spécifié</em>
+
+                → <em style="color: var(--text-muted);">
+                    Aucun agent spécifié
+                </em>
+
                 {% endif %}
+
             </p>
-            <small>Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}</small>
+
+            <small>
+                Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}
+            </small>
+
             {% if aff.note_traitement %}
-            <p style="font-size: 0.85rem; font-style: italic; margin-top: 6px; color: var(--text-muted);">{{
-                aff.note_traitement }}</p>
+
+            <p style="font-size: 0.85rem; font-style: italic; margin-top: 6px; color: var(--text-muted);">
+                {{ aff.note_traitement }}
+            </p>
+
             {% endif %}
+
         </div>
+
         {% endfor %}
+
         {% else %}
+
         <p
             style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 30px 0;">
             Aucune affectation pour ce courrier.
         </p>
+
         {% endif %}
+
     </div>
 
 </div>
+
 {% endblock %}

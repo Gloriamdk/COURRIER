@@ -513,21 +513,28 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         courrier.save()
 
         # Journal d'audit
+        destinataire_nom = (
+            f"{affectation.destinataire.get_full_name() or affectation.destinataire.username}"
+            if affectation.destinataire else "aucun agent"
+        )
+        service_nom = affectation.service_concerne or "aucun service"
+
         creer_historique(
             courrier=courrier,
             utilisateur=self.request.user,
             action='AFFECTATION',
-            description=f"Courrier affecté à {affectation.destinataire.get_full_name() or affectation.destinataire.username} "
-                        f"({affectation.service_concerne}) par {self.request.user.get_full_name() or self.request.user.username}."
+            description=f"Courrier affecté à {destinataire_nom} ({service_nom}) par "
+                        f"{self.request.user.get_full_name() or self.request.user.username}."
         )
 
-        # Notification au destinataire
-        notifier(
-            destinataire=affectation.destinataire,
-            courrier=courrier,
-            message=f"📋 Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
-                    f"Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
-        )
+        # Notification au destinataire (si un agent est spécifié)
+        if affectation.destinataire:
+            notifier(
+                destinataire=affectation.destinataire,
+                courrier=courrier,
+                message=f"📋 Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
+                        f"Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
+            )
 
         messages.success(
             self.request,

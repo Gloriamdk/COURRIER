@@ -94,7 +94,7 @@ class FicheAnalyseForm(forms.ModelForm):
     """
     class Meta:
         model = FicheAnalyse
-        fields = ['direction_proposee', 'observations_dc', 'propositions_dc']
+        fields = ['direction_proposee', 'observations_dc']
         widgets = {
             'direction_proposee': forms.Select(attrs={
                 'class': 'form-control',
@@ -105,12 +105,6 @@ class FicheAnalyseForm(forms.ModelForm):
                 'class': 'form-control',
                 'id': 'id_observations_dc',
                 'placeholder': 'Observations du Directeur de Cabinet sur le contenu du courrier...',
-            }),
-            'propositions_dc': forms.Textarea(attrs={
-                'rows': 4,
-                'class': 'form-control',
-                'id': 'id_propositions_dc',
-                'placeholder': 'Propositions d\'orientation supplémentaires ou actions recommandées...',
             }),
         }
 

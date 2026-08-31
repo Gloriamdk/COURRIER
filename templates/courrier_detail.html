@@ -200,7 +200,11 @@
                     <div>
                         <strong>{{ aff.service_concerne }}</strong>
                         <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.85rem;">
-                            → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
+                            {% if aff.destinataire %}
+                                → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
+                            {% else %}
+                                → <em style="color: var(--text-muted);">Aucun agent spécifié</em>
+                            {% endif %}
                         </span>
                     </div>
                     <span class="affectation-status statut-{{ aff.statut_traitement }}">
