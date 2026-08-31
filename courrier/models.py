@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils import timezone
@@ -109,9 +110,11 @@ class CourrierQuerySet(models.QuerySet):
         ]:
             return self
             
-        # Les directeurs et agents ne voient que les courriers qui leur sont explicitement affectés
+        # Les directeurs et agents voient les courriers affectés directement à leur compte
+        # ou affectés au service/direction dont ils relèvent.
         return self.filter(
-            affectations__destinataire=user
+            Q(affectations__destinataire=user)
+            | Q(affectations__service_concerne=user.service_direction)
         ).distinct()
 
 

@@ -64,6 +64,29 @@ class CourrierModelsTestCase(TestCase):
         courriers_daf = Courrier.objects.pour_utilisateur(self.dir_daf)
         self.assertEqual(courriers_daf.count(), 0)
 
+    def test_service_affectation_visible_for_same_department(self):
+        """Un directeur doit voir un courrier affecté à son service même sans destinataire explicite."""
+        decision = Decision.objects.create(
+            courrier=self.courrier_normal,
+            signe_par=self.ministre,
+            instructions_finales="Affecter le courrier à la DAF pour traitement."
+        )
+        self.courrier_normal.statut = Courrier.Statut.DECIDE
+        self.courrier_normal.save()
+
+        Affectation.objects.create(
+            courrier=self.courrier_normal,
+            decision=decision,
+            affecte_par=self.ministre,
+            destinataire=None,
+            service_concerne="DAF",
+            statut_traitement=Affectation.StatutTraitement.RECU
+        )
+
+        courriers_daf = Courrier.objects.pour_utilisateur(self.dir_daf)
+        self.assertEqual(courriers_daf.count(), 1)
+        self.assertIn(self.courrier_normal, courriers_daf)
+
     def test_complete_workflow_models(self):
         """
         Simule le cycle de vie complet en créant les objets liés :
