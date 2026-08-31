@@ -105,6 +105,16 @@
     {% endif %}
 
     <div class="form-group">
+        <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
+            {{ form.direction_proposee.label }}
+        </label>
+        {{ form.direction_proposee }}
+        {% if form.direction_proposee.errors %}
+            <small style="color: var(--danger-color);">{{ form.direction_proposee.errors }}</small>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
         <label class="form-label" for="{{ form.observations_dc.id_for_label }}">
             {{ form.observations_dc.label }}
         </label>

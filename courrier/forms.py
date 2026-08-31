@@ -94,19 +94,23 @@ class FicheAnalyseForm(forms.ModelForm):
     """
     class Meta:
         model = FicheAnalyse
-        fields = ['observations_dc', 'propositions_dc']
+        fields = ['direction_proposee', 'observations_dc', 'propositions_dc']
         widgets = {
+            'direction_proposee': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_direction_proposee',
+            }),
             'observations_dc': forms.Textarea(attrs={
-                'rows': 6,
+                'rows': 4,
                 'class': 'form-control',
                 'id': 'id_observations_dc',
                 'placeholder': 'Observations du Directeur de Cabinet sur le contenu du courrier...',
             }),
             'propositions_dc': forms.Textarea(attrs={
-                'rows': 6,
+                'rows': 4,
                 'class': 'form-control',
                 'id': 'id_propositions_dc',
-                'placeholder': 'Propositions d\'orientation : direction, service ou action recommandée...',
+                'placeholder': 'Propositions d\'orientation supplémentaires ou actions recommandées...',
             }),
         }
 
@@ -212,10 +216,9 @@ class AffectationForm(forms.ModelForm):
         model = Affectation
         fields = ['destinataire', 'service_concerne', 'note_traitement']
         widgets = {
-            'service_concerne': forms.TextInput(attrs={
+            'service_concerne': forms.Select(attrs={
                 'class': 'form-control',
                 'id': 'id_service_concerne',
-                'placeholder': 'Ex: DAF, DPAC, DRAC-Kara...',
             }),
             'note_traitement': forms.Textarea(attrs={
                 'rows': 3,

@@ -4,6 +4,52 @@ from django.conf import settings
 from django.utils import timezone
 
 # ==============================================================================
+# CONSTANTES GLOBALES
+# ==============================================================================
+
+DIRECTIONS_CHOICES = [
+    ("Cabinet du Ministre", "Cabinet du Ministre"),
+    ("Secrétariat Général", "Secrétariat Général"),
+    ("DAAF", "DAAF"),
+    ("DPDT", "DPDT"),
+    ("DPT", "DPT"),
+    ("DRICEHB", "DRICEHB"),
+    ("DLPL", "DLPL"),
+    ("DPAC", "DPAC"),
+    ("CNCIA", "CNCIA"),
+    ("DERPC", "DERPC"),
+    ("DPC", "DPC"),
+    ("CENALAC", "CENALAC"),
+    ("DRAC Grand-Lomé", "DRAC Grand-Lomé"),
+    ("DRAC Maritime", "DRAC Maritime"),
+    ("DRAC Plateaux", "DRAC Plateaux"),
+    ("DRAC Centrale", "DRAC Centrale"),
+    ("DRAC Kara", "DRAC Kara"),
+    ("DRAC Savanes", "DRAC Savanes"),
+    ("PRMP", "PRMP"),
+    ("CPMP", "CPMP"),
+    ("CCMP", "CCMP"),
+    ("Agent Comptable", "Agent Comptable"),
+    ("FPDT", "FPDT"),
+    ("FNPC", "FNPC"),
+    ("CNACET", "CNACET"),
+    ("IRES-RDEC", "IRES-RDEC"),
+    ("BUTODRA", "BUTODRA"),
+    ("CNPC", "CNPC"),
+    ("CRFTH", "CRFTH"),
+    ("CCT", "CCT"),
+    ("Autre", "Autre (à préciser)")
+]
+
+INSTRUCTIONS_STANDARD = [
+    ('MEN_PARLER', "M'en parler avant traitement"),
+    ('EN_INSTANCE', "En instance"),
+    ('POUR_ATTRIBUTION', "Pour attribution / À traiter"),
+    ('A_CLASSER', "À classer"),
+    ('AUTRE', "Autre (voir instructions finales)")
+]
+
+# ==============================================================================
 # 1. MODÈLE UTILISATEUR & RÔLES
 # ==============================================================================
 
@@ -245,8 +291,15 @@ class FicheAnalyse(models.Model):
         blank=True
     )
     propositions_dc = models.TextField(
-        verbose_name="Propositions d'orientation du DC",
+        verbose_name="Propositions d'orientation supplémentaires",
         blank=True
+    )
+    direction_proposee = models.CharField(
+        max_length=150,
+        choices=DIRECTIONS_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Direction / Service proposé (Optionnel)"
     )
     valide = models.BooleanField(
         default=False,
@@ -298,8 +351,16 @@ class Decision(models.Model):
         related_name="decisions_prises",
         verbose_name="Signé / Décidé par"
     )
+    instruction_standard = models.CharField(
+        max_length=50,
+        choices=INSTRUCTIONS_STANDARD,
+        default='POUR_ATTRIBUTION',
+        verbose_name="Action rapide / Instruction standard"
+    )
     instructions_finales = models.TextField(
-        verbose_name="Décisions et Instructions finales du Ministre"
+        verbose_name="Décisions et Instructions finales (Commentaire libre)",
+        blank=True,
+        null=True
     )
     date_decision = models.DateTimeField(
         auto_now_add=True,
@@ -349,11 +410,14 @@ class Affectation(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="affectations_recues",
-        verbose_name="Directeur / Service Destinataire"
+        verbose_name="Directeur / Service Destinataire",
+        null=True,
+        blank=True
     )
     service_concerne = models.CharField(
         max_length=150,
-        verbose_name="Direction / Service concerné (ex: DAF, DGM, etc.)"
+        choices=DIRECTIONS_CHOICES,
+        verbose_name="Direction / Service concerné"
     )
     statut_traitement = models.CharField(
         max_length=50,

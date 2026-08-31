@@ -4,7 +4,12 @@ from .models import Decision
 class DecisionForm(forms.ModelForm):
     class Meta:
         model = Decision
-        fields = ['instructions_finales']
+        fields = ['instruction_standard', 'instructions_finales']
         widgets = {
-            'instructions_finales': forms.Textarea(attrs={'rows': 5, 'class': 'form-control', 'placeholder': 'Saisissez la décision finale...'}),
+            'instruction_standard': forms.RadioSelect(attrs={'class': 'radio-action'}),
+            'instructions_finales': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Commentaire ou consigne détaillée supplémentaire (optionnel)...'
+            }),
         }

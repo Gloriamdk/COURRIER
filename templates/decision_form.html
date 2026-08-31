@@ -23,6 +23,15 @@
     .priority-normal { background: #f1f5f9; color: #475569; }
     .priority-urgent { background: #fffbeb; color: #b45309; }
     .priority-tres_urgent { background: #fef2f2; color: #b91c1c; }
+    
+    /* Styling pour les boutons radio de décision rapide */
+    .radio-action { display: none; }
+    .radio-action-label { padding: 10px 18px; border: 2px solid var(--border-color); background: #f8fafc; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); transition: all 0.2s; display: inline-block; margin: 4px; }
+    .radio-action-label:hover { background: #fff1f2; border-color: var(--danger-color); color: var(--danger-color); }
+    input[type="radio"]:checked + .radio-action-label { background: #fff1f2; border-color: var(--danger-color); color: var(--danger-color); box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2); }
+    .action-group { margin-bottom: 1.5rem; }
+    .action-group ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+    .action-group li { display: inline-block; }
 </style>
 {% endblock %}
 
@@ -105,6 +114,11 @@
         <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions :</strong>
         <p style="margin-top: 6px;">{{ fiche_analyse.propositions_dc }}</p>
     </div>
+    {% if fiche_analyse.direction_proposee %}
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #dcfce7;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Direction proposée :</strong>
+        <p style="margin-top: 6px; font-weight: 600; color: var(--primary-color);">{{ fiche_analyse.direction_proposee }}</p>
+    </div>
     {% endif %}
 </div>
 {% else %}
@@ -119,18 +133,23 @@
 
     <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"> Saisie de la Décision</h3>
 
-    <!-- Décisions rapides prédéfinies -->
-    <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 10px;">
-        Décisions administratives rapides (cliquez pour pré-remplir) :
-    </label>
-    <div class="quick-decisions">
-        <button type="button" class="quick-btn" onclick="prefill('M\'en parler d\'urgence.')"> M'en parler</button>
-        <button type="button" class="quick-btn" onclick="prefill('En instance, en attente de compléments d\'information.')"> En instance</button>
-        <button type="button" class="quick-btn" onclick="prefill('Accordé. Transmettre à la DAF pour exécution immédiate.')"> Accordé (DAF)</button>
-        <button type="button" class="quick-btn" onclick="prefill('Approuvé. Transmettre aux services compétents pour suite à donner.')"> Approuvé</button>
-        <button type="button" class="quick-btn" onclick="prefill('Refusé. Retourner à l\'expéditeur avec motif de rejet.')"> Refusé</button>
-        <button type="button" class="quick-btn" onclick="prefill('À classer aux archives.')"> Classer</button>
-        <button type="button" class="quick-btn" onclick="prefill('Transmettre au Secrétaire Général pour information.')"> Pour info SG</button>
+    <div class="action-group">
+        <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 10px;">
+            Action rapide / Instruction standard :
+        </label>
+        <ul>
+            {% for radio in form.instruction_standard %}
+            <li>
+                {{ radio.tag }}
+                <label for="{{ radio.id_for_label }}" class="radio-action-label">
+                    {{ radio.choice_label }}
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        {% if form.instruction_standard.errors %}
+            <small style="color: var(--danger-color);">{{ form.instruction_standard.errors }}</small>
+        {% endif %}
     </div>
 
     {% if form.errors %}
@@ -163,12 +182,12 @@
 
 {% block extra_js %}
 <script>
-    function prefill(text) {
-        const textarea = document.querySelector('textarea[name="instructions_finales"]');
-        if (textarea) {
-            textarea.value = text;
-            textarea.focus();
-        }
-    }
+    // Ajoute la classe au label pour le styling
+    document.addEventListener("DOMContentLoaded", function() {
+        const radios = document.querySelectorAll('.radio-action');
+        radios.forEach(radio => {
+            // Pas besoin de script compliqué, le CSS gère le :checked
+        });
+    });
 </script>
 {% endblock %}

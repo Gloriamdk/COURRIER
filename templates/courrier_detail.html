@@ -171,8 +171,18 @@
                 </small>
             </div>
             <div class="decision-section">
-                <span class="field-label">Instructions finales</span>
-                <p class="field-value" style="font-size: 1rem; line-height: 1.6;">{{ decision.instructions_finales|linebreaksbr }}</p>
+                <div style="margin-bottom: 12px;">
+                    <span class="field-label">Action / Instruction</span>
+                    <p class="field-value" style="font-size: 1.05rem; font-weight: 700; color: var(--danger-color);">
+                        {{ decision.get_instruction_standard_display }}
+                    </p>
+                </div>
+                {% if decision.instructions_finales %}
+                <div>
+                    <span class="field-label">Commentaire supplémentaire</span>
+                    <p class="field-value" style="font-size: 0.95rem; line-height: 1.6;">{{ decision.instructions_finales|linebreaksbr }}</p>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
