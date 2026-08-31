@@ -5,30 +5,160 @@
 
 {% block extra_css %}
 <style>
-    .info-card { background: #fff; padding: 24px; border-radius: var(--radius-md); border-left: 5px solid var(--warning-color); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
-    .decision-recap { background: #faf5ff; padding: 18px; border-radius: var(--radius-sm); border-left: 4px solid #7c3aed; margin-top: 15px; }
-    .form-card { background: #fff; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px; }
-    .form-group { margin-bottom: 1.5rem; }
-    .form-label { font-weight: 600; display: block; margin-bottom: 0.5rem; color: var(--text-primary); }
-    .form-label .optional-tag { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); background: #f1f5f9; padding: 2px 8px; border-radius: 4px; margin-left: 6px; }
-    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: var(--font-sans); }
-    .form-control:focus { outline: none; border-color: var(--warning-color); box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1); }
-    .help-text { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
-    .btn-affecter { padding: 12px 28px; background: var(--warning-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 1rem; }
-    .btn-affecter:hover { background: #005a40; }
-    .btn-back { padding: 12px 20px; background: #f1f5f9; color: var(--text-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 10px; }
-    .btn-affecter { padding: 12px 28px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 1rem; }
-    .btn-affecter:hover { background: var(--primary-hover); }
+    .info-card {
+        background: #fff;
+        padding: 24px;
+        border-radius: var(--radius-md);
+        border-left: 5px solid var(--warning-color);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 20px;
+    }
 
-    .existing-aff { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 20px; }
-    .aff-item { padding: 14px; background: #f8fafc; border-radius: var(--radius-sm); margin-bottom: 10px; border-left: 3px solid var(--primary-color); }
-    .aff-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
-    .aff-item small { color: var(--text-muted); font-size: 0.82rem; }
+    .decision-recap {
+        background: #faf5ff;
+        padding: 18px;
+        border-radius: var(--radius-sm);
+        border-left: 4px solid #7c3aed;
+        margin-top: 15px;
+    }
+
+    .form-card {
+        background: #fff;
+        padding: 30px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .form-label .optional-tag {
+        font-weight: 400;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        background: #f1f5f9;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        font-size: 1rem;
+        font-family: var(--font-sans);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--warning-color);
+        box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1);
+    }
+
+    .help-text {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .btn-affecter {
+        padding: 12px 28px;
+        background: var(--warning-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .btn-affecter:hover {
+        background: #005a40;
+    }
+
+    .btn-back {
+        padding: 12px 20px;
+        background: #f1f5f9;
+        color: var(--text-primary);
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+    }
+
+    .btn-affecter {
+        padding: 12px 28px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .btn-affecter:hover {
+        background: var(--primary-hover);
+    }
+
+    .existing-aff {
+        background: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 20px;
+    }
+
+    .aff-item {
+        padding: 14px;
+        background: #f8fafc;
+        border-radius: var(--radius-sm);
+        margin-bottom: 10px;
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .aff-item h4 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .aff-item small {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+    }
 
     /* Select groupé */
-    select.form-control { height: auto; appearance: auto; cursor: pointer; }
-    select.form-control optgroup { font-weight: 700; color: var(--text-primary); background: #f8fafc; }
-    select.form-control option { font-weight: 400; color: var(--text-primary); padding: 6px; }
+    select.form-control {
+        height: auto;
+        appearance: auto;
+        cursor: pointer;
+    }
+
+    select.form-control optgroup {
+        font-weight: 700;
+        color: var(--text-primary);
+        background: #f8fafc;
+    }
+
+    select.form-control option {
+        font-weight: 400;
+        color: var(--text-primary);
+        padding: 6px;
+    }
 </style>
 {% endblock %}
 
@@ -39,18 +169,21 @@
     <h3 style="color: var(--warning-color); margin-bottom: 1rem;">Affectation du courrier {{ courrier.reference }}</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div>
-            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Objet</small>
+            <small
+                style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Objet</small>
             <p style="font-weight: 600; margin-top: 4px;">{{ courrier.designation }}</p>
         </div>
         <div>
-            <small style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Expéditeur</small>
+            <small
+                style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Expéditeur</small>
             <p style="margin-top: 4px;">{{ courrier.expediteur_nom }}</p>
         </div>
     </div>
 
     {% if decision %}
     <div class="decision-recap">
-        <small style="font-size: 0.78rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Décision du Ministre ({{ decision.date_decision|date:"d/m/Y" }})</small>
+        <small style="font-size: 0.78rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Décision du
+            Ministre ({{ decision.date_decision|date:"d/m/Y" }})</small>
         <p style="margin-top: 8px; font-style: italic;">« {{ decision.instructions_finales }} »</p>
     </div>
     {% endif %}
@@ -65,7 +198,8 @@
             <h3 style="margin-bottom: 1.5rem; font-size: 1rem;">Nouvelle affectation</h3>
 
             {% if form.errors %}
-            <div style="background: #fee2e2; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 1rem; color: #b91c1c;">
+            <div
+                style="background: #fee2e2; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 1rem; color: #b91c1c;">
                 Veuillez corriger les erreurs ci-dessous.
             </div>
             {% endif %}
@@ -73,30 +207,30 @@
             <!-- Champ Destinataire (liste déroulante groupée) -->
             <div class="form-group">
                 <label class="form-label" for="id_destinataire">
-                    Destinataire
+                    Agent
                     <span class="optional-tag">Optionnel</span>
                 </label>
                 <select name="destinataire" id="id_destinataire" class="form-control">
                     <option value="">— Sélectionner un destinataire (optionnel) —</option>
                     {% regroup form.fields.destinataire.queryset by service_direction as acteurs_par_service %}
                     {% for groupe in acteurs_par_service %}
-                        {% if groupe.grouper %}
-                        <optgroup label="{{ groupe.grouper }}">
-                            {% for acteur in groupe.list %}
-                            <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
-                                {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
-                            </option>
-                            {% endfor %}
-                        </optgroup>
-                        {% else %}
-                        <optgroup label="Agents (sans département)">
-                            {% for acteur in groupe.list %}
-                            <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
-                                {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
-                            </option>
-                            {% endfor %}
-                        </optgroup>
-                        {% endif %}
+                    {% if groupe.grouper %}
+                    <optgroup label="{{ groupe.grouper }}">
+                        {% for acteur in groupe.list %}
+                        <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% else %}
+                    <optgroup label="Agents (sans département)">
+                        {% for acteur in groupe.list %}
+                        <option value="{{ acteur.pk }}" {% if form.destinataire.value == acteur.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ acteur.get_full_name|default:acteur.username }} ({{ acteur.get_role_display }})
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
                     {% endfor %}
                 </select>
                 <p class="help-text">Sélectionnez la direction ou l'agent concerné dans la liste.</p>
@@ -106,8 +240,10 @@
             <div class="form-group">
                 <label class="form-label" for="id_service_concerne">{{ form.service_concerne.label }}</label>
                 {{ form.service_concerne }}
-                {% if form.service_concerne.help_text %}<p class="help-text">{{ form.service_concerne.help_text }}</p>{% endif %}
-                {% if form.service_concerne.errors %}<small style="color: var(--danger-color);">{{ form.service_concerne.errors }}</small>{% endif %}
+                {% if form.service_concerne.help_text %}<p class="help-text">{{ form.service_concerne.help_text }}</p>{%
+                endif %}
+                {% if form.service_concerne.errors %}<small style="color: var(--danger-color);">{{
+                    form.service_concerne.errors }}</small>{% endif %}
             </div>
 
             <div class="form-group">
@@ -138,20 +274,22 @@
             <h4>{{ aff.service_concerne }}</h4>
             <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 4px;">
                 {% if aff.destinataire %}
-                    → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
-                    <span style="color: var(--text-muted);">({{ aff.destinataire.get_role_display }})</span>
+                → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
+                <span style="color: var(--text-muted);">({{ aff.destinataire.get_role_display }})</span>
                 {% else %}
-                    → <em style="color: var(--text-muted);">Aucun agent spécifié</em>
+                → <em style="color: var(--text-muted);">Aucun agent spécifié</em>
                 {% endif %}
             </p>
             <small>Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}</small>
             {% if aff.note_traitement %}
-            <p style="font-size: 0.85rem; font-style: italic; margin-top: 6px; color: var(--text-muted);">{{ aff.note_traitement }}</p>
+            <p style="font-size: 0.85rem; font-style: italic; margin-top: 6px; color: var(--text-muted);">{{
+                aff.note_traitement }}</p>
             {% endif %}
         </div>
         {% endfor %}
         {% else %}
-        <p style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 30px 0;">
+        <p
+            style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 30px 0;">
             Aucune affectation pour ce courrier.
         </p>
         {% endif %}
