@@ -73,6 +73,7 @@
                 </div>
             </div>
 
+
             <!-- En-tête système GEC -->
             <div class="sidebar-header">
                 <div class="sidebar-logo">GEC</div>
@@ -138,11 +139,14 @@
                         <span class="user-service">{{ user.service_direction }}</span>
                         {% endif %}
                     </div>
-                </div>
-                <a href="{% url 'logout' %}" class="logout-btn" id="btn-logout">
-                    <span></span> Déconnexion
-                </a>
             </div>
+            <form action="{% url 'logout' %}" method="post" style="width: 100%; margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn" id="btn-logout">
+                    <span>🚪</span> Déconnexion
+                </button>
+            </form>
+        </div>
         </aside>
 
         <!-- ===== ZONE DE CONTENU PRINCIPALE ===== -->

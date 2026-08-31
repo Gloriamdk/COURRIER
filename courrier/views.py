@@ -16,6 +16,7 @@ Organisation :
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, TemplateView, ListView, DetailView, UpdateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import logout
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.http import JsonResponse
@@ -553,3 +554,18 @@ class MarquerNotificationLueView(LoginRequiredMixin, View):
         notif.lu = True
         notif.save()
         return JsonResponse({'status': 'ok', 'nb_non_lues': request.user.notifications.filter(lu=False).count()})
+
+
+# ==============================================================================
+# DÉCONNEXION
+# ==============================================================================
+
+def deconnexion_view(request):
+    """
+    Déconnexion de l'utilisateur (supporte GET et POST) et redirection
+    immédiate vers la page d'accueil principale (landing page).
+    """
+    logout(request)
+    messages.info(request, "Vous avez été déconnecté avec succès.")
+    return redirect('landing')
+
