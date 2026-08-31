@@ -410,14 +410,16 @@ class Affectation(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="affectations_recues",
-        verbose_name="Directeur / Service Destinataire",
+        verbose_name="Agent destinataire (Optionnel)",
         null=True,
         blank=True
     )
     service_concerne = models.CharField(
         max_length=150,
         choices=DIRECTIONS_CHOICES,
-        verbose_name="Direction / Service concerné"
+        verbose_name="Direction / Service concerné (Optionnel)",
+        null=True,
+        blank=True
     )
     statut_traitement = models.CharField(
         max_length=50,
