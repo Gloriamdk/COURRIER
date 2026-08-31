@@ -56,11 +56,6 @@ class CourrierForm(forms.ModelForm):
                 'id': 'id_expediteur_telephone',
                 'placeholder': "+228 XX XX XX XX (optionnel)"
             }),
-            'destinataire_initial': forms.TextInput(attrs={
-                'class': 'form-control',
-                'id': 'id_destinataire_initial',
-                'placeholder': "Orientation initiale du courrier (optionnel)"
-            }),
             'priorite': forms.Select(attrs={
                 'class': 'form-control',
                 'id': 'id_priorite',
@@ -116,20 +111,101 @@ class FicheAnalyseForm(forms.ModelForm):
         }
 
 
+def get_affectation_choices():
+    """
+    Construit la liste groupée des destinataires pour le formulaire d'affectation.
+    Groupe par direction/service, et inclut les agents sans département.
+    """
+    # Ordre d'affichage des groupes (correspondant à service_direction)
+    GROUPES_ORDRE = [
+        "Cabinet du Ministre",
+        "Secrétariat Général",
+        "DAAF",
+        "DPDT",
+        "DPT",
+        "DRICEHB",
+        "DLPL",
+        "DPAC",
+        "CNCIA",
+        "DERPC",
+        "DPC",
+        "CENALAC",
+        "DRAC Grand-Lomé",
+        "DRAC Maritime",
+        "DRAC Plateaux",
+        "DRAC Centrale",
+        "DRAC Kara",
+        "DRAC Savanes",
+        "PRMP",
+        "CPMP",
+        "CCMP",
+        "Agent Comptable",
+        "FPDT",
+        "FNPC",
+        "CNACET",
+        "IRES-RDEC",
+        "BUTODRA",
+        "CNPC",
+        "CRFTH",
+        "CCT",
+    ]
+
+    users = User.objects.filter(
+        role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
+        is_active=True
+    ).order_by('service_direction', 'last_name', 'first_name')
+
+    # Groupement par service_direction
+    groupes = {}
+    sans_service = []
+
+    for user in users:
+        service = user.service_direction or ""
+        if service:
+            if service not in groupes:
+                groupes[service] = []
+            groupes[service].append((user.pk, user.get_full_name() or user.username))
+        else:
+            sans_service.append((user.pk, user.get_full_name() or user.username))
+
+    # Construction des choix groupés
+    choices = [('', '— Sélectionner un destinataire —')]
+
+    for groupe in GROUPES_ORDRE:
+        if groupe in groupes:
+            choices.append((groupe, groupes[groupe]))
+
+    # Groupes non listés dans l'ordre par défaut
+    for service, membres in groupes.items():
+        if service not in GROUPES_ORDRE:
+            choices.append((service, membres))
+
+    # Agents sans département (optionnel, en dernier)
+    if sans_service:
+        choices.append(("Agents (sans département)", sans_service))
+
+    return choices
+
+
 class AffectationForm(forms.ModelForm):
     """
     Formulaire d'affectation d'un courrier à un directeur/agent/service.
-    Filtré pour n'afficher que les utilisateurs DIRECTEUR et AGENT actifs.
+    Organisé en liste déroulante groupée par direction (organigramme MTCA).
+    Le destinataire est OPTIONNEL (le Ministre peut valider sans préciser d'agent).
     """
     destinataire = forms.ModelChoiceField(
         queryset=User.objects.filter(
             role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
             is_active=True
-        ).order_by('role', 'service_direction', 'last_name'),
-        label="Sélectionnez l'acteur concerné :",
-        widget=forms.RadioSelect(attrs={'class': 'actor-radio'}),
-        empty_label=None,
-        help_text="Cliquez sur l'acteur à qui vous souhaitez affecter ce courrier."
+        ).order_by('service_direction', 'last_name'),
+        label="Destinataire (Direction ou Agent)",
+        required=False,   # <-- NON OBLIGATOIRE
+        empty_label="— Sélectionner un destinataire (optionnel) —",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_destinataire',
+        }),
+        help_text="Choisissez la direction ou l'agent concerné. Ce champ est optionnel."
     )
 
     class Meta:
@@ -139,7 +215,7 @@ class AffectationForm(forms.ModelForm):
             'service_concerne': forms.TextInput(attrs={
                 'class': 'form-control',
                 'id': 'id_service_concerne',
-                'placeholder': 'Ex: DAF, DEC, DGM, DAAF...',
+                'placeholder': 'Ex: DAF, DPAC, DRAC-Kara...',
             }),
             'note_traitement': forms.Textarea(attrs={
                 'rows': 3,
@@ -148,3 +224,12 @@ class AffectationForm(forms.ModelForm):
                 'placeholder': 'Instructions complémentaires pour ce service (optionnel)...',
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rebuild the queryset with grouped choices using optgroup
+        users = User.objects.filter(
+            role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
+            is_active=True
+        ).order_by('service_direction', 'last_name', 'first_name')
+        self.fields['destinataire'].queryset = users
