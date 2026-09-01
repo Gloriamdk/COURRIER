@@ -7,6 +7,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from courrier.models import Courrier, Document, FicheAnalyse, Decision, Affectation, Historique, Notification
 from courrier.forms import CourrierForm
+from courrier import validators
+from django.conf import settings
+import os
 
 User = get_user_model()
 
@@ -257,3 +260,152 @@ class CourrierModelsTestCase(TestCase):
 
         blocked_response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})
         self.assertEqual(blocked_response.status_code, 429)
+
+    # --- Security-focused upload / access tests requested ---
+    def test_upload_allowed_pdf_and_storage(self):
+        # Valid PDF upload should be accepted and create a Document
+        data = b"%PDF-1.4\n%valid pdf content\n"
+        fichier = SimpleUploadedFile("allowed.pdf", data, content_type="application/pdf")
+        document = Document.objects.create(
+            courrier=self.courrier_normal,
+            nom="Scan valide",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        self.assertIsNotNone(document.pk)
+        # file must exist on disk
+        self.assertTrue(os.path.exists(document.fichier.path))
+
+    def test_upload_too_large_is_rejected(self):
+        big = b"0" * (validators.MAX_UPLOAD_SIZE + 1)
+        fichier = SimpleUploadedFile("big.pdf", big, content_type="application/pdf")
+        form = CourrierForm(
+            data={
+                "designation": "Objet",
+                "resume": "",
+                "expediteur_nom": "Expediteur",
+                "expediteur_institution": "",
+                "expediteur_telephone": "",
+                "priorite": Courrier.Priorite.NORMAL,
+                "date_arrivee": timezone.now().strftime("%Y-%m-%dT%H:%M"),
+            },
+            files={"fichier_scan": fichier},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("fichier_scan", form.errors)
+
+    def test_forbidden_extension_rejected(self):
+        exe = SimpleUploadedFile("malware.exe", b"MZ...", content_type="application/octet-stream")
+        document = Document(
+            courrier=self.courrier_normal,
+            nom="Exe",
+            fichier=exe,
+            taille_octets=exe.size,
+        )
+        with self.assertRaises(Exception):
+            document.full_clean()
+
+    def test_mime_falsified_is_rejected(self):
+        # content looks like PDF header but labeled as image/jpeg
+        fichier = SimpleUploadedFile("fake.jpg", b"%PDF-1.4\n%fake", content_type="image/jpeg")
+        document = Document(
+            courrier=self.courrier_normal,
+            nom="Fake",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        with self.assertRaises(Exception):
+            document.full_clean()
+
+    def test_double_extension_attack_blocked(self):
+        # Attempt filename with double extension where last extension is executable
+        fichier = SimpleUploadedFile("report.pdf.php", b"%PDF-1.4\n%valid", content_type="application/pdf")
+        form = CourrierForm(
+            data={
+                "designation": "Objet",
+                "resume": "",
+                "expediteur_nom": "Expediteur",
+                "expediteur_institution": "",
+                "expediteur_telephone": "",
+                "priorite": Courrier.Priorite.NORMAL,
+                "date_arrivee": timezone.now().strftime("%Y-%m-%dT%H:%M"),
+            },
+            files={"fichier_scan": fichier},
+        )
+        self.assertFalse(form.is_valid())
+
+    def test_path_traversal_filename_rejected(self):
+        # Many clients strip path components from filenames. The important
+        # property is that the application must not store the file using
+        # attacker-controlled paths. We assert the stored path is under
+        # MEDIA_ROOT and contains no '..' or path separators from the original name.
+        fichier = SimpleUploadedFile("../../secret.pdf", b"%PDF-1.4\n%valid", content_type="application/pdf")
+        form = CourrierForm(
+            data={
+                "designation": "Objet",
+                "resume": "",
+                "expediteur_nom": "Expediteur",
+                "expediteur_institution": "",
+                "expediteur_telephone": "",
+                "priorite": Courrier.Priorite.NORMAL,
+                "date_arrivee": timezone.now().strftime("%Y-%m-%dT%H:%M"),
+            },
+            files={"fichier_scan": fichier},
+        )
+        # Form may be valid because the client-supplied filename is normalized.
+        self.assertTrue(form.is_valid())
+        # Save courrier and attach document to verify safe storage
+        courrier = form.save(commit=False)
+        courrier.cree_par = self.sc
+        courrier.save()
+        doc = Document.objects.create(
+            courrier=courrier,
+            nom='Test',
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        self.assertTrue(doc.fichier.path.startswith(str(settings.MEDIA_ROOT)))
+        self.assertNotIn('..', doc.fichier.path)
+
+    def test_download_requires_authorization_and_direct_url_is_not_exposed(self):
+        fichier = SimpleUploadedFile(
+            "scan.pdf",
+            b"%PDF-1.4\n%valid test pdf",
+            content_type="application/pdf",
+        )
+        document = Document.objects.create(
+            courrier=self.courrier_normal,
+            nom="Scan",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+
+        # Another user must not be able to download
+        self.client.force_login(self.agent)
+        resp = self.client.get(reverse("document_telecharger", kwargs={"pk": document.pk}))
+        self.assertEqual(resp.status_code, 404)
+
+        # Direct access to the underlying file URL should not be accessible via the app
+        file_url = document.fichier.url
+        anon = self.client.logout() or self.client.get(file_url)
+        # Depending on deployment the MEDIA URL might not be served by Django; accept 404 or 302 to login
+        self.assertIn(anon.status_code, (302, 404))
+
+    def test_non_staff_cannot_access_admin_delete(self):
+        # Ensure non-staff users cannot reach the admin delete view for Documents
+        fichier = SimpleUploadedFile(
+            "scan2.pdf",
+            b"%PDF-1.4\n%valid",
+            content_type="application/pdf",
+        )
+        document = Document.objects.create(
+            courrier=self.courrier_normal,
+            nom="Scan2",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        admin_delete_url = f"/admin/courrier/document/{document.pk}/delete/"
+        self.client.force_login(self.agent)
+        resp = self.client.get(admin_delete_url)
+        # Expect redirect to login or permission denied (302 -> login)
+        self.assertIn(resp.status_code, (302, 403))

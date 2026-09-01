@@ -29,6 +29,7 @@ from .forms import CourrierForm, FicheAnalyseForm, AffectationForm
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
 from .validators import validate_document_upload
+import mimetypes
 
 
 # ==============================================================================
@@ -300,9 +301,16 @@ class DocumentDownloadView(LoginRequiredMixin, View):
         except FileNotFoundError:
             raise Http404("Fichier introuvable.")
 
+        # Détermination sûre du type MIME pour l'en-tête Content-Type
+        guessed_type, _ = mimetypes.guess_type(document.fichier.name)
+        content_type = guessed_type or 'application/octet-stream'
+
         extension = Path(document.fichier.name).suffix.lower()
         filename = f"document-{document.pk}{extension}"
-        return FileResponse(file_handle, as_attachment=True, filename=filename)
+        response = FileResponse(file_handle, as_attachment=True, filename=filename, content_type=content_type)
+        # Défense supplémentaire : s'assurer que le navigateur n'interprète pas le contenu
+        response['X-Content-Type-Options'] = 'nosniff'
+        return response
 
 
 # ==============================================================================
