@@ -85,7 +85,7 @@
             Documents ({{ courrier.documents.count }})
         </label>
         {% for doc in courrier.documents.all %}
-        <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener"
+        <a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener"
            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff1f2; color: var(--danger-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; margin-right: 8px;">
              {{ doc.nom }}
         </a>
@@ -179,16 +179,4 @@
     </div>
 </form>
 
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Ajoute la classe au label pour le styling
-    document.addEventListener("DOMContentLoaded", function() {
-        const radios = document.querySelectorAll('.radio-action');
-        radios.forEach(radio => {
-            // Pas besoin de script compliqué, le CSS gère le :checked
-        });
-    });
-</script>
 {% endblock %}

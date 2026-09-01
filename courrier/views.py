@@ -16,10 +16,13 @@ Organisation :
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, TemplateView, ListView, DetailView, UpdateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import logout
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
+from django.db import IntegrityError, transaction
+from pathlib import Path
 
 from .models import Courrier, User, FicheAnalyse, Decision, Document, Historique, Notification, Affectation
 from .forms import CourrierForm, FicheAnalyseForm, AffectationForm
@@ -54,6 +57,15 @@ def notifier_role(role, courrier, message):
     """Envoie une notification à tous les utilisateurs d'un rôle donné."""
     for user in User.objects.filter(role=role, is_active=True):
         notifier(user, courrier, message)
+
+
+class SecureLogoutView(LoginRequiredMixin, View):
+    """Déconnexion uniquement par POST pour éviter les actions CSRF par lien."""
+    http_method_names = ['post', 'options']
+
+    def post(self, request):
+        logout(request)
+        return redirect('landing')
 
 
 # ==============================================================================
@@ -169,8 +181,8 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
         courrier = self.object
         user = self.request.user
 
-        context['documents'] = courrier.documents.all()
-        context['historiques'] = courrier.historiques.select_related('utilisateur').order_by('-date_action')
+        context['documents'] = courrier.documents.order_by('-date_televersement')[:100]
+        context['historiques'] = courrier.historiques.select_related('utilisateur').order_by('-date_action')[:100]
 
         # Fiche d'analyse (si elle existe)
         try:
@@ -185,7 +197,7 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             context['decision'] = None
 
         # Affectations
-        context['affectations'] = courrier.affectations.select_related('destinataire', 'affecte_par').all()
+        context['affectations'] = courrier.affectations.select_related('destinataire', 'affecte_par').order_by('-date_affectation')[:100]
 
         # Permissions d'action affichées dans le template
         context['peut_analyser'] = (
@@ -197,6 +209,8 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             user.role == User.Role.DC
             and context['fiche_analyse'] is not None
             and not context['fiche_analyse'].valide
+            and context['fiche_analyse'].analyse_par_id == user.id
+            and courrier.statut == Courrier.Statut.EN_COURS_DC
         )
         context['peut_decider'] = (
             user.role == User.Role.MINISTRE
@@ -268,6 +282,26 @@ class CourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         return response
 
 
+class DocumentDownloadView(LoginRequiredMixin, View):
+    """Téléchargement de document avec contrôle d'accès sur le courrier parent."""
+
+    def get(self, request, pk):
+        document = get_object_or_404(Document.objects.select_related('courrier'), pk=pk)
+        is_authorized = Courrier.objects.pour_utilisateur(request.user).filter(
+            pk=document.courrier_id
+        ).exists()
+        if not is_authorized:
+            raise Http404("Document introuvable.")
+
+        try:
+            file_handle = document.fichier.open("rb")
+        except FileNotFoundError:
+            raise Http404("Fichier introuvable.")
+
+        filename = Path(document.fichier.name).name
+        return FileResponse(file_handle, as_attachment=True, filename=filename)
+
+
 # ==============================================================================
 # FICHE D'ANALYSE — Rédaction (DC)
 # ==============================================================================
@@ -284,8 +318,11 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
     def get_courrier(self):
         return get_object_or_404(
-            Courrier.objects.pour_utilisateur(self.request.user),
-            pk=self.kwargs['courrier_id']
+            Courrier.objects.pour_utilisateur(self.request.user).filter(
+                statut=Courrier.Statut.ARRIVE,
+                fiche_analyse__isnull=True,
+            ),
+            pk=self.kwargs['courrier_id'],
         )
 
     def get_context_data(self, **kwargs):
@@ -294,22 +331,25 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        courrier = self.get_courrier()
-        form.instance.analyse_par = self.request.user
-        form.instance.courrier = courrier
-        response = super().form_valid(form)
+        try:
+            with transaction.atomic():
+                courrier = self.get_courrier()
+                form.instance.analyse_par = self.request.user
+                form.instance.courrier = courrier
+                response = super().form_valid(form)
 
-        # Mise à jour du statut du courrier
-        courrier.statut = Courrier.Statut.EN_COURS_DC
-        courrier.save()
+                courrier.statut = Courrier.Statut.EN_COURS_DC
+                courrier.save(update_fields=['statut'])
 
-        # Journal d'audit
-        creer_historique(
-            courrier=courrier,
-            utilisateur=self.request.user,
-            action='ANALYSE_REDIGEE',
-            description=f"Fiche d'analyse rédigée par le DC {self.request.user.get_full_name() or self.request.user.username}."
-        )
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=self.request.user,
+                    action='ANALYSE_REDIGEE',
+                    description=f"Fiche d'analyse rédigée par le DC {self.request.user.get_full_name() or self.request.user.username}."
+                )
+        except IntegrityError:
+            messages.error(self.request, "Une fiche d'analyse existe déjà pour ce courrier.")
+            return redirect('courrier_detail', pk=self.kwargs['courrier_id'])
 
         messages.success(
             self.request,
@@ -334,28 +374,23 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
 
     def post(self, request, courrier_id):
         courrier = get_object_or_404(
-            Courrier.objects.pour_utilisateur(request.user),
-            pk=courrier_id
+            Courrier.objects.pour_utilisateur(request.user).filter(
+                statut=Courrier.Statut.EN_COURS_DC,
+                fiche_analyse__analyse_par=request.user,
+                fiche_analyse__valide=False,
+            ),
+            pk=courrier_id,
         )
-
-        try:
-            fiche = courrier.fiche_analyse
-        except FicheAnalyse.DoesNotExist:
-            messages.error(request, "Aucune fiche d'analyse à valider pour ce courrier.")
-            return redirect('courrier_detail', pk=courrier_id)
-
-        if fiche.valide:
-            messages.warning(request, "Cette fiche a déjà été validée.")
-            return redirect('courrier_detail', pk=courrier_id)
+        fiche = courrier.fiche_analyse
 
         # Validation de la fiche
         fiche.valide = True
         fiche.date_validation = timezone.now()
-        fiche.save()
+        fiche.save(update_fields=['valide', 'date_validation'])
 
         # Mise à jour du statut du courrier
         courrier.statut = Courrier.Statut.ANALYSE_VALIDE
-        courrier.save()
+        courrier.save(update_fields=['statut'])
 
         # Journal d'audit
         creer_historique(
@@ -402,8 +437,12 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
     def get_courrier(self):
         return get_object_or_404(
-            Courrier.objects.pour_utilisateur(self.request.user),
-            pk=self.kwargs['courrier_id']
+            Courrier.objects.pour_utilisateur(self.request.user).filter(
+                statut=Courrier.Statut.ANALYSE_VALIDE,
+                fiche_analyse__valide=True,
+                decision__isnull=True,
+            ),
+            pk=self.kwargs['courrier_id'],
         )
 
     def get_context_data(self, **kwargs):
@@ -419,43 +458,40 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        courrier = self.get_courrier()
-        form.instance.signe_par = self.request.user
-        form.instance.courrier = courrier
-
-        # Lier la fiche d'analyse si elle existe
         try:
-            form.instance.fiche_analyse = courrier.fiche_analyse
-        except FicheAnalyse.DoesNotExist:
-            pass
+            with transaction.atomic():
+                courrier = self.get_courrier()
+                form.instance.signe_par = self.request.user
+                form.instance.courrier = courrier
+                form.instance.fiche_analyse = courrier.fiche_analyse
 
-        response = super().form_valid(form)
+                response = super().form_valid(form)
 
-        # Mise à jour du statut du courrier
-        courrier.statut = Courrier.Statut.DECIDE
-        courrier.save()
+                courrier.statut = Courrier.Statut.DECIDE
+                courrier.save(update_fields=['statut'])
 
-        # Journal d'audit
-        creer_historique(
-            courrier=courrier,
-            utilisateur=self.request.user,
-            action='DECISION_MINISTRE',
-            description=f"Décision du Ministre {self.request.user.get_full_name() or self.request.user.username} : "
-                        f"{self.object.instructions_finales[:100]}..."
-        )
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=self.request.user,
+                    action='DECISION_MINISTRE',
+                    description=f"Décision du Ministre {self.request.user.get_full_name() or self.request.user.username} : "
+                                f"{(self.object.instructions_finales or '')[:100]}..."
+                )
 
-        # Notifications
-        notifier_role(
-            role=User.Role.DC,
-            courrier=courrier,
-            message=f"Le Ministre a pris sa décision sur {courrier.reference}. "
-                    f"Le courrier est prêt à être affecté."
-        )
-        notifier_role(
-            role=User.Role.SECRETARIAT_CENTRAL,
-            courrier=courrier,
-            message=f"Décision rendue sur {courrier.reference} : {courrier.designation[:60]}."
-        )
+                notifier_role(
+                    role=User.Role.DC,
+                    courrier=courrier,
+                    message=f"Le Ministre a pris sa décision sur {courrier.reference}. "
+                            f"Le courrier est prêt à être affecté."
+                )
+                notifier_role(
+                    role=User.Role.SECRETARIAT_CENTRAL,
+                    courrier=courrier,
+                    message=f"Décision rendue sur {courrier.reference} : {courrier.designation[:60]}."
+                )
+        except IntegrityError:
+            messages.error(self.request, "Une décision existe déjà pour ce courrier.")
+            return redirect('courrier_detail', pk=self.kwargs['courrier_id'])
 
         messages.success(
             self.request,
@@ -484,7 +520,7 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
     def get_courrier(self):
         return get_object_or_404(
-            Courrier.objects.pour_utilisateur(self.request.user),
+            Courrier.objects.pour_utilisateur(self.request.user).filter(decision__isnull=False),
             pk=self.kwargs['courrier_id'],
             statut=Courrier.Statut.DECIDE
         )
@@ -493,48 +529,43 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         courrier = self.get_courrier()
         context['courrier'] = courrier
-        context['affectations_existantes'] = courrier.affectations.select_related('destinataire').all()
-        try:
-            context['decision'] = courrier.decision
-        except Decision.DoesNotExist:
-            context['decision'] = None
+        context['affectations_existantes'] = courrier.affectations.select_related('destinataire').order_by('-date_affectation')[:100]
+        context['decision'] = courrier.decision
         return context
 
     def form_valid(self, form):
-        courrier = self.get_courrier()
-        form.instance.affecte_par = self.request.user
-        form.instance.courrier = courrier
-        form.instance.decision = courrier.decision
-        response = super().form_valid(form)
-        affectation = self.object
+        with transaction.atomic():
+            courrier = self.get_courrier()
+            form.instance.affecte_par = self.request.user
+            form.instance.courrier = courrier
+            form.instance.decision = courrier.decision
+            response = super().form_valid(form)
+            affectation = self.object
 
-        # Mise à jour du statut du courrier
-        courrier.statut = Courrier.Statut.AFFECTE
-        courrier.save()
+            courrier.statut = Courrier.Statut.AFFECTE
+            courrier.save(update_fields=['statut'])
 
-        # Journal d'audit
-        destinataire_nom = (
-            f"{affectation.destinataire.get_full_name() or affectation.destinataire.username}"
-            if affectation.destinataire else "aucun agent"
-        )
-        service_nom = affectation.service_concerne or "aucun service"
-
-        creer_historique(
-            courrier=courrier,
-            utilisateur=self.request.user,
-            action='AFFECTATION',
-            description=f"Courrier affecté à {destinataire_nom} ({service_nom}) par "
-                        f"{self.request.user.get_full_name() or self.request.user.username}."
-        )
-
-        # Notification au destinataire (si un agent est spécifié)
-        if affectation.destinataire:
-            notifier(
-                destinataire=affectation.destinataire,
-                courrier=courrier,
-                message=f"📋 Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
-                        f"Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
+            destinataire_nom = (
+                f"{affectation.destinataire.get_full_name() or affectation.destinataire.username}"
+                if affectation.destinataire else "aucun agent"
             )
+            service_nom = affectation.service_concerne or "aucun service"
+
+            creer_historique(
+                courrier=courrier,
+                utilisateur=self.request.user,
+                action='AFFECTATION',
+                description=f"Courrier affecté à {destinataire_nom} ({service_nom}) par "
+                            f"{self.request.user.get_full_name() or self.request.user.username}."
+            )
+
+            if affectation.destinataire:
+                notifier(
+                    destinataire=affectation.destinataire,
+                    courrier=courrier,
+                    message=f"Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
+                            f"Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
+                )
 
         messages.success(
             self.request,

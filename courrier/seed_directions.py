@@ -3,20 +3,8 @@ Script de peuplement des directions et services du MTCA.
 Basé sur l'organigramme officiel du Ministère du Tourisme, de la Culture et des Arts.
 
 Usage:
-    python manage.py shell < courrier/seed_directions.py
-    ou:
-    python manage.py runscript seed_directions  (si django-extensions installé)
+    python manage.py shell -c "exec(open('courrier/seed_directions.py').read()); seed_directions()"
 """
-import os
-import sys
-import django
-
-# Seulement si exécuté directement (pas via manage.py shell)
-if __name__ == '__main__':
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-    django.setup()
-
 from courrier.models import User
 
 # ============================================================
@@ -74,30 +62,34 @@ DIRECTIONS = [
     ("dir_cct", "Président", "CCT", User.Role.DIRECTEUR, "CCT"),
 ]
 
-DEFAULT_PASSWORD = "mtca@2026"
+def seed_directions():
+    created = 0
+    skipped = 0
 
-created = 0
-skipped = 0
+    for username, first_name, last_name, role, service in DIRECTIONS:
+        if User.objects.filter(username=username).exists():
+            print(f"  [SKIP] {username} existe déjà.")
+            skipped += 1
+            continue
 
-for username, first_name, last_name, role, service in DIRECTIONS:
-    if User.objects.filter(username=username).exists():
-        print(f"  [SKIP] {username} existe déjà.")
-        skipped += 1
-        continue
+        user = User.objects.create_user(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            role=role,
+            service_direction=service,
+            is_active=False,
+        )
+        user.set_unusable_password()
+        user.save(update_fields=['password', 'is_active'])
+        print(f"  [OK] Créé inactif : {user.get_full_name()} — {service} ({role})")
+        created += 1
 
-    user = User.objects.create_user(
-        username=username,
-        first_name=first_name,
-        last_name=last_name,
-        role=role,
-        service_direction=service,
-        password=DEFAULT_PASSWORD,
-        is_active=True,
-    )
-    print(f"  [OK] Créé : {user.get_full_name()} — {service} ({role})")
-    created += 1
+    print(f"\n{'='*50}")
+    print(f"Terminé : {created} utilisateurs créés inactifs, {skipped} ignorés (existants).")
+    print("Activez chaque compte et définissez un mot de passe fort depuis l'administration.")
+    print(f"{'='*50}")
 
-print(f"\n{'='*50}")
-print(f"Terminé : {created} utilisateurs créés, {skipped} ignorés (existants).")
-print(f"Mot de passe par défaut : {DEFAULT_PASSWORD}")
-print(f"{'='*50}")
+
+if __name__ == '__main__':
+    seed_directions()

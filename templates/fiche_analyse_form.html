@@ -83,7 +83,7 @@
             Documents joints ({{ courrier.documents.count }})
         </label>
         {% for doc in courrier.documents.all %}
-        <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener"
+        <a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener"
            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #eff6ff; color: var(--primary-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; margin-right: 8px; margin-bottom: 6px;">
              {{ doc.nom }}
         </a>

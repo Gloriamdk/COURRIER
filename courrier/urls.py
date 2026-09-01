@@ -11,6 +11,7 @@ from .views import (
     FicheAnalyseValidateView,
     DecisionCreateView,
     AffectationCreateView,
+    DocumentDownloadView,
     MarquerNotificationLueView,
 )
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path('liste/', CourrierListView.as_view(), name='courrier_liste'),
     path('nouveau/', CourrierCreateView.as_view(), name='courrier_nouveau'),
     path('<int:pk>/', CourrierDetailView.as_view(), name='courrier_detail'),
+    path('document/<int:pk>/telecharger/', DocumentDownloadView.as_view(), name='document_telecharger'),
 
     # ── Fiche d'analyse (DC) ─────────────────────────────────────────────────
     path('<int:courrier_id>/fiche/nouveau/', FicheAnalyseCreateView.as_view(), name='fiche_nouveau'),

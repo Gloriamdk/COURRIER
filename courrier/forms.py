@@ -3,6 +3,7 @@ Formulaires — GEC Ministère.
 """
 from django import forms
 from .models import Courrier, FicheAnalyse, Affectation, User
+from .validators import validate_document_upload
 
 
 class CourrierForm(forms.ModelForm):
@@ -68,23 +69,9 @@ class CourrierForm(forms.ModelForm):
         }
 
     def clean_fichier_scan(self):
-        """Valide l'extension et la taille du fichier scanné."""
         fichier = self.cleaned_data.get('fichier_scan')
         if fichier:
-            # Vérification de la taille (max 10 Mo)
-            taille_max = 10 * 1024 * 1024  # 10 Mo en octets
-            if fichier.size > taille_max:
-                raise forms.ValidationError(
-                    f"Le fichier est trop volumineux ({fichier.size // (1024*1024)} Mo). Maximum : 10 Mo."
-                )
-            # Vérification de l'extension
-            extensions_autorisees = ['.pdf', '.jpg', '.jpeg', '.png']
-            import os
-            ext = os.path.splitext(fichier.name)[1].lower()
-            if ext not in extensions_autorisees:
-                raise forms.ValidationError(
-                    f"Extension '{ext}' non autorisée. Formats acceptés : PDF, JPG, PNG."
-                )
+            validate_document_upload(fichier)
         return fichier
 
 
@@ -230,3 +217,16 @@ class AffectationForm(forms.ModelForm):
             is_active=True
         ).order_by('service_direction', 'last_name', 'first_name')
         self.fields['destinataire'].queryset = users
+
+    def clean(self):
+        cleaned_data = super().clean()
+        destinataire = cleaned_data.get('destinataire')
+        service = cleaned_data.get('service_concerne')
+
+        if not destinataire and not service:
+            raise forms.ValidationError("Sélectionnez au moins un agent ou une direction/service.")
+
+        if destinataire and service and destinataire.service_direction != service:
+            raise forms.ValidationError("Le destinataire choisi ne correspond pas au service sélectionné.")
+
+        return cleaned_data

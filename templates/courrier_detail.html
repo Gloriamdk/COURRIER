@@ -267,7 +267,7 @@
             {% for doc in documents %}
             <div class="doc-item">
                 <div>
-                    <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener" id="doc-{{ doc.pk }}">
+                    <a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener" id="doc-{{ doc.pk }}">
                          {{ doc.nom }}
                     </a>
                     {% if doc.taille_octets %}

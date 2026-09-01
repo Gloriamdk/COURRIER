@@ -3,6 +3,11 @@ from django.db.models import Q
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import get_valid_filename
+from pathlib import Path
+import uuid
+
+from .validators import validate_document_upload
 
 # ==============================================================================
 # CONSTANTES GLOBALES
@@ -226,11 +231,11 @@ class Courrier(models.Model):
 
 def secure_file_upload_path(instance, filename):
     """
-    Génère un chemin de stockage non prévisible et protégé pour les PDF (Risque 2).
+    Génère un chemin de stockage non prévisible pour les documents.
     """
-    # Stocké sous : media/courriers_scans/annee/mois/courrier_id/filename
     now = timezone.now()
-    return f"courriers_scans/{now.year}/{now.month:02d}/courrier_{instance.courrier.id}/{filename}"
+    extension = Path(get_valid_filename(filename)).suffix.lower()
+    return f"courriers_scans/{now.year}/{now.month:02d}/{uuid.uuid4().hex}{extension}"
 
 
 class Document(models.Model):
@@ -249,6 +254,7 @@ class Document(models.Model):
     )
     fichier = models.FileField(
         upload_to=secure_file_upload_path,
+        validators=[validate_document_upload],
         verbose_name="Fichier PDF numérisé"
     )
     taille_octets = models.PositiveIntegerField(
@@ -266,6 +272,14 @@ class Document(models.Model):
 
     def __str__(self):
         return f"{self.nom} (Courrier: {self.courrier.reference})"
+
+    def clean(self):
+        super().clean()
+        validate_document_upload(self.fichier)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 # ==============================================================================

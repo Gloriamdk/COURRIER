@@ -3,8 +3,6 @@
 */
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('✅ GEC — Gestion Électronique des Courriers initialisé.');
-
     // ── Fermeture des alertes flash ────────────────────────────────────────
     document.querySelectorAll('.close-alert').forEach(function (btn) {
         btn.addEventListener('click', function () {

@@ -85,9 +85,12 @@
                     {% endif %}
                 </div>
             </div>
-            <a href="{% url 'logout' %}" class="logout-btn" id="btn-logout">
-                <span></span> Déconnexion
-            </a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn" id="btn-logout">
+                    <span></span> Déconnexion
+                </button>
+            </form>
         </div>
     </aside>
 
