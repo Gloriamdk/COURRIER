@@ -108,17 +108,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         elif user.role in [User.Role.DIRECTEUR, User.Role.AGENT]:
             # Les directeurs/agents voient les courriers qui leur ont été affectés
-            context['mes_affectations'] = Affectation.objects.filter(
-                destinataire=user
-            ).select_related('courrier', 'decision').order_by('-date_affectation')[:10]
-            context['affectations_en_cours'] = Affectation.objects.filter(
-                destinataire=user,
-                statut_traitement=Affectation.StatutTraitement.EN_COURS
-            ).count()
-            context['affectations_recues'] = Affectation.objects.filter(
-                destinataire=user,
-                statut_traitement=Affectation.StatutTraitement.RECU
-            ).count()
+            qs_aff = Affectation.objects.filter(destinataire=user)
+            context['mes_affectations'] = qs_aff.select_related('courrier', 'decision').order_by('-date_affectation')[:10]
+            # Réutiliser le même queryset pour les différents comptes évite des hits répétés
+            context['affectations_en_cours'] = qs_aff.filter(statut_traitement=Affectation.StatutTraitement.EN_COURS).count()
+            context['affectations_recues'] = qs_aff.filter(statut_traitement=Affectation.StatutTraitement.RECU).count()
 
         return context
 
