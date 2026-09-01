@@ -14,7 +14,7 @@ Organisation :
 """
 
 from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, TemplateView, ListView, DetailView, UpdateView, View
+from django.views.generic import CreateView, TemplateView, ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import logout
 from django.contrib import messages
@@ -28,6 +28,7 @@ from .models import Courrier, User, FicheAnalyse, Decision, Document, Historique
 from .forms import CourrierForm, FicheAnalyseForm, AffectationForm
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
+from .validators import validate_document_upload
 
 
 # ==============================================================================
@@ -93,13 +94,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['courriers_en_attente'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
         elif user.role in [User.Role.DC, User.Role.SECRETAIRE_DC]:
-            context['courriers_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')
+            context['courriers_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
             context['analyses_faites'] = FicheAnalyse.objects.filter(analyse_par=user).order_by('-date_analyse')[:10]
             context['total_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
             context['en_cours'] = Courrier.objects.filter(statut=Courrier.Statut.EN_COURS_DC).count()
 
         elif user.role in [User.Role.MINISTRE, User.Role.SECRETAIRE_MINISTRE]:
-            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')
+            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')[:10]
             context['decisions_prises'] = Decision.objects.filter(signe_par=user).order_by('-date_decision')[:10]
             context['total_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).count()
             context['total_decides'] = Decision.objects.filter(signe_par=user).count()
@@ -249,8 +250,9 @@ class CourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         courrier = self.object
 
         # Enregistrement du fichier scanné si fourni
-        fichier = self.request.FILES.get('fichier_scan')
+        fichier = form.cleaned_data.get('fichier_scan')
         if fichier:
+            validate_document_upload(fichier)
             Document.objects.create(
                 courrier=courrier,
                 nom=f"Scan original — {courrier.reference}",
@@ -298,7 +300,8 @@ class DocumentDownloadView(LoginRequiredMixin, View):
         except FileNotFoundError:
             raise Http404("Fichier introuvable.")
 
-        filename = Path(document.fichier.name).name
+        extension = Path(document.fichier.name).suffix.lower()
+        filename = f"document-{document.pk}{extension}"
         return FileResponse(file_handle, as_attachment=True, filename=filename)
 
 

@@ -14,8 +14,8 @@ class Migration(migrations.Migration):
             model_name='document',
             name='fichier',
             field=models.FileField(
-                upload_to=courrier.models.secure_file_upload_path,
                 validators=[courrier.validators.validate_document_upload],
+                upload_to=courrier.models.secure_file_upload_path,
                 verbose_name='Fichier PDF numérisé',
             ),
         ),

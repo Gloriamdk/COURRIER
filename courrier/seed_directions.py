@@ -65,9 +65,13 @@ DIRECTIONS = [
 def seed_directions():
     created = 0
     skipped = 0
+    usernames = [item[0] for item in DIRECTIONS]
+    existing_usernames = set(
+        User.objects.filter(username__in=usernames).values_list('username', flat=True)
+    )
 
     for username, first_name, last_name, role, service in DIRECTIONS:
-        if User.objects.filter(username=username).exists():
+        if username in existing_usernames:
             print(f"  [SKIP] {username} existe déjà.")
             skipped += 1
             continue

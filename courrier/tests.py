@@ -248,3 +248,12 @@ class CourrierModelsTestCase(TestCase):
         self.assertEqual(response.status_code, 404)
         self.courrier_normal.refresh_from_db()
         self.assertEqual(self.courrier_normal.statut, Courrier.Statut.EN_COURS_DC)
+
+    def test_login_rate_limit_blocks_repeated_failures(self):
+        url = reverse("login")
+        for _ in range(5):
+            response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})
+            self.assertEqual(response.status_code, 200)
+
+        blocked_response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})
+        self.assertEqual(blocked_response.status_code, 429)

@@ -1,6 +1,8 @@
 """
 Formulaires — GEC Ministère.
 """
+import re
+
 from django import forms
 from .models import Courrier, FicheAnalyse, Affectation, User
 from .validators import validate_document_upload
@@ -73,6 +75,12 @@ class CourrierForm(forms.ModelForm):
         if fichier:
             validate_document_upload(fichier)
         return fichier
+
+    def clean_expediteur_telephone(self):
+        telephone = (self.cleaned_data.get('expediteur_telephone') or '').strip()
+        if telephone and not re.fullmatch(r"[\d\s+().-]{6,20}", telephone):
+            raise forms.ValidationError("Numéro de téléphone invalide.")
+        return telephone
 
 
 class FicheAnalyseForm(forms.ModelForm):

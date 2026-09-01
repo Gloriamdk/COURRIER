@@ -253,8 +253,8 @@ class Document(models.Model):
         verbose_name="Nom de la pièce jointe"
     )
     fichier = models.FileField(
-        upload_to=secure_file_upload_path,
         validators=[validate_document_upload],
+        upload_to=secure_file_upload_path,
         verbose_name="Fichier PDF numérisé"
     )
     taille_octets = models.PositiveIntegerField(
