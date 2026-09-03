@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Rédiger la Fiche d'Analyse — {{ courrier.reference }}{% endblock %}
+{% block page_title %}Fiche d'Analyse DC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: #fff;
+        padding: 25px;
+        border-radius: var(--radius-md);
+        border-left: 5px solid var(--primary-color);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 20px;
+    }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .info-field label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .info-field p { font-size: 0.95rem; color: var(--text-primary); }
+    .form-card { background: #fff; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: var(--font-sans); line-height: 1.5; }
+    .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
+    .form-label { font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--text-primary); }
+    .btn-validate { padding: 12px 28px; background: var(--secondary-color); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 1rem; transition: background 0.2s; }
+    .btn-validate:hover { background: var(--secondary-hover); }
+    .btn-back { padding: 12px 20px; background: #f1f5f9; color: var(--text-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 10px; }
+    .priority-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .priority-normal { background: #f1f5f9; color: #475569; }
+    .priority-urgent { background: #fffbeb; color: #b45309; }
+    .priority-tres_urgent { background: #fef2f2; color: #b91c1c; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Informations sur le courrier à analyser -->
+<div class="info-card">
+    <h3 style="color: var(--primary-color); margin-bottom: 1.2rem; font-size: 1.1rem;">
+         Courrier à analyser
+    </h3>
+    <div class="info-grid">
+        <div class="info-field">
+            <label>Référence</label>
+            <p><strong>{{ courrier.reference }}</strong></p>
+        </div>
+        <div class="info-field">
+            <label>Date d'arrivée</label>
+            <p>{{ courrier.date_arrivee|date:"d/m/Y à H:i" }}</p>
+        </div>
+        <div class="info-field">
+            <label>Expéditeur</label>
+            <p>{{ courrier.expediteur_nom }}
+                {% if courrier.expediteur_institution %}
+                    <span style="color: var(--text-muted);">({{ courrier.expediteur_institution }})</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="info-field">
+            <label>Priorité</label>
+            <p>
+                <span class="priority-badge priority-{{ courrier.priorite|lower }}">
+                    {{ courrier.get_priorite_display }}
+                </span>
+            </p>
+        </div>
+        <div class="info-field" style="grid-column: span 2;">
+            <label>Désignation / Objet</label>
+            <p>{{ courrier.designation }}</p>
+        </div>
+        {% if courrier.resume %}
+        <div class="info-field" style="grid-column: span 2;">
+            <label>Résumé du Secrétariat Central</label>
+            <p style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm);">
+                {{ courrier.resume }}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if courrier.documents.all %}
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 8px;">
+            Documents joints ({{ courrier.documents.count }})
+        </label>
+        {% for doc in courrier.documents.all %}
+        <a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener"
+           style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #eff6ff; color: var(--primary-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; margin-right: 8px; margin-bottom: 6px;">
+             {{ doc.nom }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Formulaire de rédaction de la fiche d'analyse -->
+<form method="post" class="form-card">
+    {% csrf_token %}
+
+    <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem;"> Rédaction de l'analyse</h3>
+
+    {% if form.errors %}
+    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        <span>Veuillez corriger les erreurs ci-dessous.</span>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+        <label class="form-label" for="{{ form.observations_dc.id_for_label }}">
+            {{ form.observations_dc.label }}
+        </label>
+        {{ form.observations_dc }}
+        {% if form.observations_dc.errors %}
+            <small style="color: var(--danger-color);">{{ form.observations_dc.errors }}</small>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
+            Proposition d'affectation (Direction)
+        </label>
+        {{ form.direction_proposee }}
+        <p class="help-text" style="color: var(--text-muted); margin-top:6px;">Sélectionnez la direction/service proposé pour l'affectation.</p>
+        {% if form.direction_proposee.errors %}
+            <small style="color: var(--danger-color);">{{ form.direction_proposee.errors }}</small>
+        {% endif %}
+    </div>
+
+    <!-- propositions_dc removed: direction_proposee dropdown is used for affectation proposals -->
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-top: 1rem;">
+        <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">
+            ← Retour au courrier
+        </a>
+        <button type="submit" class="btn-validate" id="btn-submit-fiche">
+             Enregistrer la fiche d'analyse
+        </button>
+    </div>
+</form>
+
+{% endblock %}

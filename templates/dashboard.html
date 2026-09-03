@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    /* Esthétique et palettes administratives modernes */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block; }
+    .status-badge.arrive { background-color: #eff6ff; color: #1e40af; }
+    .status-badge.analyse { background-color: #f0fdf4; color: #166534; }
+    .status-badge.decide { background-color: #faf5ff; color: #6b21a8; }
+    
+    .priority-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; display: inline-block; }
+    .priority-badge.normal { background-color: #f1f5f9; color: #475569; }
+    .priority-badge.urgent { background-color: #fffbeb; color: #b45309; }
+    .priority-badge.tres_urgent { background-color: #fef2f2; color: #b91c1c; }
+
+    .action-btn { padding: 6px 12px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; font-weight: 600; display: inline-block; }
+    .action-btn.primary { background-color: var(--primary-color); color: white; }
+    .action-btn.secondary { background-color: var(--secondary-color); color: white; }
+    
+    .welcome-card { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: white; padding: 30px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); margin-bottom: 25px; }
+</style>
+{% endblock %}
+
+{% block page_title %}Tableau de Bord{% endblock %}
+
+{% block content %}
+<div class="welcome-card">
+    <h2>Ministère du Tourisme, de la Culture et des Arts (MTCA)</h2>
+    <p style="margin-top: 10px; opacity: 0.9;">Bienvenue dans votre espace de travail personnel, <strong>{{ user.first_name }} {{ user.last_name }}</strong>.</p>
+</div>
+
+<!-- ==================== INTERFACE SECRÉTARIAT CENTRAL ==================== -->
+{% if user.role == 'SECRETARIAT_CENTRAL' %}
+<div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>Derniers courriers enregistrés</h3>
+        <a href="{% url 'courrier_nouveau' %}" class="action-btn secondary" style="font-size: 0.95rem; padding: 10px 20px;">Enregistrer un Courrier</a>
+    </div>
+    
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                <th style="padding: 12px 10px;">Référence</th>
+                <th style="padding: 12px 10px;">Désignation</th>
+                <th style="padding: 12px 10px;">Expéditeur</th>
+                <th style="padding: 12px 10px;">Priorité</th>
+                <th style="padding: 12px 10px;">Statut</th>
+                <th style="padding: 12px 10px;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in courriers_recents %}
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                <td style="padding: 15px 10px;">{{ c.expediteur_nom }}</td>
+                <td style="padding: 15px 10px;">
+                    <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                </td>
+                <td style="padding: 15px 10px;">
+                    <span class="status-badge arrive">{{ c.get_statut_display }}</span>
+                </td>
+                <td style="padding: 15px 10px;">
+                    <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary">Consulter</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier enregistré récemment.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ==================== INTERFACE DIRECTEUR DE CABINET (DC) ==================== -->
+{% elif user.role == 'DC' %}
+<div class="dashboard-grid">
+    <!-- Courriers à Analyser -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers en attente d'analyse</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_a_analyser %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Rédiger l'Analyse</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier en attente d'analyse.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Dernières analyses validées par le DC -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <h3 style="margin-bottom: 20px;">Mes analyses récentes</h3>
+        <ul style="list-style: none;">
+            {% for a in analyses_faites %}
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block;">{{ a.courrier.reference }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Rédigée le {{ a.date_analyse|date:"d/m/Y" }}</span>
+                </div>
+                <span class="status-badge analyse">Validée</span>
+            </li>
+            {% empty %}
+            <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucune analyse rédigée récemment.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE MINISTRE ==================== -->
+{% elif user.role == 'MINISTRE' %}
+<div class="dashboard-grid">
+    <!-- Courriers en attente de Décision -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--danger-color);">Courriers en attente de votre Décision</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_a_decider %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary" style="background: var(--danger-color);">Prendre Décision</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier en attente de décision finale. Excellente journée !</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Décisions prises par le Ministre -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <h3 style="margin-bottom: 20px;">Décisions récentes</h3>
+        <ul style="list-style: none;">
+            {% for d in decisions_prises %}
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block;">{{ d.courrier.reference }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Prise le {{ d.date_decision|date:"d/m/Y" }}</span>
+                </div>
+                <span class="status-badge decide" style="background: #faf5ff; color: #6b21a8;">Décidé</span>
+            </li>
+            {% empty %}
+            <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucune décision enregistrée récemment.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
