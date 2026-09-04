@@ -67,6 +67,8 @@ class User(AbstractUser):
         SECRETARIAT_CENTRAL = 'SECRETARIAT_CENTRAL', 'Secrétariat Central'
         SECRETAIRE_DC = 'SECRETAIRE_DC', 'Secrétaire du Directeur de Cabinet (DC)'
         DC = 'DC', 'Directeur de Cabinet (DC)'
+        SECRETAIRE_SG = 'SECRETAIRE_SG', 'Secrétaire du Secrétaire Général (SG)'
+        SG = 'SG', 'Secrétaire Général (SG)'
         SECRETAIRE_MINISTRE = 'SECRETAIRE_MINISTRE', 'Secrétaire Particulier du Ministre'
         MINISTRE = 'MINISTRE', 'Ministre'
         DIRECTEUR = 'DIRECTEUR', 'Directeur de Département'
@@ -107,10 +109,10 @@ class CourrierQuerySet(models.QuerySet):
         if user.is_superuser:
             return self
         
-        # Le Ministre, le DC et leurs secrétariats, ainsi que le Secrétariat Central ont un accès total
+        # Le Ministre, le DC, le SG et leurs secrétariats, ainsi que le Secrétariat Central ont un accès total
         if user.role in [
-            User.Role.MINISTRE, User.Role.DC, 
-            User.Role.SECRETAIRE_MINISTRE, User.Role.SECRETAIRE_DC, 
+            User.Role.MINISTRE, User.Role.DC, User.Role.SG,
+            User.Role.SECRETAIRE_MINISTRE, User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG,
             User.Role.SECRETARIAT_CENTRAL
         ]:
             return self

@@ -22,6 +22,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from pathlib import Path
 
 from .models import Courrier, User, FicheAnalyse, Decision, Document, Historique, Notification, Affectation
@@ -94,11 +95,40 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['total_courriers'] = Courrier.objects.filter(cree_par=user).count()
             context['courriers_en_attente'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
-        elif user.role in [User.Role.DC, User.Role.SECRETAIRE_DC]:
+        elif user.role == User.Role.DC:
             context['courriers_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
             context['analyses_faites'] = FicheAnalyse.objects.filter(analyse_par=user).order_by('-date_analyse')[:10]
             context['total_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
             context['en_cours'] = Courrier.objects.filter(statut=Courrier.Statut.EN_COURS_DC).count()
+
+        elif user.role == User.Role.SECRETAIRE_DC:
+            context['courriers_supervises'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
+            context['courriers_urgents'] = Courrier.objects.filter(
+                statut=Courrier.Statut.ARRIVE,
+                priorite__in=[Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]
+            ).order_by('-date_arrivee')[:10]
+            context['titre_responsable'] = "Directeur de Cabinet (DC)"
+
+        elif user.role == User.Role.SECRETAIRE_SG:
+            qs_sg = Courrier.objects.filter(
+                Q(affectations__service_concerne="Secrétariat Général") |
+                Q(statut__in=[Courrier.Statut.ARRIVE, Courrier.Statut.EN_COURS_DC, Courrier.Statut.AFFECTE])
+            ).distinct().order_by('-date_arrivee')
+            context['courriers_supervises'] = qs_sg[:10]
+            context['courriers_urgents'] = qs_sg.filter(
+                priorite__in=[Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]
+            )[:10]
+            context['titre_responsable'] = "Secrétaire Général (SG)"
+
+        elif user.role == User.Role.SG:
+            qs_sg = Courrier.objects.filter(
+                Q(affectations__service_concerne="Secrétariat Général") |
+                Q(affectations__destinataire=user)
+            ).distinct().order_by('-date_arrivee')
+            context['courriers_sg'] = qs_sg[:10]
+            context['courriers_urgents_sg'] = qs_sg.filter(
+                priorite__in=[Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]
+            )[:10]
 
         elif user.role in [User.Role.MINISTRE, User.Role.SECRETAIRE_MINISTRE]:
             context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')[:10]

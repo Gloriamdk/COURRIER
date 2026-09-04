@@ -38,7 +38,7 @@ LOCAL_MANAGEMENT_COMMAND = any(
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if DEBUG or TESTING or LOCAL_MANAGEMENT_COMMAND:
-        SECRET_KEY = get_random_secret_key()
+        SECRET_KEY = "django-insecure-dev-key-gec-mtca-local-development-only-change-in-production"
     else:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY doit être définie hors développement.")
 

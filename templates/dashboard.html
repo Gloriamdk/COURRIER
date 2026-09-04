@@ -183,5 +183,169 @@
         </ul>
     </div>
 </div>
+
+<!-- ==================== INTERFACE SECRÉTAIRE DU DC ==================== -->
+{% elif user.role == 'SECRETAIRE_DC' %}
+<div class="dashboard-grid">
+    <!-- Courriers supervisés chez le DC -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers en attente d'analyse (DC)</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_supervises %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary">Consulter</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier en attente d'analyse chez le Directeur de Cabinet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Dossiers urgents DC -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <h3 style="margin-bottom: 20px;">Dossiers urgents</h3>
+        <ul style="list-style: none;">
+            {% for c in courriers_urgents %}
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block;">{{ c.reference }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Reçu le {{ c.date_arrivee|date:"d/m/Y" }}</span>
+                </div>
+                <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+            </li>
+            {% empty %}
+            <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucun dossier urgent en attente.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE SECRÉTAIRE DU SG ==================== -->
+{% elif user.role == 'SECRETAIRE_SG' %}
+<div class="dashboard-grid">
+    <!-- Courriers transférés au SG -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers transférés au Secrétariat Général</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_supervises %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary">Consulter</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier en attente au Secrétariat Général.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Dossiers urgents SG -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <h3 style="margin-bottom: 20px;">Dossiers urgents</h3>
+        <ul style="list-style: none;">
+            {% for c in courriers_urgents %}
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block;">{{ c.reference }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Reçu le {{ c.date_arrivee|date:"d/m/Y" }}</span>
+                </div>
+                <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+            </li>
+            {% empty %}
+            <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucun dossier urgent en attente.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE SECRÉTAIRE GÉNÉRAL (SG) ==================== -->
+{% elif user.role == 'SG' %}
+<div class="dashboard-grid">
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers affectés au Secrétariat Général</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_sg %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary">Consulter</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier actuellement affecté au Secrétariat Général.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Dossiers récents SG -->
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <h3 style="margin-bottom: 20px;">Dossiers prioritaires</h3>
+        <ul style="list-style: none;">
+            {% for c in courriers_urgents_sg %}
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block;">{{ c.reference }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Reçu le {{ c.date_arrivee|date:"d/m/Y" }}</span>
+                </div>
+                <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+            </li>
+            {% empty %}
+            <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucun courrier urgent.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 {% endif %}
 {% endblock %}
