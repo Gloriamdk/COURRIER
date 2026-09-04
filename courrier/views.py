@@ -106,6 +106,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['total_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).count()
             context['total_decides'] = Decision.objects.filter(signe_par=user).count()
 
+        elif user.role in [User.Role.SG, User.Role.SECRETAIRE_SG]:
+            context['courriers_recents'] = Courrier.objects.all().order_by('-date_arrivee')[:10]
+            context['total_courriers'] = Courrier.objects.count()
+
         elif user.role in [User.Role.DIRECTEUR, User.Role.AGENT]:
             # Les directeurs/agents voient les courriers qui leur ont été affectés
             qs_aff = Affectation.objects.filter(destinataire=user)
