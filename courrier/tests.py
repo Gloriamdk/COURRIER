@@ -386,7 +386,7 @@ class CourrierModelsTestCase(TestCase):
         self.assertEqual(resp.status_code, 404)
 
         # Direct access to the underlying file URL should not be accessible via the app
-        file_url = document.fichier.url
+        file_url = settings.MEDIA_URL + document.fichier.name
         anon = self.client.logout() or self.client.get(file_url)
         # Depending on deployment the MEDIA URL might not be served by Django; accept 404 or 302 to login
         self.assertIn(anon.status_code, (302, 404))

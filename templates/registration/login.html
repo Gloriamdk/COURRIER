@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -246,25 +247,6 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleBtn = document.getElementById('togglePassword');
-            const wrapper = document.querySelector('.input-wrapper');
-            // Target the input directly inside the wrapper (works regardless of Django-generated id)
-            const passwordInput = wrapper ? wrapper.querySelector('input') : null;
-            const eyeIcon = document.getElementById('eye-icon');
-            const eyeOffIcon = document.getElementById('eye-off-icon');
-
-            if (toggleBtn && passwordInput) {
-                toggleBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const isHidden = passwordInput.type === 'password';
-                    passwordInput.type = isHidden ? 'text' : 'password';
-                    eyeIcon.style.display = isHidden ? 'none' : 'block';
-                    eyeOffIcon.style.display = isHidden ? 'block' : 'none';
-                });
-            }
-        });
-    </script>
+    <script src="{% static 'js/login.js' %}"></script>
 </body>
 </html>

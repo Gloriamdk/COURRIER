@@ -106,6 +106,9 @@ class CourrierQuerySet(models.QuerySet):
     Contrôle strict des accès aux courriers en fonction du rôle de l'utilisateur.
     """
     def pour_utilisateur(self, user):
+        if not user.is_authenticated or not user.is_active:
+            return self.none()
+
         if user.is_superuser:
             return self
         
@@ -120,10 +123,10 @@ class CourrierQuerySet(models.QuerySet):
             
         # Les directeurs et agents voient les courriers affectés directement à leur compte
         # ou affectés au service/direction dont ils relèvent.
-        return self.filter(
-            Q(affectations__destinataire=user)
-            | Q(affectations__service_concerne=user.service_direction)
-        ).distinct()
+        filters = Q(affectations__destinataire=user)
+        if user.service_direction:
+            filters |= Q(affectations__service_concerne=user.service_direction)
+        return self.filter(filters).distinct()
 
 
 class CourrierManager(models.Manager):
