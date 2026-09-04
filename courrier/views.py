@@ -94,21 +94,25 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['total_courriers'] = Courrier.objects.filter(cree_par=user).count()
             context['courriers_en_attente'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
-        elif user.role in [User.Role.DC, User.Role.SECRETAIRE_DC]:
-            context['courriers_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
+        elif user.role in [User.Role.DC, User.Role.SG]:
+            context['courriers_a_analyser'] = Courrier.objects.filter(statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]).order_by('-date_arrivee')[:10]
             context['analyses_faites'] = FicheAnalyse.objects.filter(analyse_par=user).order_by('-date_analyse')[:10]
-            context['total_a_analyser'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
+            context['total_a_analyser'] = Courrier.objects.filter(statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]).count()
             context['en_cours'] = Courrier.objects.filter(statut=Courrier.Statut.EN_COURS_DC).count()
 
-        elif user.role in [User.Role.MINISTRE, User.Role.SECRETAIRE_MINISTRE]:
-            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')[:10]
+        elif user.role == User.Role.SECRETAIRE_MINISTRE:
+            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')[:10]
+            context['total_courriers'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).count()
+
+        elif user.role == User.Role.MINISTRE:
+            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.TRANSMIS_MINISTRE).order_by('-date_arrivee')[:10]
             context['decisions_prises'] = Decision.objects.filter(signe_par=user).order_by('-date_decision')[:10]
-            context['total_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).count()
+            context['total_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.TRANSMIS_MINISTRE).count()
             context['total_decides'] = Decision.objects.filter(signe_par=user).count()
 
-        elif user.role in [User.Role.SG, User.Role.SECRETAIRE_SG]:
-            context['courriers_recents'] = Courrier.objects.all().order_by('-date_arrivee')[:10]
-            context['total_courriers'] = Courrier.objects.count()
+        elif user.role in [User.Role.SECRETAIRE_SG, User.Role.SECRETAIRE_DC]:
+            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
+            context['total_courriers'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
         elif user.role in [User.Role.DIRECTEUR, User.Role.AGENT]:
             # Les directeurs/agents voient les courriers qui leur ont été affectés
@@ -201,9 +205,9 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
 
         # Permissions d'action affichées dans le template
         context['peut_analyser'] = (
-            user.role == User.Role.DC
+            user.role in [User.Role.DC, User.Role.SG]
             and context['fiche_analyse'] is None
-            and courrier.statut in [Courrier.Statut.ARRIVE, Courrier.Statut.EN_COURS_DC]
+            and courrier.statut in [Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]
         )
         context['peut_valider_fiche'] = (
             user.role == User.Role.DC
@@ -217,6 +221,7 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             and context['fiche_analyse'] is not None
             and context['fiche_analyse'].valide
             and context['decision'] is None
+            and courrier.statut == Courrier.Statut.TRANSMIS_MINISTRE
         )
         context['peut_affecter'] = (
             user.role in [User.Role.MINISTRE, User.Role.DC, User.Role.SECRETARIAT_CENTRAL]
@@ -328,7 +333,7 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     def get_courrier(self):
         return get_object_or_404(
             Courrier.objects.pour_utilisateur(self.request.user).filter(
-                statut=Courrier.Statut.ARRIVE,
+                statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC],
                 fiche_analyse__isnull=True,
             ),
             pk=self.kwargs['courrier_id'],
@@ -407,16 +412,11 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             utilisateur=request.user,
             action='VALIDATION_ANALYSE',
             description=f"Fiche d'analyse validée par le DC {request.user.get_full_name() or request.user.username}. "
-                        f"Courrier transmis au Ministre pour décision."
+                        f"Courrier en attente de transmission par le Secrétariat du Ministre."
         )
 
-        # Notification au Ministre
-        notifier_role(
-            role=User.Role.MINISTRE,
-            courrier=courrier,
-            message=f"Courrier {courrier.reference} prêt pour votre décision. "
-                    f"Analyse du DC disponible : {courrier.designation[:60]}."
-        )
+        # Notification uniquement au Secrétaire du Ministre
+
         notifier_role(
             role=User.Role.SECRETAIRE_MINISTRE,
             courrier=courrier,
@@ -425,7 +425,7 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
 
         messages.success(
             request,
-            f"✅ Analyse validée. Le Ministre a été notifié pour la décision sur {courrier.reference}."
+            f"✅ Analyse validée. Le Secrétariat du Ministre a été notifié pour transmission."
         )
         return redirect('courrier_detail', pk=courrier_id)
 
@@ -447,7 +447,7 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     def get_courrier(self):
         return get_object_or_404(
             Courrier.objects.pour_utilisateur(self.request.user).filter(
-                statut=Courrier.Statut.ANALYSE_VALIDE,
+                statut=Courrier.Statut.TRANSMIS_MINISTRE,
                 fiche_analyse__valide=True,
                 decision__isnull=True,
             ),
@@ -585,6 +585,96 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse('courrier_detail', kwargs={'pk': self.kwargs['courrier_id']})
 
+
+class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """
+    Vue permettant au Secrétaire de transmettre un courrier à son supérieur.
+    Modifie le statut, crée un historique et une notification.
+    """
+    allowed_roles = [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG, User.Role.SECRETAIRE_MINISTRE]
+
+    def post(self, request, courrier_id):
+        courrier = get_object_or_404(
+            Courrier.objects.pour_utilisateur(request.user),
+            pk=courrier_id
+        )
+
+        # Déterminer le destinataire et le nouveau statut
+        if request.user.role in [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG]:
+            role_destinataire = User.Role.DC if request.user.role == User.Role.SECRETAIRE_DC else User.Role.SG
+            titre_destinataire = "Directeur de Cabinet" if request.user.role == User.Role.SECRETAIRE_DC else "Secrétaire Général"
+            nouveau_statut = Courrier.Statut.TRANSMIS_DC
+            message_notif = f"Nouveau courrier transmis par votre secrétariat : {courrier.reference} — {courrier.designation[:60]}."
+        elif request.user.role == User.Role.SECRETAIRE_MINISTRE:
+            role_destinataire = User.Role.MINISTRE
+            titre_destinataire = "Ministre"
+            nouveau_statut = Courrier.Statut.TRANSMIS_MINISTRE
+            message_notif = f"Courrier validé transmis pour votre décision : {courrier.reference} — {courrier.designation[:60]}."
+
+        # Mise à jour du statut
+        courrier.statut = nouveau_statut
+        courrier.save()
+
+        # Créer un historique
+        creer_historique(
+            courrier=courrier,
+            utilisateur=request.user,
+            action='TRANSMISSION',
+            description=f"Courrier transmis au {titre_destinataire} par {request.user.get_full_name() or request.user.username}."
+        )
+
+        # Envoyer une notification au(x) destinataire(s)
+        notifier_role(
+            role=role_destinataire,
+            courrier=courrier,
+            message=message_notif
+        )
+
+        messages.success(
+            request,
+            f"✅ Le courrier {courrier.reference} a été transmis au {titre_destinataire}."
+        )
+        return redirect('dashboard')
+
+
+class RefuserCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """
+    Vue permettant à un secrétaire (DC ou SG) de rejeter un courrier (ex: infos manquantes).
+    Le courrier retourne au Secrétariat Central.
+    """
+    allowed_roles = [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG]
+
+    def post(self, request, courrier_id):
+        courrier = get_object_or_404(
+            Courrier.objects.pour_utilisateur(request.user),
+            pk=courrier_id,
+            statut=Courrier.Statut.ARRIVE
+        )
+
+        # Mise à jour du statut
+        courrier.statut = Courrier.Statut.REJETE_SECRETAIRE
+        courrier.save()
+
+        # Créer un historique
+        creer_historique(
+            courrier=courrier,
+            utilisateur=request.user,
+            action='REJET',
+            description=f"Courrier rejeté par {request.user.get_full_name() or request.user.username} pour vérification ou informations manquantes."
+        )
+
+        # Envoyer une notification au Secrétariat Central
+        notifier_role(
+            role=User.Role.SECRETARIAT_CENTRAL,
+            courrier=courrier,
+            message=f"Le courrier {courrier.reference} a été rejeté par le secrétariat pour correction."
+        )
+
+        messages.error(
+            request,
+            f"❌ Le courrier {courrier.reference} a été renvoyé au Secrétariat Central."
+        )
+        return redirect('dashboard')
 
 # ==============================================================================
 # NOTIFICATIONS — Marquer comme lue (AJAX)

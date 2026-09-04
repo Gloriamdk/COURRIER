@@ -12,6 +12,8 @@ from .views import (
     DecisionCreateView,
     AffectationCreateView,
     DocumentDownloadView,
+    TransmettreCourrierView,
+    RefuserCourrierView,
     MarquerNotificationLueView,
 )
 
@@ -34,6 +36,10 @@ urlpatterns = [
 
     # ── Affectation (DC / Secrétariat Central) ────────────────────────────────
     path('<int:courrier_id>/affectation/nouveau/', AffectationCreateView.as_view(), name='affectation_nouveau'),
+
+    # ── Transmission & Rejet (Secrétaires) ───────────────────────────────────
+    path('<int:courrier_id>/transmettre/', TransmettreCourrierView.as_view(), name='courrier_transmettre'),
+    path('<int:courrier_id>/refuser/', RefuserCourrierView.as_view(), name='courrier_refuser'),
 
     # ── Notifications (AJAX) ─────────────────────────────────────────────────
     path('notification/<int:pk>/lue/', MarquerNotificationLueView.as_view(), name='notification_lue'),

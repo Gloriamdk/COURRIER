@@ -74,8 +74,8 @@
     </table>
 </div>
 
-<!-- ==================== INTERFACE DIRECTEUR DE CABINET (DC) ET SECRETAIRE ==================== -->
-{% elif user.role == 'DC' or user.role == 'SECRETAIRE_DC' %}
+<!-- ==================== INTERFACE DIRECTEUR DE CABINET (DC) ==================== -->
+{% elif user.role == 'DC' %}
 <div class="dashboard-grid">
     <!-- Courriers à Analyser -->
     <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
@@ -126,6 +126,48 @@
             <li style="padding: 12px 0; text-align: center; color: var(--text-muted);">Aucune analyse rédigée récemment.</li>
             {% endfor %}
         </ul>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE SECRÉTAIRE DU MINISTRE ==================== -->
+{% elif user.role == 'SECRETAIRE_MINISTRE' %}
+<div class="dashboard-grid">
+    <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers validés à transmettre au Ministre</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_recents %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Consulter</a>
+                            <form action="{% url 'courrier_transmettre' c.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn primary" style="border: none; cursor: pointer;">Transmettre au Ministre</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier en attente de transmission.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -184,8 +226,8 @@
     </div>
 </div>
 
-<!-- ==================== INTERFACE SECRÉTAIRE GÉNÉRAL (SG) ET SECRETAIRE ==================== -->
-{% elif user.role == 'SG' or user.role == 'SECRETAIRE_SG' %}
+<!-- ==================== INTERFACE SG ET SECRETAIRES (DC & SG) ==================== -->
+{% elif user.role == 'SG' or user.role == 'SECRETAIRE_SG' or user.role == 'SECRETAIRE_DC' %}
 <div class="dashboard-grid">
     <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
         <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers Récents</h3>
@@ -209,7 +251,19 @@
                         <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
                     </td>
                     <td style="padding: 15px 10px;">
-                        <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary">Consulter</a>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Consulter</a>
+                            {% if user.role == 'SECRETAIRE_DC' or user.role == 'SECRETAIRE_SG' %}
+                            <form action="{% url 'courrier_transmettre' c.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn primary" style="border: none; cursor: pointer;">Transmettre</button>
+                            </form>
+                            <form action="{% url 'courrier_refuser' c.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter ce courrier vers le Secrétariat Central ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn" style="border: none; cursor: pointer; background-color: var(--danger-color); color: white;">Refuser</button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
