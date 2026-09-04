@@ -1,5 +1,4 @@
 from pathlib import Path
-import imghdr
 import re
 
 from django.core.exceptions import ValidationError
@@ -98,13 +97,8 @@ def validate_document_upload(uploaded_file):
 
     # Additional checks per type
     if extension in (".jpg", ".jpeg", ".png"):
-        # Attempt to verify image can be opened; re-encoding is left to future improvement.
-        if Image is None:
-            # Fall back to imghdr
-            kind = imghdr.what(None, h=header)
-            if kind is None or (extension.replace('.', '') not in kind and not (extension == '.jpeg' and kind == 'jpg')):
-                raise ValidationError("Image invalide ou corrompue.")
-        else:
+        # Attempt to verify image can be opened with Pillow
+        if Image is not None:
             try:
                 # Pillow needs a file-like object starting at 0
                 uploaded_file.seek(0)
