@@ -822,7 +822,12 @@ class RefuserCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
             pk=courrier_id,
             statut=Courrier.Statut.ARRIVE
         )
-        motif = request.POST.get('motif', '').strip()
+        motif = (request.POST.get('motif') or '').strip()
+
+        # Exiger un motif pour les secrétaires
+        if request.user.role in [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG] and not motif:
+            messages.error(request, "Veuillez fournir un motif de rejet avant de renvoyer le courrier.")
+            return redirect('courrier_detail', pk=courrier_id)
 
         # Mise à jour du statut et du motif
         courrier.statut = Courrier.Statut.REJETE_SECRETAIRE
