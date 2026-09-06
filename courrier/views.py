@@ -773,19 +773,34 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
 
         # Déterminer le destinataire et le nouveau statut
         if request.user.role in [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG]:
+            # Ne pas permettre une retransmission si le courrier n'est plus à l'état d'arrivée
+            if courrier.statut != Courrier.Statut.ARRIVE:
+                messages.error(request, "Transmission impossible : le courrier a déjà été transmis ou n'est plus modifiable.")
+                return redirect('courrier_detail', pk=courrier_id)
+
             role_destinataire = User.Role.DC if request.user.role == User.Role.SECRETAIRE_DC else User.Role.SG
             titre_destinataire = "Directeur de Cabinet" if request.user.role == User.Role.SECRETAIRE_DC else "Secrétaire Général"
             nouveau_statut = Courrier.Statut.TRANSMIS_DC
             message_notif = f"Nouveau courrier transmis par votre secrétariat : {courrier.reference} — {courrier.designation[:60]}."
+
         elif request.user.role == User.Role.SECRETAIRE_MINISTRE:
+            # Le Secrétaire du Ministre ne peut transmettre que si l'analyse est validée
+            if courrier.statut != Courrier.Statut.ANALYSE_VALIDE:
+                messages.error(request, "Transmission impossible : le courrier n'est pas prêt pour transmission au Ministre.")
+                return redirect('courrier_detail', pk=courrier_id)
+
             role_destinataire = User.Role.MINISTRE
             titre_destinataire = "Ministre"
             nouveau_statut = Courrier.Statut.TRANSMIS_MINISTRE
             message_notif = f"Courrier validé transmis pour votre décision : {courrier.reference} — {courrier.designation[:60]}."
 
+        else:
+            messages.error(request, "Vous n'êtes pas autorisé à transmettre ce courrier.")
+            return redirect('courrier_detail', pk=courrier_id)
+
         # Mise à jour du statut
         courrier.statut = nouveau_statut
-        courrier.save()
+        courrier.save(update_fields=['statut'])
 
         # Créer un historique
         creer_historique(

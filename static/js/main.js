@@ -120,6 +120,47 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // ── Modal pour motif de rejet (Secrétaires)
+    const btnOpenRejet = document.getElementById('btn-open-rejet');
+    const modalRejet = document.getElementById('modal-rejet');
+    const btnCancelRejet = document.getElementById('btn-cancel-rejet');
+    const formRejet = document.getElementById('form-rejet');
+
+    if (btnOpenRejet && modalRejet) {
+        btnOpenRejet.addEventListener('click', function () {
+            modalRejet.style.display = 'flex';
+            document.getElementById('id_motif_rejet').focus();
+        });
+    }
+
+    if (btnCancelRejet && modalRejet) {
+        btnCancelRejet.addEventListener('click', function () {
+            modalRejet.style.display = 'none';
+            formRejet.reset();
+        });
+    }
+
+    if (formRejet) {
+        formRejet.addEventListener('submit', function (e) {
+            const motif = (document.getElementById('id_motif_rejet').value || '').trim();
+            if (!motif) {
+                e.preventDefault();
+                alert('Veuillez saisir le motif du rejet (obligatoire).');
+                document.getElementById('id_motif_rejet').focus();
+                return false;
+            }
+            // Laisser la soumission normale du formulaire (POST)
+            return true;
+        });
+        // Fermer le modal si l'utilisateur clique en dehors de la boîte
+        modalRejet.addEventListener('click', function (e) {
+            if (e.target === modalRejet) {
+                modalRejet.style.display = 'none';
+                formRejet.reset();
+            }
+        });
+    }
 });
 
 // ── Utilitaire : récupérer le jeton CSRF depuis les cookies ───────────────
