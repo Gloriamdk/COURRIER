@@ -6,9 +6,12 @@ from .views import (
     DashboardView,
     CourrierListView,
     CourrierCreateView,
+    CourrierUpdateView,
     CourrierDetailView,
     FicheAnalyseCreateView,
+    FicheAnalyseSGCreateView,
     FicheAnalyseValidateView,
+    FicheAnalyseSGValidateView,
     DecisionCreateView,
     AffectationCreateView,
     DocumentDownloadView,
@@ -29,7 +32,9 @@ urlpatterns = [
 
     # ── Fiche d'analyse (DC) ─────────────────────────────────────────────────
     path('<int:courrier_id>/fiche/nouveau/', FicheAnalyseCreateView.as_view(), name='fiche_nouveau'),
+    path('<int:courrier_id>/fiche-sg/nouveau/', FicheAnalyseSGCreateView.as_view(), name='fiche_sg_nouveau'),
     path('<int:courrier_id>/fiche/valider/', FicheAnalyseValidateView.as_view(), name='fiche_valider'),
+    path('<int:courrier_id>/fiche-sg/valider/', FicheAnalyseSGValidateView.as_view(), name='fiche_sg_valider'),
 
     # ── Décision (Ministre) ───────────────────────────────────────────────────
     path('<int:courrier_id>/decision/nouveau/', DecisionCreateView.as_view(), name='decision_nouveau'),
@@ -40,6 +45,7 @@ urlpatterns = [
     # ── Transmission & Rejet (Secrétaires) ───────────────────────────────────
     path('<int:courrier_id>/transmettre/', TransmettreCourrierView.as_view(), name='courrier_transmettre'),
     path('<int:courrier_id>/refuser/', RefuserCourrierView.as_view(), name='courrier_refuser'),
+    path('<int:pk>/editer/', CourrierUpdateView.as_view(), name='courrier_editer'),
 
     # ── Notifications (AJAX) ─────────────────────────────────────────────────
     path('notification/<int:pk>/lue/', MarquerNotificationLueView.as_view(), name='notification_lue'),

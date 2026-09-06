@@ -158,6 +158,73 @@
                 </button>
             </form>
             {% endif %}
+            {% if peut_valider_fiche_sg %}
+            <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" style="margin-top: 12px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg"
+                        onclick="return confirm('Confirmer la validation (SG) ?')">
+                     Valider (SG)
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Fiche d'analyse du SG -->
+        {% if courrier.fiche_analyse_sg %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Analyse du Secrétaire Général (SG)</span>
+                <small style="color: var(--text-muted);">
+                    {{ courrier.fiche_analyse_sg.analyse_par.get_full_name }} — {{ courrier.fiche_analyse_sg.date_analyse|date:"d/m/Y" }}
+                    {% if courrier.fiche_analyse_sg.valide %}
+                        <span style="color: var(--success-color); font-weight: 700; margin-left: 6px;"> Validée</span>
+                    {% else %}
+                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation</span>
+                    {% endif %}
+                </small>
+            </div>
+            <div class="workflow-section">
+                {% if courrier.fiche_analyse_sg.observations_sg %}
+                <div class="field-group">
+                    <span class="field-label">Observations</span>
+                    <p class="field-value">{{ courrier.fiche_analyse_sg.observations_sg|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if courrier.fiche_analyse_sg.propositions_sg %}
+                <div class="field-group">
+                    <span class="field-label">Propositions</span>
+                    <p class="field-value">{{ courrier.fiche_analyse_sg.propositions_sg|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if courrier.fiche_analyse_sg.date_validation %}
+                <small style="color: var(--text-muted);">Validée le {{ courrier.fiche_analyse_sg.date_validation|date:"d/m/Y à H:i" }}</small>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Motif de rejet (si présent) -->
+        {% if courrier.motif_rejet %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Motif de rejet</span>
+            </div>
+            <div style="padding: 12px 0;">
+                <p class="field-value">{{ courrier.motif_rejet|linebreaksbr }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Compte-rendu du comité -->
+        {% if courrier.comite %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Compte-rendu / Comité</span>
+            </div>
+            <div style="padding: 12px 0;">
+                <p class="field-value">{{ courrier.comite|linebreaksbr }}</p>
+            </div>
         </div>
         {% endif %}
 
@@ -233,9 +300,15 @@
             <div class="action-buttons" style="flex-direction: column;">
 
                 {% if peut_analyser %}
-                <a href="{% url 'fiche_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
-                     Rédiger la fiche d'analyse
-                </a>
+                    {% if request.user.role == 'SG' %}
+                        <a href="{% url 'fiche_sg_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
+                             Rédiger la fiche d'analyse (SG)
+                        </a>
+                    {% else %}
+                        <a href="{% url 'fiche_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
+                             Rédiger la fiche d'analyse
+                        </a>
+                    {% endif %}
                 {% endif %}
 
                 {% if peut_decider %}

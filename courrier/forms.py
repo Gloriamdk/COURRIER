@@ -89,7 +89,7 @@ class FicheAnalyseForm(forms.ModelForm):
     """
     class Meta:
         model = FicheAnalyse
-        fields = ['direction_proposee', 'observations_dc']
+        fields = ['direction_proposee', 'observations_dc', 'propositions_dc']
         widgets = {
             'direction_proposee': forms.Select(attrs={
                 'class': 'form-control',
@@ -100,6 +100,40 @@ class FicheAnalyseForm(forms.ModelForm):
                 'class': 'form-control',
                 'id': 'id_observations_dc',
                 'placeholder': 'Observations du Directeur de Cabinet sur le contenu du courrier...',
+            }),
+            'propositions_dc': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'form-control',
+                'id': 'id_propositions_dc',
+                'placeholder': 'Propositions / orientation (optionnel)',
+            }),
+        }
+
+
+class FicheAnalyseSGForm(forms.ModelForm):
+    """
+    Formulaire pour la fiche d'analyse du Secrétaire Général (SG).
+    """
+    class Meta:
+        from .models import FicheAnalyseSG
+        model = FicheAnalyseSG
+        fields = ['direction_proposee', 'observations_sg', 'propositions_sg']
+        widgets = {
+            'direction_proposee': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_direction_proposee_sg',
+            }),
+            'observations_sg': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'id': 'id_observations_sg',
+                'placeholder': 'Observations du Secrétaire Général...',
+            }),
+            'propositions_sg': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'form-control',
+                'id': 'id_propositions_sg',
+                'placeholder': 'Propositions / orientation (optionnel)',
             }),
         }
 

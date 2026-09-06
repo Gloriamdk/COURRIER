@@ -199,6 +199,19 @@ class Courrier(models.Model):
         default=Statut.ARRIVE,
         verbose_name="Statut du traitement"
     )
+    # Motif de rejet renseigné par un secrétaire lorsqu'il renvoie le courrier
+    motif_rejet = models.TextField(
+        verbose_name="Motif de rejet par le secrétariat",
+        blank=True,
+        null=True,
+    )
+
+    # Notes ou compte-rendu du comité à chaque étape (champ libre)
+    comite = models.TextField(
+        verbose_name="Compte-rendu / Comité",
+        blank=True,
+        null=True,
+    )
     
     # Traçabilité de création
     cree_par = models.ForeignKey(
@@ -347,6 +360,61 @@ class FicheAnalyse(models.Model):
 
     def __str__(self):
         return f"Fiche d'analyse - {self.courrier.reference}"
+
+
+# Fiche d'analyse rédigée par le Secrétaire Général (SG)
+class FicheAnalyseSG(models.Model):
+    """
+    Fiche rédigée par le Secrétaire Général (SG). Même structure que la fiche DC
+    mais séparée pour garder les deux avis distincts.
+    """
+    courrier = models.OneToOneField(
+        Courrier,
+        on_delete=models.CASCADE,
+        related_name="fiche_analyse_sg",
+        verbose_name="Courrier"
+    )
+    analyse_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="analyses_sg_redigees",
+        verbose_name="Analysé par"
+    )
+    observations_sg = models.TextField(
+        verbose_name="Observations du Secrétaire Général",
+        blank=True
+    )
+    propositions_sg = models.TextField(
+        verbose_name="Propositions du Secrétaire Général",
+        blank=True
+    )
+    direction_proposee = models.CharField(
+        max_length=150,
+        choices=DIRECTIONS_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Direction / Service proposé (Optionnel)"
+    )
+    valide = models.BooleanField(
+        default=False,
+        verbose_name="Analyse validée par le SG"
+    )
+    date_analyse = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de rédaction de l'analyse"
+    )
+    date_validation = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Date de validation de l'analyse"
+    )
+
+    class Meta:
+        verbose_name = "Fiche d'analyse (SG)"
+        verbose_name_plural = "Fiches d'analyse (SG)"
+
+    def __str__(self):
+        return f"Fiche d'analyse (SG) - {self.courrier.reference}"
 
 
 # ==============================================================================

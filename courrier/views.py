@@ -14,7 +14,7 @@ Organisation :
 """
 
 from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, TemplateView, ListView, DetailView, View
+from django.views.generic import CreateView, TemplateView, ListView, DetailView, View, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import logout
 from django.contrib import messages
@@ -24,8 +24,8 @@ from django.utils import timezone
 from django.db import IntegrityError, transaction
 from pathlib import Path
 
-from .models import Courrier, User, FicheAnalyse, Decision, Document, Historique, Notification, Affectation
-from .forms import CourrierForm, FicheAnalyseForm, AffectationForm
+from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation
+from .forms import CourrierForm, FicheAnalyseForm, FicheAnalyseSGForm, AffectationForm
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
 from .validators import validate_document_upload
@@ -216,6 +216,19 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             and context['fiche_analyse'].analyse_par_id == user.id
             and courrier.statut == Courrier.Statut.EN_COURS_DC
         )
+        # Permission pour le SG de valider sa propre fiche
+        try:
+            fiche_sg = courrier.fiche_analyse_sg
+        except FicheAnalyseSG.DoesNotExist:
+            fiche_sg = None
+
+        context['peut_valider_fiche_sg'] = (
+            user.role == User.Role.SG
+            and fiche_sg is not None
+            and not fiche_sg.valide
+            and fiche_sg.analyse_par_id == user.id
+            and courrier.statut == Courrier.Statut.EN_COURS_DC
+        )
         context['peut_decider'] = (
             user.role == User.Role.MINISTRE
             and context['fiche_analyse'] is not None
@@ -286,6 +299,44 @@ class CourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             f"✅ Courrier {courrier.reference} enregistré avec succès et transmis au Directeur de Cabinet."
         )
         return response
+
+
+class CourrierUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
+    """
+    Permet au Secrétariat Central de modifier un courrier retourné pour correction.
+    """
+    model = Courrier
+    form_class = CourrierForm
+    template_name = 'courrier_form.html'
+    allowed_roles = [User.Role.SECRETARIAT_CENTRAL]
+
+    def get_object(self, queryset=None):
+        obj = get_object_or_404(Courrier.objects.pour_utilisateur(self.request.user), pk=self.kwargs['pk'])
+        # Autoriser l'édition si le courrier a été rejeté par un secrétaire
+        if obj.statut != Courrier.Statut.REJETE_SECRETAIRE and obj.cree_par_id != self.request.user.id:
+            raise Http404("Édition non autorisée.")
+        return obj
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        courrier = self.object
+        # Journal d'audit
+        creer_historique(
+            courrier=courrier,
+            utilisateur=self.request.user,
+            action='MODIFICATION',
+            description=f"Courrier modifié par le Secrétariat Central {self.request.user.get_full_name() or self.request.user.username}."
+        )
+
+        # Notifier le secrétariat qui avait rejeté
+        notifier_role(role=User.Role.SECRETAIRE_DC, courrier=courrier,
+                     message=f"Le courrier {courrier.reference} a été modifié par le Secrétariat Central après rejet.")
+
+        messages.success(self.request, f"✅ Courrier {courrier.reference} mis à jour.")
+        return response
+
+    def get_success_url(self):
+        return reverse('courrier_detail', kwargs={'pk': self.object.pk})
 
 
 class DocumentDownloadView(LoginRequiredMixin, View):
@@ -375,6 +426,62 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         return reverse('courrier_detail', kwargs={'pk': self.kwargs['courrier_id']})
 
 
+class FicheAnalyseSGCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
+    """
+    Rédaction de la fiche d'analyse par le Secrétaire Général (SG).
+    Même comportement que pour le DC.
+    """
+    model = FicheAnalyseSG
+    form_class = FicheAnalyseSGForm
+    template_name = 'fiche_analyse_form.html'
+    allowed_roles = [User.Role.SG]
+
+    def get_courrier(self):
+        return get_object_or_404(
+            Courrier.objects.pour_utilisateur(self.request.user).filter(
+                statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC],
+                fiche_analyse_sg__isnull=True,
+            ),
+            pk=self.kwargs['courrier_id'],
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['courrier'] = self.get_courrier()
+        return context
+
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                courrier = self.get_courrier()
+                form.instance.analyse_par = self.request.user
+                form.instance.courrier = courrier
+                response = super().form_valid(form)
+
+                # Keep in EN_COURS_DC so DC/SG can work in parallel
+                courrier.statut = Courrier.Statut.EN_COURS_DC
+                courrier.save(update_fields=['statut'])
+
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=self.request.user,
+                    action='ANALYSE_SG_REDIGEE',
+                    description=f"Fiche d'analyse (SG) rédigée par {self.request.user.get_full_name() or self.request.user.username}."
+                )
+        except IntegrityError:
+            messages.error(self.request, "Une fiche d'analyse (SG) existe déjà pour ce courrier.")
+            return redirect('courrier_detail', pk=self.kwargs['courrier_id'])
+
+        messages.success(
+            self.request,
+            f"✅ Fiche d'analyse (SG) enregistrée. Vous pouvez maintenant la valider."
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse('courrier_detail', kwargs={'pk': self.kwargs['courrier_id']})
+
+
 # ==============================================================================
 # FICHE D'ANALYSE — Validation par le DC
 # ==============================================================================
@@ -402,31 +509,95 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
         fiche.date_validation = timezone.now()
         fiche.save(update_fields=['valide', 'date_validation'])
 
-        # Mise à jour du statut du courrier
-        courrier.statut = Courrier.Statut.ANALYSE_VALIDE
-        courrier.save(update_fields=['statut'])
-
         # Journal d'audit
         creer_historique(
             courrier=courrier,
             utilisateur=request.user,
             action='VALIDATION_ANALYSE',
-            description=f"Fiche d'analyse validée par le DC {request.user.get_full_name() or request.user.username}. "
-                        f"Courrier en attente de transmission par le Secrétariat du Ministre."
+            description=f"Fiche d'analyse validée par le DC {request.user.get_full_name() or request.user.username}."
         )
 
-        # Notification uniquement au Secrétaire du Ministre
+        # Si la fiche SG existe et est validée, on marque l'analyse globale comme validée
+        try:
+            fiche_sg = courrier.fiche_analyse_sg
+        except FicheAnalyseSG.DoesNotExist:
+            fiche_sg = None
 
-        notifier_role(
-            role=User.Role.SECRETAIRE_MINISTRE,
+        if fiche_sg and fiche_sg.valide:
+            courrier.statut = Courrier.Statut.ANALYSE_VALIDE
+            courrier.save(update_fields=['statut'])
+
+            notifier_role(
+                role=User.Role.SECRETAIRE_MINISTRE,
+                courrier=courrier,
+                message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
+            )
+            messages.success(
+                request,
+                f"✅ Analyse validée. Le Secrétariat du Ministre a été notifié pour transmission."
+            )
+        else:
+            # On reste en attente de la validation complémentaire du SG
+            messages.success(
+                request,
+                f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du SG."
+            )
+        return redirect('courrier_detail', pk=courrier_id)
+
+
+class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """
+    Validation de la fiche SG par le Secrétaire Général.
+    Si la fiche DC est validée aussi, on notifie le Secrétariat du Ministre.
+    """
+    allowed_roles = [User.Role.SG]
+
+    def post(self, request, courrier_id):
+        courrier = get_object_or_404(
+            Courrier.objects.pour_utilisateur(request.user).filter(
+                statut=Courrier.Statut.EN_COURS_DC,
+                fiche_analyse_sg__analyse_par=request.user,
+                fiche_analyse_sg__valide=False,
+            ),
+            pk=courrier_id,
+        )
+        fiche = courrier.fiche_analyse_sg
+
+        fiche.valide = True
+        fiche.date_validation = timezone.now()
+        fiche.save(update_fields=['valide', 'date_validation'])
+
+        creer_historique(
             courrier=courrier,
-            message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
+            utilisateur=request.user,
+            action='VALIDATION_ANALYSE_SG',
+            description=f"Fiche d'analyse (SG) validée par {request.user.get_full_name() or request.user.username}."
         )
 
-        messages.success(
-            request,
-            f"✅ Analyse validée. Le Secrétariat du Ministre a été notifié pour transmission."
-        )
+        # Si la fiche DC existe et est validée, on marque l'analyse globale comme validée
+        try:
+            fiche_dc = courrier.fiche_analyse
+        except FicheAnalyse.DoesNotExist:
+            fiche_dc = None
+
+        if fiche_dc and fiche_dc.valide:
+            courrier.statut = Courrier.Statut.ANALYSE_VALIDE
+            courrier.save(update_fields=['statut'])
+
+            notifier_role(
+                role=User.Role.SECRETAIRE_MINISTRE,
+                courrier=courrier,
+                message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
+            )
+            messages.success(
+                request,
+                f"✅ Analyse (SG) validée. Le Secrétariat du Ministre a été notifié pour transmission."
+            )
+        else:
+            messages.success(
+                request,
+                f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du DC."
+            )
         return redirect('courrier_detail', pk=courrier_id)
 
 
@@ -449,6 +620,7 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             Courrier.objects.pour_utilisateur(self.request.user).filter(
                 statut=Courrier.Statut.TRANSMIS_MINISTRE,
                 fiche_analyse__valide=True,
+                fiche_analyse_sg__valide=True,
                 decision__isnull=True,
             ),
             pk=self.kwargs['courrier_id'],
@@ -650,29 +822,31 @@ class RefuserCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
             pk=courrier_id,
             statut=Courrier.Statut.ARRIVE
         )
+        motif = request.POST.get('motif', '').strip()
 
-        # Mise à jour du statut
+        # Mise à jour du statut et du motif
         courrier.statut = Courrier.Statut.REJETE_SECRETAIRE
-        courrier.save()
+        courrier.motif_rejet = motif
+        courrier.save(update_fields=['statut', 'motif_rejet'])
 
         # Créer un historique
         creer_historique(
             courrier=courrier,
             utilisateur=request.user,
             action='REJET',
-            description=f"Courrier rejeté par {request.user.get_full_name() or request.user.username} pour vérification ou informations manquantes."
+            description=f"Courrier rejeté par {request.user.get_full_name() or request.user.username}. Motif: {motif or 'Non précisé'}."
         )
 
         # Envoyer une notification au Secrétariat Central
         notifier_role(
             role=User.Role.SECRETARIAT_CENTRAL,
             courrier=courrier,
-            message=f"Le courrier {courrier.reference} a été rejeté par le secrétariat pour correction."
+            message=f"Le courrier {courrier.reference} a été rejeté par le secrétariat. Motif: {motif or 'Non précisé'}."
         )
 
         messages.error(
             request,
-            f"❌ Le courrier {courrier.reference} a été renvoyé au Secrétariat Central."
+            f"❌ Le courrier {courrier.reference} a été renvoyé au Secrétariat Central. Motif: {motif or 'Non précisé'}."
         )
         return redirect('dashboard')
 
