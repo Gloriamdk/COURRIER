@@ -313,7 +313,8 @@
                 
                 {# Boutons pour les secrétaires (transmettre / refuser avec motif obligatoire) #}
                 {# Secrétaires DC/SG : n'afficher les actions que si le courrier est à l'état ARRIVE #}
-                {% if (request.user.role == 'SECRETAIRE_DC' or request.user.role == 'SECRETAIRE_SG') and courrier.statut == 'ARRIVE' %}
+                {% if courrier.statut == 'ARRIVE' %}
+                    {% if request.user.role == 'SECRETAIRE_DC' or request.user.role == 'SECRETAIRE_SG' %}
                     <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" style="display:inline-block; margin-top:8px;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary">Transmettre au supérieur</button>
@@ -338,6 +339,7 @@
                             </form>
                         </div>
                     </div>
+                    {% endif %}
                 {% endif %}
 
                 {# Secrétaire du Ministre : n'afficher la transmission que si analyse validée #}
