@@ -633,3 +633,106 @@ class Notification(models.Model):
     def __str__(self):
         status = "Lu" if self.lu else "Non lu"
         return f"Notif -> {self.destinataire.username} ({status})"
+
+
+# ==============================================================================
+# 9. MODÈLE RELANCE / ALERTE DE RETARD (TRAÇABILITÉ DES RELANCES)
+# ==============================================================================
+
+class Relance(models.Model):
+    """
+    Modèle représentant une alerte / relance automatique lorsqu'un courrier
+    reste sans traitement, transfert ou clôture pendant plus de 3 jours.
+    """
+    class Etape(models.TextChoices):
+        ARRIVE = 'ARRIVE', 'Enregistrement / Secrétariat'
+        REJET = 'REJET', 'Rejeté pour correction'
+        ANALYSE_DC = 'ANALYSE_DC', 'Analyse par le Directeur de Cabinet (DC)'
+        ANALYSE_SG = 'ANALYSE_SG', 'Analyse par le Secrétaire Général (SG)'
+        TRANSMISSION_MINISTRE = 'TRANSMISSION_MINISTRE', 'Transmission au Ministre'
+        DECISION = 'DECISION', 'Décision du Ministre'
+        AFFECTATION = 'AFFECTATION', 'Affectation aux services'
+        TRAITEMENT_SERVICE = 'TRAITEMENT_SERVICE', 'Traitement par le service / agent'
+
+    courrier = models.ForeignKey(
+        Courrier,
+        on_delete=models.CASCADE,
+        related_name="relances",
+        verbose_name="Courrier concerné"
+    )
+    destinataire_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="relances_recues",
+        verbose_name="Utilisateur ciblé"
+    )
+    destinataire_role = models.CharField(
+        max_length=50,
+        choices=User.Role.choices,
+        null=True,
+        blank=True,
+        verbose_name="Rôle ciblé"
+    )
+    service_concerne = models.CharField(
+        max_length=150,
+        choices=DIRECTIONS_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name="Direction / Service concerné"
+    )
+    etape = models.CharField(
+        max_length=50,
+        choices=Etape.choices,
+        default=Etape.ARRIVE,
+        verbose_name="Étape administrative"
+    )
+    date_debut_etape = models.DateTimeField(
+        verbose_name="Date d'entrée à cette étape (réception / transmission)"
+    )
+    date_creation = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="Date de génération de l'alerte"
+    )
+    est_resolue = models.BooleanField(
+        default=False,
+        verbose_name="Alerte résolue"
+    )
+    date_resolution = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de résolution"
+    )
+
+    class Meta:
+        verbose_name = "Alerte / Relance"
+        verbose_name_plural = "Alertes et Relances"
+        ordering = ['-date_creation']
+        indexes = [
+            models.Index(fields=['est_resolue', 'destinataire_role']),
+            models.Index(fields=['est_resolue', 'destinataire_user']),
+            models.Index(fields=['courrier', 'est_resolue']),
+        ]
+
+    def __str__(self):
+        dest = self.destinataire_user or self.get_destinataire_role_display() or self.service_concerne or "Tous"
+        status = "Résolue" if self.est_resolue else f"En retard ({self.jours_sans_traitement}j)"
+        return f"Relance [{self.courrier.reference}] -> {dest} ({status})"
+
+    @property
+    def jours_sans_traitement(self):
+        """Nombre de jours sans traitement depuis la date d'entrée dans l'étape."""
+        if not self.date_debut_etape:
+            return 0
+        fin = self.date_resolution if (self.est_resolue and self.date_resolution) else timezone.now()
+        delta = fin - self.date_debut_etape
+        return max(0, delta.days)
+
+    def resoudre(self):
+        """Marque la relance comme résolue."""
+        if not self.est_resolue:
+            self.est_resolue = True
+            self.date_resolution = timezone.now()
+            self.save(update_fields=['est_resolue', 'date_resolution'])
+

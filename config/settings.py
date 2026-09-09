@@ -24,6 +24,8 @@ TESTING = "test" in sys.argv
 RUNSERVER = "runserver" in sys.argv
 DEBUG = env_bool("DJANGO_DEBUG", RUNSERVER)
 LOCAL_MANAGEMENT_COMMAND = any(
+    "manage.py" in arg for arg in sys.argv[:1]
+) or any(
     command in sys.argv
     for command in {
         "check",
@@ -32,6 +34,8 @@ LOCAL_MANAGEMENT_COMMAND = any(
         "shell",
         "createsuperuser",
         "changepassword",
+        "showmigrations",
+        "verifier_relances",
     }
 )
 
@@ -85,10 +89,14 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'courrier.context_processors.alertes_context_processor',
             ],
         },
     },
 ]
+
+# Délai de relance pour les courriers non traités (en jours)
+DELAI_RELANCE_JOURS = int(os.getenv("DELAI_RELANCE_JOURS", "3"))
 
 WSGI_APPLICATION = 'config.wsgi.application'
 

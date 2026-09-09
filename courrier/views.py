@@ -24,11 +24,12 @@ from django.utils import timezone
 from django.db import IntegrityError, transaction
 from pathlib import Path
 
-from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation
+from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance
 from .forms import CourrierForm, FicheAnalyseForm, FicheAnalyseSGForm, AffectationForm
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
 from .validators import validate_document_upload
+from .services import synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur
 import mimetypes
 
 
@@ -84,6 +85,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+
+        # Synchronisation automatique des relances et alertes en arrière-plan
+        synchroniser_relances()
+        relances_qs = get_relances_pour_utilisateur(user)
+        context['relances_actives'] = relances_qs.order_by('-date_creation')
+        context['nb_relances'] = relances_qs.count()
+        context['courriers_en_retard_ids'] = set(relances_qs.values_list('courrier_id', flat=True))
 
         # Notifications non lues (commun à tous les rôles)
         context['notifications_non_lues'] = user.notifications.filter(lu=False).order_by('-date_notification')[:5]
@@ -509,6 +517,9 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
         fiche.date_validation = timezone.now()
         fiche.save(update_fields=['valide', 'date_validation'])
 
+        # Résolution automatique des relances de l'étape Analyse DC
+        resoudre_relances_courrier(courrier, etapes=Relance.Etape.ANALYSE_DC)
+
         # Journal d'audit
         creer_historique(
             courrier=courrier,
@@ -566,6 +577,9 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
         fiche.valide = True
         fiche.date_validation = timezone.now()
         fiche.save(update_fields=['valide', 'date_validation'])
+
+        # Résolution automatique des relances de l'étape Analyse SG
+        resoudre_relances_courrier(courrier, etapes=Relance.Etape.ANALYSE_SG)
 
         creer_historique(
             courrier=courrier,
@@ -651,6 +665,9 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                 courrier.statut = Courrier.Statut.DECIDE
                 courrier.save(update_fields=['statut'])
 
+                # Résolution automatique de la relance Décision Ministre
+                resoudre_relances_courrier(courrier, etapes=Relance.Etape.DECISION)
+
                 creer_historique(
                     courrier=courrier,
                     utilisateur=self.request.user,
@@ -725,6 +742,9 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
             courrier.statut = Courrier.Statut.AFFECTE
             courrier.save(update_fields=['statut'])
+
+            # Résolution automatique de la relance Affectation
+            resoudre_relances_courrier(courrier, etapes=Relance.Etape.AFFECTATION)
 
             destinataire_nom = (
                 f"{affectation.destinataire.get_full_name() or affectation.destinataire.username}"
@@ -802,6 +822,9 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
         courrier.statut = nouveau_statut
         courrier.save(update_fields=['statut'])
 
+        # Résoudre les relances actives de l'étape précédente
+        resoudre_relances_courrier(courrier)
+
         # Créer un historique
         creer_historique(
             courrier=courrier,
@@ -849,6 +872,9 @@ class RefuserCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
         courrier.motif_rejet = motif
         courrier.save(update_fields=['statut', 'motif_rejet'])
 
+        # Résoudre les relances de l'étape arrivée
+        resoudre_relances_courrier(courrier, etapes=Relance.Etape.ARRIVE)
+
         # Créer un historique
         creer_historique(
             courrier=courrier,
@@ -884,3 +910,64 @@ class MarquerNotificationLueView(LoginRequiredMixin, View):
         notif.lu = True
         notif.save()
         return JsonResponse({'status': 'ok', 'nb_non_lues': request.user.notifications.filter(lu=False).count()})
+
+
+# ==============================================================================
+# AFFECTATION — Mise à jour du statut de traitement
+# ==============================================================================
+
+class AffectationStatutUpdateView(LoginRequiredMixin, View):
+    """
+    Permet au destinataire d'une affectation de mettre à jour son statut d'exécution
+    (ex: RECU -> EN_COURS -> TRAITE). Résout automatiquement les relances à la finalisation.
+    """
+    def post(self, request, pk):
+        affectation = get_object_or_404(
+            Affectation.objects.filter(
+                Q(destinataire=request.user) |
+                Q(service_concerne=request.user.service_direction) |
+                Q(affecte_par=request.user) |
+                Q(courrier__cree_par=request.user)
+            ),
+            pk=pk
+        )
+        nouveau_statut = request.POST.get('statut_traitement')
+        note = (request.POST.get('note_traitement') or '').strip()
+
+        if nouveau_statut in Affectation.StatutTraitement.values:
+            affectation.statut_traitement = nouveau_statut
+            if note:
+                affectation.note_traitement = note
+            
+            if nouveau_statut == Affectation.StatutTraitement.TRAITE:
+                affectation.date_traitement = timezone.now()
+                # Résoudre la relance liée au traitement
+                resoudre_relances_courrier(affectation.courrier, etapes=Relance.Etape.TRAITEMENT_SERVICE)
+                
+                # Créer un historique
+                creer_historique(
+                    courrier=affectation.courrier,
+                    utilisateur=request.user,
+                    action='TRAITEMENT_FINALISE',
+                    description=f"Affectation marquée comme traitée par {request.user.get_full_name() or request.user.username}."
+                )
+
+                # Si toutes les affectations sont traitées, marquer le courrier comme TERMINE
+                if not affectation.courrier.affectations.exclude(statut_traitement=Affectation.StatutTraitement.TRAITE).exists():
+                    affectation.courrier.statut = Courrier.Statut.TERMINE
+                    affectation.courrier.save(update_fields=['statut'])
+                    resoudre_relances_courrier(affectation.courrier)
+                    creer_historique(
+                        courrier=affectation.courrier,
+                        utilisateur=request.user,
+                        action='CLOTURE',
+                        description="Toutes les affectations ont été traitées. Courrier clôturé."
+                    )
+            elif nouveau_statut == Affectation.StatutTraitement.EN_COURS and not affectation.date_reception:
+                affectation.date_reception = timezone.now()
+
+            affectation.save()
+            messages.success(request, f"✅ Statut de traitement mis à jour : {affectation.get_statut_traitement_display()}.")
+
+        return redirect('courrier_detail', pk=affectation.courrier.pk)
+

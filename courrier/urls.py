@@ -18,6 +18,7 @@ from .views import (
     TransmettreCourrierView,
     RefuserCourrierView,
     MarquerNotificationLueView,
+    AffectationStatutUpdateView,
 )
 
 urlpatterns = [
@@ -41,6 +42,7 @@ urlpatterns = [
 
     # ── Affectation (DC / Secrétariat Central) ────────────────────────────────
     path('<int:courrier_id>/affectation/nouveau/', AffectationCreateView.as_view(), name='affectation_nouveau'),
+    path('affectation/<int:pk>/statut/', AffectationStatutUpdateView.as_view(), name='affectation_statut_update'),
 
     # ── Transmission & Rejet (Secrétaires) ───────────────────────────────────
     path('<int:courrier_id>/transmettre/', TransmettreCourrierView.as_view(), name='courrier_transmettre'),
