@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.db import IntegrityError, transaction
 from pathlib import Path
 
-from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance
+from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance, ConfigurationDelai
 from .forms import CourrierForm, FicheAnalyseForm, FicheAnalyseSGForm, AffectationForm
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
@@ -49,6 +49,9 @@ def creer_historique(courrier, utilisateur, action, description):
 
 def notifier(destinataire, courrier, message):
     """Raccourci pour créer une notification interne."""
+    if courrier and courrier.priorite in [Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]:
+        if "Courrier urgent" not in message and "COURRIER URGENT" not in message:
+            message = f"🚨 [Courrier urgent] {message}"
     Notification.objects.create(
         destinataire=destinataire,
         courrier=courrier,
@@ -92,6 +95,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['relances_actives'] = relances_qs.order_by('-date_creation')
         context['nb_relances'] = relances_qs.count()
         context['courriers_en_retard_ids'] = set(relances_qs.values_list('courrier_id', flat=True))
+
+        # Délai réglementaire actuel configuré par le Ministre
+        context['delai_traitement_actuel'] = ConfigurationDelai.get_delai_jours()
+
+        # Courriers urgents sous la responsabilité de l'utilisateur
+        context['courriers_urgents_en_cours'] = Courrier.objects.pour_utilisateur(user).filter(
+            priorite__in=[Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]
+        ).exclude(statut=Courrier.Statut.TERMINE).order_by('-date_arrivee')[:10]
 
         # Notifications non lues (commun à tous les rôles)
         context['notifications_non_lues'] = user.notifications.filter(lu=False).order_by('-date_notification')[:5]
@@ -970,4 +981,43 @@ class AffectationStatutUpdateView(LoginRequiredMixin, View):
             messages.success(request, f"✅ Statut de traitement mis à jour : {affectation.get_statut_traitement_display()}.")
 
         return redirect('courrier_detail', pk=affectation.courrier.pk)
+
+
+# ==============================================================================
+# CONFIGURATION DU DÉLAI DE TRAITEMENT (RÉSERVÉ AU MINISTRE)
+# ==============================================================================
+
+class ConfigurationDelaiUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
+    """
+    Vue permettant exclusivement au Ministre de définir ou modifier le délai
+    réglementaire de traitement des courriers (timing).
+    """
+    allowed_roles = [User.Role.MINISTRE]
+
+    def post(self, request):
+        delai_str = (request.POST.get('delai_jours') or '').strip()
+        try:
+            delai = int(delai_str)
+            if delai <= 0 or delai > 180:
+                messages.error(request, "Veuillez spécifier un délai valide (entre 1 et 180 jours).")
+                return redirect('dashboard')
+        except ValueError:
+            messages.error(request, "Valeur du délai de traitement invalide.")
+            return redirect('dashboard')
+
+        config, _ = ConfigurationDelai.objects.get_or_create(id=1)
+        ancien_delai = config.delai_jours
+        config.delai_jours = delai
+        config.modifie_par = request.user
+        config.save()
+
+        # Synchroniser immédiatement les alertes et relances avec le nouveau délai
+        synchroniser_relances()
+
+        messages.success(
+            request,
+            f"✅ Le délai réglementaire de traitement des courriers a été fixé à {delai} jour(s) (anciennement {ancien_delai} jours)."
+        )
+        return redirect('dashboard')
+
 

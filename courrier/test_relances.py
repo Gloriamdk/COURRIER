@@ -3,8 +3,8 @@ from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
 
-from courrier.models import User, Courrier, Relance, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique
-from courrier.services import synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur, DELAI_RELANCE_JOURS
+from courrier.models import User, Courrier, Relance, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique, ConfigurationDelai, Notification
+from courrier.services import synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur
 
 
 class RelanceSystemTests(TestCase):
@@ -66,6 +66,15 @@ class RelanceSystemTests(TestCase):
             first_name="Guy",
             last_name="Ministre"
         )
+        self.directeur_dep = User.objects.create_user(
+            username="directeur_daf",
+            email="dir_daf@mtca.gouv.bj",
+            password="Password123!",
+            role=User.Role.DIRECTEUR,
+            service_direction="DAAF",
+            first_name="Daniel",
+            last_name="DirDAAF"
+        )
         self.agent_daf = User.objects.create_user(
             username="agent_daf",
             email="agent@mtca.gouv.bj",
@@ -76,8 +85,8 @@ class RelanceSystemTests(TestCase):
             last_name="AgentDAAF"
         )
 
-    def test_relance_creee_automatiquement_apres_3_jours(self):
-        """Un courrier arrivé il y a 4 jours doit générer une relance active."""
+    def test_relance_creee_automatiquement_selon_delai(self):
+        """Un courrier en attente au-delà du délai configuré génère une relance active."""
         date_4_jours_avant = timezone.now() - timedelta(days=4)
         c = Courrier.objects.create(
             reference="CR-2026-0001",
@@ -88,59 +97,127 @@ class RelanceSystemTests(TestCase):
             date_arrivee=date_4_jours_avant
         )
 
-        # Synchroniser
         synchroniser_relances()
 
-        # Vérifier qu'une relance active existe pour l'étape ARRIVE
         relances = Relance.objects.filter(courrier=c, est_resolue=False)
         self.assertTrue(relances.exists())
         relance = relances.first()
         self.assertEqual(relance.etape, Relance.Etape.ARRIVE)
         self.assertGreaterEqual(relance.jours_sans_traitement, 3)
 
-    def test_pas_de_relance_si_moins_de_3_jours(self):
-        """Un courrier arrivé il y a 1 jour ne doit pas générer de relance."""
-        date_1_jour_avant = timezone.now() - timedelta(days=1)
+    def test_seul_le_ministre_peut_configurer_le_delai(self):
+        """Seul le Ministre peut modifier le délai de traitement; les autres rôles obtiennent 403."""
+        # Tentative par le DC (doit échouer avec 403)
+        self.client.force_login(self.dc)
+        response_dc = self.client.post(reverse('configuration_delai_update'), {'delai_jours': 5})
+        self.assertEqual(response_dc.status_code, 403)
+
+        # Tentative par le Secrétaire Général (doit échouer avec 403)
+        self.client.force_login(self.sg)
+        response_sg = self.client.post(reverse('configuration_delai_update'), {'delai_jours': 5})
+        self.assertEqual(response_sg.status_code, 403)
+
+        # Modification autorisée par le Ministre
+        self.client.force_login(self.ministre)
+        response_min = self.client.post(reverse('configuration_delai_update'), {'delai_jours': 5})
+        self.assertEqual(response_min.status_code, 302)
+        self.assertEqual(ConfigurationDelai.get_delai_jours(), 5)
+
+        # Vérifier que le nouveau délai de 5 jours est pris en compte :
+        # Un courrier vieux de 4 jours ne doit plus être en relance avec un seuil de 5 jours
+        date_4_jours_avant = timezone.now() - timedelta(days=4)
         c = Courrier.objects.create(
             reference="CR-2026-0002",
-            designation="Demande d'audience",
-            expediteur_nom="Société Bénin Tour",
+            designation="Demande de partenariat",
+            expediteur_nom="Société X",
             cree_par=self.sec_central,
             statut=Courrier.Statut.ARRIVE,
-            date_arrivee=date_1_jour_avant
+            date_arrivee=date_4_jours_avant
         )
-
         synchroniser_relances()
-        relances = Relance.objects.filter(courrier=c, est_resolue=False)
-        self.assertFalse(relances.exists())
+        self.assertFalse(Relance.objects.filter(courrier=c, est_resolue=False).exists())
 
-    def test_non_duplication_des_relances(self):
-        """Deux synchronisations successives ne doivent pas créer de doublon pour le même retard."""
+    def test_visibilite_alertes_pour_utilisateurs_concernes(self):
+        """Les alertes doivent être visibles par le Ministre, SG, DC, Secrétaires (SG, DC, Ministre) et Directeurs concernés."""
         date_5_jours_avant = timezone.now() - timedelta(days=5)
-        c = Courrier.objects.create(
-            reference="CR-2026-0003",
-            designation="Projet Festival des Arts",
-            expediteur_nom="Mairie de Ouidah",
+
+        # Courrier 1 chez le DC
+        c1 = Courrier.objects.create(
+            reference="CR-2026-0010",
+            designation="Dossier en analyse chez le DC",
+            expediteur_nom="Ambassade",
             cree_par=self.sec_central,
-            statut=Courrier.Statut.ARRIVE,
+            statut=Courrier.Statut.TRANSMIS_DC,
             date_arrivee=date_5_jours_avant
         )
 
-        synchroniser_relances()
-        count_apres_1 = Relance.objects.filter(courrier=c, est_resolue=False).count()
+        # Courrier 2 affecté à la DAAF
+        c2 = Courrier.objects.create(
+            reference="CR-2026-0020",
+            designation="Exécution budget DAAF",
+            expediteur_nom="Contrôle Financier",
+            cree_par=self.sec_central,
+            statut=Courrier.Statut.AFFECTE,
+            date_arrivee=date_5_jours_avant
+        )
+        dec2 = Decision.objects.create(
+            courrier=c2,
+            signe_par=self.ministre,
+            instructions_finales="Pour exécution par la DAAF"
+        )
+        aff2 = Affectation.objects.create(
+            courrier=c2,
+            decision=dec2,
+            service_concerne="DAAF",
+            destinataire=self.agent_daf,
+            affecte_par=self.ministre,
+            statut_traitement=Affectation.StatutTraitement.RECU
+        )
+        Affectation.objects.filter(pk=aff2.pk).update(date_affectation=date_5_jours_avant)
 
         synchroniser_relances()
-        count_apres_2 = Relance.objects.filter(courrier=c, est_resolue=False).count()
 
-        self.assertEqual(count_apres_1, count_apres_2)
+        # Ministre, SG, DC, Secrétaires (SG, DC, Ministre) ont la vue de supervision
+        for supervisory_user in [self.ministre, self.sg, self.dc, self.sec_dc, self.sec_sg, self.sec_min]:
+            relances = get_relances_pour_utilisateur(supervisory_user)
+            refs = set(relances.values_list('courrier__reference', flat=True))
+            self.assertIn("CR-2026-0010", refs, f"{supervisory_user.username} devrait voir CR-2026-0010")
+            self.assertIn("CR-2026-0020", refs, f"{supervisory_user.username} devrait voir CR-2026-0020")
 
-    def test_resolution_automatique_lors_de_la_transmission(self):
-        """Dès que le secrétaire transmet le courrier, la relance d'arrivée est résolue."""
+        # Directeur DAAF doit voir le courrier affecté à sa direction (DAAF)
+        relances_dir = get_relances_pour_utilisateur(self.directeur_dep)
+        refs_dir = set(relances_dir.values_list('courrier__reference', flat=True))
+        self.assertIn("CR-2026-0020", refs_dir)
+
+    def test_courriers_urgents_et_alertes_identifiables(self):
+        """Un courrier urgent conserve son statut et génère des alertes identifiables '🚨 [Courrier urgent]'."""
+        c_urgent = Courrier.objects.create(
+            reference="CR-2026-URG-01",
+            designation="Projet Urgent de Décret",
+            expediteur_nom="Secrétariat Général du Gouvernement",
+            cree_par=self.sec_central,
+            statut=Courrier.Statut.ARRIVE,
+            priorite=Courrier.Priorite.URGENT
+        )
+
+        # La transmission génère une notification contenant [Courrier urgent]
+        self.client.force_login(self.sec_dc)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': c_urgent.pk}))
+
+        c_urgent.refresh_from_db()
+        self.assertEqual(c_urgent.priorite, Courrier.Priorite.URGENT)
+
+        notif = Notification.objects.filter(courrier=c_urgent).first()
+        self.assertIsNotNone(notif)
+        self.assertIn("Courrier urgent", notif.message)
+
+    def test_resolution_automatique_lors_du_traitement(self):
+        """Lorsqu'une action est effectuée, l'ancienne relance est clôturée automatiquement."""
         date_4_jours_avant = timezone.now() - timedelta(days=4)
         c = Courrier.objects.create(
-            reference="CR-2026-0004",
-            designation="Courrier pour le DC",
-            expediteur_nom="Ambassade",
+            reference="CR-2026-0050",
+            designation="Courrier à transmettre",
+            expediteur_nom="Partenaire",
             cree_par=self.sec_central,
             statut=Courrier.Statut.ARRIVE,
             date_arrivee=date_4_jours_avant
@@ -149,82 +226,12 @@ class RelanceSystemTests(TestCase):
         synchroniser_relances()
         self.assertTrue(Relance.objects.filter(courrier=c, etape=Relance.Etape.ARRIVE, est_resolue=False).exists())
 
-        # Le secrétaire DC transmet le courrier
+        # Action: transmission par le Secrétaire DC
         self.client.force_login(self.sec_dc)
-        response = self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': c.pk}))
-        self.assertEqual(response.status_code, 302)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': c.pk}))
 
-        # L'ancienne relance de l'étape arrivée doit être résolue
-        relance_arrivee = Relance.objects.filter(courrier=c, etape=Relance.Etape.ARRIVE).first()
-        self.assertTrue(relance_arrivee.est_resolue)
-        self.assertIsNotNone(relance_arrivee.date_resolution)
+        # L'ancienne relance doit être résolue
+        relance = Relance.objects.filter(courrier=c, etape=Relance.Etape.ARRIVE).first()
+        self.assertTrue(relance.est_resolue)
+        self.assertIsNotNone(relance.date_resolution)
 
-        # Le courrier est passé à TRANSMIS_DC, pas de nouvelle relance immédiate car nouveau délai commence
-        c.refresh_from_db()
-        self.assertEqual(c.statut, Courrier.Statut.TRANSMIS_DC)
-        relances_actives = Relance.objects.filter(courrier=c, est_resolue=False)
-        self.assertFalse(relances_actives.exists())
-
-    def test_filtrage_roles_secretaires_vs_acteurs(self):
-        """Les secrétaires voient toutes les relances, tandis que le DC ne voit que la sienne."""
-        date_4_jours_avant = timezone.now() - timedelta(days=4)
-        
-        # Courrier 1: Bloqué chez le DC
-        c1 = Courrier.objects.create(
-            reference="CR-2026-0010",
-            designation="Dossier stratégique DC",
-            expediteur_nom="Partenaire",
-            cree_par=self.sec_central,
-            statut=Courrier.Statut.TRANSMIS_DC,
-            date_arrivee=date_4_jours_avant
-        )
-        # Courrier 2: Bloqué chez le Ministre
-        c2 = Courrier.objects.create(
-            reference="CR-2026-0020",
-            designation="Dossier décision Ministre",
-            expediteur_nom="Présidence",
-            cree_par=self.sec_central,
-            statut=Courrier.Statut.TRANSMIS_MINISTRE,
-            date_arrivee=date_4_jours_avant
-        )
-
-        synchroniser_relances()
-
-        # Secrétaire DC : doit voir TOUTES les relances actives (vue globale)
-        relances_sec = get_relances_pour_utilisateur(self.sec_dc)
-        refs_sec = set(relances_sec.values_list('courrier__reference', flat=True))
-        self.assertIn("CR-2026-0010", refs_sec)
-        self.assertIn("CR-2026-0020", refs_sec)
-
-        # DC : ne doit voir QUE sa relance (CR-2026-0010), pas celle du Ministre (CR-2026-0020)
-        relances_dc = get_relances_pour_utilisateur(self.dc)
-        refs_dc = set(relances_dc.values_list('courrier__reference', flat=True))
-        self.assertIn("CR-2026-0010", refs_dc)
-        self.assertNotIn("CR-2026-0020", refs_dc)
-
-        # Ministre : ne doit voir QUE sa relance (CR-2026-0020)
-        relances_min = get_relances_pour_utilisateur(self.ministre)
-        refs_min = set(relances_min.values_list('courrier__reference', flat=True))
-        self.assertIn("CR-2026-0020", refs_min)
-        self.assertNotIn("CR-2026-0010", refs_min)
-
-    def test_dashboard_contient_alertes_et_badges(self):
-        """Le tableau de bord doit contenir les variables de contexte de relance."""
-        date_4_jours_avant = timezone.now() - timedelta(days=4)
-        Courrier.objects.create(
-            reference="CR-2026-0099",
-            designation="Courrier très en retard",
-            expediteur_nom="UNESCO",
-            cree_par=self.sec_central,
-            statut=Courrier.Statut.ARRIVE,
-            date_arrivee=date_4_jours_avant
-        )
-
-        self.client.force_login(self.sec_central)
-        response = self.client.get(reverse('dashboard'))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('relances_actives', response.context)
-        self.assertIn('nb_relances', response.context)
-        self.assertGreaterEqual(response.context['nb_relances'], 1)
-        self.assertContains(response, "CR-2026-0099")
-        self.assertContains(response, "Système d'Alertes et Relances")

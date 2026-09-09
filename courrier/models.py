@@ -736,3 +736,46 @@ class Relance(models.Model):
             self.date_resolution = timezone.now()
             self.save(update_fields=['est_resolue', 'date_resolution'])
 
+
+# ==============================================================================
+# 10. MODÈLE CONFIGURATION DU DÉLAI DE TRAITEMENT (MINISTRE)
+# ==============================================================================
+
+class ConfigurationDelai(models.Model):
+    """
+    Configuration globale du délai de traitement des courriers (en jours).
+    Règle de sécurité : Seul le Ministre a le droit de définir ou modifier ce délai.
+    """
+    delai_jours = models.PositiveIntegerField(
+        default=3,
+        verbose_name="Délai limite de traitement (en jours)",
+        help_text="Nombre de jours sans traitement avant déclenchement d'une alerte et relance automatique."
+    )
+    modifie_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Dernière modification par"
+    )
+    date_modification = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Date de dernière mise à jour"
+    )
+
+    class Meta:
+        verbose_name = "Configuration du délai de traitement"
+        verbose_name_plural = "Configuration du délai de traitement"
+
+    def __str__(self):
+        return f"Délai fixé : {self.delai_jours} jour(s) (par {self.modifie_par or 'Système'})"
+
+    @classmethod
+    def get_delai_jours(cls):
+        """Retourne le délai actuellement configuré par le Ministre (ou valeur par défaut 3)."""
+        config = cls.objects.first()
+        if config and config.delai_jours:
+            return config.delai_jours
+        return getattr(settings, 'DELAI_RELANCE_JOURS', 3)
+
+

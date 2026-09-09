@@ -19,9 +19,12 @@ from .views import (
     RefuserCourrierView,
     MarquerNotificationLueView,
     AffectationStatutUpdateView,
+    ConfigurationDelaiUpdateView,
 )
 
 urlpatterns = [
+    # ── Configuration du délai (Ministre) ────────────────────────────────────
+    path('configuration-delai/', ConfigurationDelaiUpdateView.as_view(), name='configuration_delai_update'),
     # ── Tableau de bord ──────────────────────────────────────────────────────
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
 

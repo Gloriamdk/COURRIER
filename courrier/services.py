@@ -16,15 +16,17 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
 
-from .models import Courrier, User, Relance, Affectation, FicheAnalyse, FicheAnalyseSG, Decision, Historique
+from .models import Courrier, User, Relance, Affectation, FicheAnalyse, FicheAnalyseSG, Decision, Historique, ConfigurationDelai
 
 
-DELAI_RELANCE_JOURS = getattr(settings, 'DELAI_RELANCE_JOURS', 3)
+def get_delai_jours():
+    """Récupère le délai de traitement fixé par le Ministre (en jours)."""
+    return ConfigurationDelai.get_delai_jours()
 
 
 def date_seuil_relance():
-    """Retourne l'horodatage seuil au-delà duquel un courrier est considéré en retard."""
-    return timezone.now() - timedelta(days=DELAI_RELANCE_JOURS)
+    """Retourne l'horodatage seuil au-delà duquel un courrier est considéré en retard selon la décision du Ministre."""
+    return timezone.now() - timedelta(days=get_delai_jours())
 
 
 def resoudre_relances_courrier(courrier, etapes=None):
@@ -252,14 +254,19 @@ def synchroniser_relances():
 def get_relances_pour_utilisateur(user):
     """
     Retourne le QuerySet des relances actives pertinentes pour l'utilisateur :
-    - Les Secrétaires (Central, DC, SG, Ministre) et Superusers ont une vue d'ensemble sur TOUTES les alertes de tout le monde.
-    - Les autres utilisateurs (DC, SG, Ministre, Directeurs, Agents) voient uniquement leurs alertes.
+    - Le Ministre, le DC, le SG, les Secrétaires (SG, DC, Ministre, Central) et Superusers ont
+      une vue complète sur toutes les relances et alertes de retard à travers le Ministère.
+    - Les Directeurs de département et Agents voient les alertes qui les concernent directement
+      (leur service ou leurs affectations personnelles).
     """
     if not user.is_authenticated or not user.is_active:
         return Relance.objects.none()
 
-    # Rôles ayant la vue globale sur toutes les relances
+    # Rôles ayant la vue globale de supervision sur toutes les relances
     roles_vue_globale = {
+        User.Role.MINISTRE,
+        User.Role.DC,
+        User.Role.SG,
         User.Role.SECRETARIAT_CENTRAL,
         User.Role.SECRETAIRE_DC,
         User.Role.SECRETAIRE_SG,
@@ -271,7 +278,7 @@ def get_relances_pour_utilisateur(user):
     if user.is_superuser or user.role in roles_vue_globale:
         return base_qs
 
-    # Filtrage ciblé pour l'utilisateur
+    # Pour les Directeurs de département et Agents : filtrage par utilisateur, rôle ou direction
     filtres = Q(destinataire_user=user) | Q(destinataire_role=user.role)
     if user.service_direction:
         filtres |= Q(service_concerne=user.service_direction)

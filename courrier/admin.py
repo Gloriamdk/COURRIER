@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Courrier, Document, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique, Notification, Relance
+from .models import User, Courrier, Document, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique, Notification, Relance, ConfigurationDelai
+
+@admin.register(ConfigurationDelai)
+class ConfigurationDelaiAdmin(admin.ModelAdmin):
+    list_display = ('delai_jours', 'modifie_par', 'date_modification')
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):

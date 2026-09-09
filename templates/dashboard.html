@@ -35,7 +35,7 @@
     <p style="margin-top: 10px; opacity: 0.9;">Bienvenue dans votre espace de travail personnel, <strong>{{ user.first_name }} {{ user.last_name }}</strong> ({{ user.get_role_display }}).</p>
 </div>
 
-<!-- ==================== SECTION ALERTES ET RELANCES (> 3 JOURS) ==================== -->
+<!-- ==================== SECTION ALERTES ET RELANCES (> DÉLAI MINISTRE) ==================== -->
 <div class="card alert-relance-container" style="background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 25px; border-left: 5px solid {% if nb_relances > 0 %}#dc2626{% else %}#16a34a{% endif %}; overflow: hidden;">
     <div style="padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; background: {% if nb_relances > 0 %}#fef2f2{% else %}#f0fdf4{% endif %}; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -43,14 +43,14 @@
             <div>
                 <h3 style="margin: 0; font-size: 1.15rem; color: {% if nb_relances > 0 %}#991b1b{% else %}#166534{% endif %};">
                     Système d'Alertes et Relances
-                    {% if user.role == 'SECRETARIAT_CENTRAL' or user.role == 'SECRETAIRE_DC' or user.role == 'SECRETAIRE_SG' or user.role == 'SECRETAIRE_MINISTRE' or user.is_superuser %}
-                        <span style="font-size: 0.85rem; font-weight: normal; color: #4b5563;">— <strong>Vue Globale</strong> (Tous les acteurs du Ministère)</span>
+                    {% if user.role == 'MINISTRE' or user.role == 'DC' or user.role == 'SG' or user.role == 'SECRETARIAT_CENTRAL' or user.role == 'SECRETAIRE_DC' or user.role == 'SECRETAIRE_SG' or user.role == 'SECRETAIRE_MINISTRE' or user.is_superuser %}
+                        <span style="font-size: 0.85rem; font-weight: normal; color: #4b5563;">— <strong>Supervision Hiérarchique & Suivi Global</strong></span>
                     {% else %}
-                        <span style="font-size: 0.85rem; font-weight: normal; color: #4b5563;">— <strong>Mes Alertes</strong></span>
+                        <span style="font-size: 0.85rem; font-weight: normal; color: #4b5563;">— <strong>Mes Alertes & Relances</strong></span>
                     {% endif %}
                 </h3>
                 <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
-                    Règle : Courriers en attente depuis <strong>plus de 3 jours</strong> sans traitement, transfert ou clôture.
+                    Règle : Courriers en attente sans traitement au-delà du délai fixé par le Ministre (<strong>{{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }}</strong>).
                 </p>
             </div>
         </div>
@@ -74,17 +74,20 @@
                 <tr style="border-bottom: 2px solid #fee2e2; text-align: left; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
                     <th style="padding: 10px;">Référence</th>
                     <th style="padding: 10px;">Objet du courrier</th>
-                    <th style="padding: 10px;">Étape & Date d'entrée</th>
-                    <th style="padding: 10px;">Détenteur / Destinataire</th>
-                    <th style="padding: 10px; text-align: center;">Retard sans traitement</th>
+                    <th style="padding: 10px;">Étape & Date de transmission</th>
+                    <th style="padding: 10px;">Détenteur / Service actuel</th>
+                    <th style="padding: 10px; text-align: center;">Retard accumulé</th>
                     <th style="padding: 10px; text-align: right;">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in relances_actives %}
-                <tr style="border-bottom: 1px solid var(--border-color); background: {% cycle '#ffffff' '#fffafa' %};">
+                <tr style="border-bottom: 1px solid var(--border-color); background: {% if r.courrier.priorite == 'URGENT' or r.courrier.priorite == 'TRES_URGENT' %}#fff5f5{% else %}{% cycle '#ffffff' '#fffafa' %}{% endif %};">
                     <td style="padding: 12px 10px; font-weight: 700; color: var(--primary-color);">
                         {{ r.courrier.reference }}
+                        {% if r.courrier.priorite == 'URGENT' or r.courrier.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="display: block; width: fit-content; margin-top: 4px; font-size: 0.72rem; padding: 2px 6px;">🚨 COURRIER URGENT</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 12px 10px; max-width: 250px;">
                         <div style="font-weight: 600; color: var(--text-color);">{{ r.courrier.designation|truncatechars:65 }}</div>
@@ -93,7 +96,7 @@
                     <td style="padding: 12px 10px;">
                         <span class="status-badge" style="background: #f1f5f9; color: #334155; font-size: 0.78rem;">{{ r.get_etape_display }}</span>
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-                            Depuis le {{ r.date_debut_etape|date:"d/m/Y H:i" }}
+                            Transmis le {{ r.date_debut_etape|date:"d/m/Y H:i" }}
                         </div>
                     </td>
                     <td style="padding: 12px 10px;">
@@ -125,7 +128,7 @@
     </div>
     {% else %}
     <div style="padding: 14px 25px; color: #166534; font-size: 0.9rem;">
-        Tous les courriers sont actuellement traités ou transmis dans le délai réglementaire de 3 jours.
+        Tous les courriers sont actuellement traités ou transmis dans le délai fixé par le Ministre ({{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }}).
     </div>
     {% endif %}
 </div>
@@ -155,13 +158,17 @@
                 <td style="padding: 15px 10px; font-weight: 600;">
                     {{ c.reference }}
                     {% if c.id in courriers_en_retard_ids %}
-                        <span class="late-badge">⏰ +3j</span>
+                        <span class="late-badge">⏰ Retard</span>
                     {% endif %}
                 </td>
                 <td style="padding: 15px 10px;">{{ c.designation }}</td>
                 <td style="padding: 15px 10px;">{{ c.expediteur_nom }}</td>
                 <td style="padding: 15px 10px;">
-                    <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display }}</span>
+                    {% else %}
+                        <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                    {% endif %}
                 </td>
                 <td style="padding: 15px 10px;">
                     <span class="status-badge arrive">{{ c.get_statut_display }}</span>
@@ -200,12 +207,16 @@
                     <td style="padding: 15px 10px; font-weight: 600;">
                         {{ c.reference }}
                         {% if c.id in courriers_en_retard_ids %}
-                            <span class="late-badge">⏰ +3j</span>
+                            <span class="late-badge">⏰ Retard</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display }}</span>
+                        {% else %}
+                            <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Rédiger l'Analyse</a>
@@ -259,12 +270,16 @@
                     <td style="padding: 15px 10px; font-weight: 600;">
                         {{ c.reference }}
                         {% if c.id in courriers_en_retard_ids %}
-                            <span class="late-badge">⏰ +3j</span>
+                            <span class="late-badge">⏰ Retard</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display }}</span>
+                        {% else %}
+                            <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <div style="display: flex; gap: 8px;">
@@ -289,6 +304,30 @@
 <!-- ==================== INTERFACE MINISTRE ==================== -->
 {% elif user.role == 'MINISTRE' %}
 <div class="dashboard-grid">
+    <!-- Configuration du délai de traitement (Exclusivité Ministre) -->
+    <div class="card" style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid #cbd5e1; grid-column: span 3; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5rem;">⏱️</span>
+                <h3 style="margin: 0; color: #0f172a; font-size: 1.1rem;">Paramétrage du Délai Réglementaire de Traitement</h3>
+                <span class="status-badge arrive" style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; font-weight: 700;">Réservé au Ministre</span>
+            </div>
+            <p style="margin: 6px 0 0 0; font-size: 0.88rem; color: #475569; max-width: 650px;">
+                Définissez le délai maximal autorisé (en jours) avant qu'une relance automatique ne soit déclenchée pour tous les acteurs et services du Ministère.
+                Actuellement fixé à : <strong style="color: #1e3a8a; font-size: 1rem;">{{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }}</strong>.
+            </p>
+        </div>
+        <form action="{% url 'configuration_delai_update' %}" method="post" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+            {% csrf_token %}
+            <label for="delai_input" style="font-size: 0.88rem; font-weight: 600; color: #334155;">Délai :</label>
+            <input type="number" id="delai_input" name="delai_jours" value="{{ delai_traitement_actuel }}" min="1" max="180" required style="width: 70px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; text-align: center; font-size: 0.95rem;">
+            <span style="font-size: 0.85rem; color: #64748b;">jours</span>
+            <button type="submit" class="action-btn primary" style="border: none; cursor: pointer; padding: 7px 15px; font-size: 0.88rem; font-weight: 600;">
+                Mettre à jour
+            </button>
+        </form>
+    </div>
+
     <!-- Courriers en attente de Décision -->
     <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
         <h3 style="margin-bottom: 20px; color: var(--danger-color);">Courriers en attente de votre Décision</h3>
@@ -307,12 +346,16 @@
                     <td style="padding: 15px 10px; font-weight: 600;">
                         {{ c.reference }}
                         {% if c.id in courriers_en_retard_ids %}
-                            <span class="late-badge">⏰ +3j</span>
+                            <span class="late-badge">⏰ Retard</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display }}</span>
+                        {% else %}
+                            <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary" style="background: var(--danger-color);">Prendre Décision</a>
@@ -367,13 +410,17 @@
                     <td style="padding: 15px 10px; font-weight: 600;">
                         {{ c.reference }}
                         {% if c.id in courriers_en_retard_ids %}
-                            <span class="late-badge">⏰ +3j</span>
+                            <span class="late-badge">⏰ Retard</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">{{ c.expediteur_nom }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display }}</span>
+                        {% else %}
+                            <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <div style="display: flex; gap: 8px;">
@@ -422,7 +469,10 @@
                     <td style="padding: 15px 10px; font-weight: 600;">
                         {{ aff.courrier.reference }}
                         {% if aff.courrier_id in courriers_en_retard_ids %}
-                            <span class="late-badge">⏰ +3j</span>
+                            <span class="late-badge">⏰ Retard</span>
+                        {% endif %}
+                        {% if aff.courrier.priorite == 'URGENT' or aff.courrier.priorite == 'TRES_URGENT' %}
+                            <span class="priority-badge tres_urgent" style="display: block; width: fit-content; margin-top: 4px; font-size: 0.72rem; padding: 2px 6px;">🚨 URGENT</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ aff.courrier.designation }}</td>
