@@ -3,6 +3,8 @@ import os
 import zipfile
 
 from django.test import TestCase
+from django.test import override_settings
+from django.core import mail
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -11,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from courrier.models import Courrier, Document, FicheAnalyse, Decision, Affectation, Historique, Notification
 from courrier.forms import CourrierForm
+from courrier.views import envoyer_email_affectation, envoyer_email_nouveau_courrier
 from courrier import validators
 from django.conf import settings
 
@@ -55,6 +58,41 @@ class CourrierModelsTestCase(TestCase):
         self.assertEqual(self.ministre.role, User.Role.MINISTRE)
         self.assertEqual(self.dir_daf.service_direction, "DAF")
         self.assertTrue("Jean Dupont" in str(self.sc) or "sc_user" in str(self.sc))
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_email_nouveau_courrier_au_ministre(self):
+        self.ministre.email = 'ministre@example.test'
+        self.ministre.save(update_fields=['email'])
+
+        envoyer_email_nouveau_courrier(self.courrier_normal)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['ministre@example.test'])
+        self.assertIn(self.courrier_normal.reference, mail.outbox[0].body)
+        self.assertIn(self.courrier_normal.designation, mail.outbox[0].body)
+        self.assertIn(self.courrier_normal.resume, mail.outbox[0].body)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_email_affectation_aux_directeurs_du_service(self):
+        self.dir_daf.email = 'directeur@example.test'
+        self.dir_daf.save(update_fields=['email'])
+        decision = Decision.objects.create(
+            courrier=self.courrier_normal,
+            signe_par=self.ministre,
+        )
+        affectation = Affectation.objects.create(
+            courrier=self.courrier_normal,
+            decision=decision,
+            affecte_par=self.ministre,
+            service_concerne='DAF',
+        )
+
+        envoyer_email_affectation(affectation)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['directeur@example.test'])
+        self.assertIn(self.courrier_normal.reference, mail.outbox[0].body)
+        self.assertIn(self.courrier_normal.designation, mail.outbox[0].body)
 
     def test_role_filters(self):
         """

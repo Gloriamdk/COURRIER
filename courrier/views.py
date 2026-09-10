@@ -23,6 +23,8 @@ from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
 from django.db import IntegrityError, transaction
 from django.db.models import Q, Prefetch
+from django.core.mail import send_mail
+from django.conf import settings
 from pathlib import Path
 
 from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance, ConfigurationDelai
@@ -67,6 +69,61 @@ def notifier_role(role, courrier, message):
     """Envoie une notification à tous les utilisateurs d'un rôle donné."""
     for user in User.objects.filter(role=role, is_active=True):
         notifier(user, courrier, message)
+
+
+def envoyer_email(destinataires, sujet, contenu):
+    """Envoie un email aux adresses valides sans bloquer le workflow métier."""
+    emails = sorted({email.strip() for email in destinataires if email and email.strip()})
+    if emails:
+        send_mail(
+            sujet,
+            contenu,
+            settings.DEFAULT_FROM_EMAIL,
+            emails,
+            fail_silently=True,
+        )
+
+
+def envoyer_email_nouveau_courrier(courrier):
+    destinataires = User.objects.filter(
+        role=User.Role.MINISTRE,
+        is_active=True,
+    ).exclude(email='').values_list('email', flat=True)
+    envoyer_email(
+        destinataires,
+        f"Nouveau courrier enregistré : {courrier.reference}",
+        "Un nouveau courrier est disponible dans la GEC.\n\n"
+        f"Référence : {courrier.reference}\n"
+        f"Objet : {courrier.designation}\n"
+        f"Résumé : {courrier.resume or 'Aucun résumé renseigné.'}\n"
+        f"Expéditeur : {courrier.expediteur_nom}\n"
+        f"Priorité : {courrier.get_priorite_display()}\n",
+    )
+
+
+def envoyer_email_affectation(affectation):
+    service = affectation.service_concerne or (
+        affectation.destinataire.service_direction if affectation.destinataire else None
+    )
+    destinataires = User.objects.filter(
+        role=User.Role.DIRECTEUR,
+        service_direction=service,
+        is_active=True,
+    ).exclude(email='').values_list('email', flat=True) if service else []
+    if affectation.destinataire and affectation.destinataire.role == User.Role.DIRECTEUR:
+        destinataires = list(destinataires) + [affectation.destinataire.email]
+
+    courrier = affectation.courrier
+    envoyer_email(
+        destinataires,
+        f"Courrier affecté à votre direction : {courrier.reference}",
+        "Un courrier vient d'être affecté à votre direction.\n\n"
+        f"Référence : {courrier.reference}\n"
+        f"Objet : {courrier.designation}\n"
+        f"Résumé : {courrier.resume or 'Aucun résumé renseigné.'}\n"
+        f"Service : {service or 'Non précisé'}\n"
+        f"Délai : {courrier.delai_traitement_jours or 'Non précisé'} jour(s)\n",
+    )
 
 
 class SecureLogoutView(LoginRequiredMixin, View):
@@ -338,6 +395,7 @@ class CourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             message=f"Nouveau courrier enregistré : {courrier.reference} — {courrier.designation[:60]}. "
                     f"Priorité : {courrier.get_priorite_display()}."
         )
+        transaction.on_commit(lambda: envoyer_email_nouveau_courrier(courrier))
 
         messages.success(
             self.request,
@@ -838,6 +896,8 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                         courrier=courrier,
                         message=f"Nouveau courrier affecté à votre direction : {courrier.reference} — {courrier.designation[:60]}. {informations_delai}"
                     )
+
+            transaction.on_commit(lambda: envoyer_email_affectation(affectation))
 
         messages.success(
             self.request,
