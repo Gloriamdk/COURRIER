@@ -83,7 +83,14 @@
                         </div>
                     </td>
                     <td style="padding: 12px 10px;">
-                        {% if r.destinataire_user %}
+                        {% with affectation_alerte=r.courrier.affectations_en_alerte|first %}
+                        {% if affectation_alerte.destinataire %}
+                            <strong style="color: #1e3a8a;">{{ affectation_alerte.destinataire.get_full_name|default:affectation_alerte.destinataire.username }}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">{{ affectation_alerte.service_concerne|default:affectation_alerte.destinataire.get_role_display }}</div>
+                        {% elif affectation_alerte.service_concerne %}
+                            <span class="status-badge decide" style="font-size: 0.78rem;">{{ affectation_alerte.service_concerne }}</span>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">Service détenteur</div>
+                        {% elif r.destinataire_user %}
                             <strong style="color: #1e3a8a;">{{ r.destinataire_user.get_full_name|default:r.destinataire_user.username }}</strong>
                             <div style="font-size: 0.78rem; color: var(--text-muted);">{{ r.destinataire_user.get_role_display }}</div>
                         {% elif r.destinataire_role %}
@@ -93,6 +100,7 @@
                         {% else %}
                             <span style="color: var(--text-muted); font-style: italic;">Secrétariat</span>
                         {% endif %}
+                        {% endwith %}
                     </td>
                     <td style="padding: 12px 10px; text-align: center;">
                         <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;">

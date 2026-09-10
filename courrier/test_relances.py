@@ -43,3 +43,33 @@ class AlertesEcheanceTests(TestCase):
         self.assertEqual(aff.traite_par, self.directeur)
         self.assertIsNotNone(aff.date_traitement)
         self.assertFalse(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
+
+    def test_directeur_voit_affectation_de_service_et_peut_la_cloturer(self):
+        aff = Affectation.objects.create(
+            courrier=self.courrier,
+            decision=self.decision,
+            affecte_par=self.ministre,
+            service_concerne='DAAF',
+        )
+        Affectation.objects.filter(pk=aff.pk).update(
+            date_limite_traitement=timezone.now() - timedelta(minutes=1)
+        )
+        synchroniser_relances()
+
+        self.client.force_login(self.ministre)
+        response = self.client.get('/courrier/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'DAAF')
+
+        self.client.force_login(self.directeur)
+        response = self.client.get('/courrier/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'DAAF')
+        self.assertContains(response, 'Marquer comme traité')
+
+        response = self.client.post(
+            f'/courrier/affectation/{aff.pk}/statut/',
+            {'statut_traitement': 'TRAITE'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())

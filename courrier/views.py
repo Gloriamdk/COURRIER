@@ -22,7 +22,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from pathlib import Path
 
 from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance, ConfigurationDelai
@@ -95,7 +95,20 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # Synchronisation automatique des relances et alertes en arrière-plan
         synchroniser_relances()
-        relances_qs = get_relances_pour_utilisateur(user)
+        active_alert_affectations = Affectation.objects.filter(
+            courrier__statut=Courrier.Statut.AFFECTE,
+            statut_traitement__in=[
+                Affectation.StatutTraitement.RECU,
+                Affectation.StatutTraitement.EN_COURS,
+            ],
+        ).select_related('destinataire').order_by('date_affectation')
+        relances_qs = get_relances_pour_utilisateur(user).prefetch_related(
+            Prefetch(
+                'courrier__affectations',
+                queryset=active_alert_affectations,
+                to_attr='affectations_en_alerte',
+            )
+        )
         context['relances_actives'] = relances_qs.order_by('-date_creation')
         context['nb_relances'] = relances_qs.count()
         context['courriers_en_retard_ids'] = set(relances_qs.values_list('courrier_id', flat=True))
@@ -140,7 +153,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         elif user.role in [User.Role.DIRECTEUR, User.Role.AGENT]:
             # Les directeurs/agents voient les courriers qui leur ont été affectés
-            qs_aff = Affectation.objects.filter(destinataire=user)
+            if user.role == User.Role.DIRECTEUR and user.service_direction:
+                qs_aff = Affectation.objects.filter(
+                    Q(destinataire=user) |
+                    Q(destinataire__isnull=True, service_concerne=user.service_direction)
+                )
+            else:
+                qs_aff = Affectation.objects.filter(destinataire=user)
             context['mes_affectations'] = qs_aff.select_related('courrier', 'decision').order_by('-date_affectation')[:10]
             # Réutiliser le même queryset pour les différents comptes évite des hits répétés
             context['affectations_en_cours'] = qs_aff.filter(statut_traitement=Affectation.StatutTraitement.EN_COURS).count()
