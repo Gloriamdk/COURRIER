@@ -36,7 +36,7 @@
 </div>
 
 <!-- Alertes de l'utilisateur connecté uniquement -->
-{% if nb_relances > 0 %}
+{% if alertes_visibles and nb_relances > 0 %}
 <div class="card alert-relance-container" style="background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 25px; border-left: 5px solid {% if nb_relances > 0 %}#dc2626{% else %}#16a34a{% endif %}; overflow: hidden;">
     <div style="padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; background: {% if nb_relances > 0 %}#fef2f2{% else %}#f0fdf4{% endif %}; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 12px;">

@@ -73,3 +73,15 @@ class AlertesEcheanceTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
+
+    def test_roles_sans_suivi_ne_voient_pas_les_logos_alertes(self):
+        utilisateur = User.objects.create_user(
+            username='secretariat',
+            password='Password123!',
+            role=User.Role.SECRETARIAT_CENTRAL,
+        )
+        self.client.force_login(utilisateur)
+        response = self.client.get('/courrier/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'alert-toggle-btn')
+        self.assertNotContains(response, 'Mes courriers en alerte')
