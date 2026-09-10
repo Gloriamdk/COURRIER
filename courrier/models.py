@@ -144,8 +144,10 @@ class Courrier(models.Model):
     class Statut(models.TextChoices):
         ARRIVE = 'ARRIVE', 'Enregistré (Secrétariat Central)'
         REJETE_SECRETAIRE = 'REJETE_SECRETAIRE', 'Rejeté par Secrétariat pour correction'
-        TRANSMIS_DC = 'TRANSMIS_DC', 'Transmis au DC / SG'
-        EN_COURS_DC = 'EN_COURS_DC', 'En cours d\'analyse (DC/SG)'
+        TRANSMIS_SG = 'TRANSMIS_SG', 'Transmis au SG'
+        EN_COURS_SG = 'EN_COURS_SG', "En cours d'analyse (SG)"
+        TRANSMIS_DC = 'TRANSMIS_DC', 'Transmis au Secrétaire du DC'
+        EN_COURS_DC = 'EN_COURS_DC', "En cours d'analyse (DC)"
         ANALYSE_VALIDE = 'ANALYSE_VALIDE', 'Analyse validée (DC/SG)'
         TRANSMIS_MINISTRE = 'TRANSMIS_MINISTRE', 'Transmis au Ministre'
         DECIDE = 'DECIDE', 'Décidé (En attente d\'affectation)'

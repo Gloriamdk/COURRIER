@@ -393,10 +393,12 @@
                                 {% csrf_token %}
                                 <button type="submit" class="action-btn primary" style="border: none; cursor: pointer;">Transmettre</button>
                             </form>
+                            {% if user.role == 'SECRETAIRE_SG' %}
                             <form action="{% url 'courrier_refuser' c.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter ce courrier vers le Secrétariat Central ?');">
                                 {% csrf_token %}
                                 <button type="submit" class="action-btn" style="border: none; cursor: pointer; background-color: var(--danger-color); color: white;">Refuser</button>
                             </form>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </td>

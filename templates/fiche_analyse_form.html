@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Rédiger la Fiche d'Analyse — {{ courrier.reference }}{% endblock %}
-{% block page_title %}Fiche d'Analyse DC{% endblock %}
+{% block page_title %}{% if user.role == 'SG' %}Fiche d'Analyse SG{% else %}Fiche d'Analyse DC{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -104,6 +104,17 @@
     </div>
     {% endif %}
 
+    {% if user.role == 'SG' %}
+    <div class="form-group">
+        <label class="form-label" for="{{ form.observations_sg.id_for_label }}">
+            {{ form.observations_sg.label }}
+        </label>
+        {{ form.observations_sg }}
+        {% if form.observations_sg.errors %}
+            <small style="color: var(--danger-color);">{{ form.observations_sg.errors }}</small>
+        {% endif %}
+    </div>
+    {% else %}
     <div class="form-group">
         <label class="form-label" for="{{ form.observations_dc.id_for_label }}">
             {{ form.observations_dc.label }}
@@ -113,6 +124,7 @@
             <small style="color: var(--danger-color);">{{ form.observations_dc.errors }}</small>
         {% endif %}
     </div>
+    {% endif %}
 
     <div class="form-group">
         <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
@@ -125,7 +137,27 @@
         {% endif %}
     </div>
 
-    <!-- propositions_dc removed: direction_proposee dropdown is used for affectation proposals -->
+    {% if user.role == 'SG' %}
+    <div class="form-group">
+        <label class="form-label" for="{{ form.propositions_sg.id_for_label }}">
+            {{ form.propositions_sg.label }}
+        </label>
+        {{ form.propositions_sg }}
+        {% if form.propositions_sg.errors %}
+            <small style="color: var(--danger-color);">{{ form.propositions_sg.errors }}</small>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="form-group">
+        <label class="form-label" for="{{ form.propositions_dc.id_for_label }}">
+            {{ form.propositions_dc.label }}
+        </label>
+        {{ form.propositions_dc }}
+        {% if form.propositions_dc.errors %}
+            <small style="color: var(--danger-color);">{{ form.propositions_dc.errors }}</small>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <div style="display: flex; align-items: center; gap: 12px; margin-top: 1rem;">
         <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">

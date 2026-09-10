@@ -128,6 +128,36 @@
 </div>
 {% endif %}
 
+<!-- Analyse du SG -->
+{% if fiche_analyse_sg %}
+<div class="fiche-card" style="border-left-color: #2563eb; background: #eff6ff;">
+    <h3 style="color: #1d4ed8; margin-bottom: 1rem; font-size: 1rem;">
+        Analyse du Secrétaire Général — {{ fiche_analyse_sg.analyse_par.get_full_name }}
+        <small style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;">
+            (rédigée le {{ fiche_analyse_sg.date_analyse|date:"d/m/Y à H:i" }})
+        </small>
+    </h3>
+    {% if fiche_analyse_sg.observations_sg %}
+    <div style="margin-bottom: 12px;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Observations :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse_sg.observations_sg|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+    {% if fiche_analyse_sg.propositions_sg %}
+    <div style="margin-bottom: 12px;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse_sg.propositions_sg|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+    {% if fiche_analyse_sg.direction_proposee %}
+    <div>
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Direction proposée :</strong>
+        <p style="margin-top: 6px; font-weight: 600; color: var(--primary-color);">{{ fiche_analyse_sg.direction_proposee }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 <!-- Formulaire de décision -->
 <form method="post" class="form-card">
     {% csrf_token %}

@@ -314,9 +314,8 @@
                 {% endif %}
                 
                 {# Boutons pour les secrétaires (transmettre / refuser avec motif obligatoire) #}
-                {# Secrétaires DC/SG : n'afficher les actions que si le courrier est à l'état ARRIVE #}
-                {% if courrier.statut == 'ARRIVE' %}
-                    {% if request.user.role == 'SECRETAIRE_DC' or request.user.role == 'SECRETAIRE_SG' %}
+                {# Le Secrétaire SG transmet le courrier au SG depuis ARRIVE. #}
+                {% if request.user.role == 'SECRETAIRE_SG' and courrier.statut == 'ARRIVE' %}
                     <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" style="display:inline-block; margin-top:8px;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary">Transmettre au supérieur</button>
@@ -341,7 +340,14 @@
                             </form>
                         </div>
                     </div>
-                    {% endif %}
+                {% endif %}
+
+                {# Le Secrétaire DC transmet au DC après validation de la fiche SG. #}
+                {% if request.user.role == 'SECRETAIRE_DC' and courrier.statut == 'TRANSMIS_DC' %}
+                    <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" style="display:inline-block; margin-top:8px;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Transmettre au DC</button>
+                    </form>
                 {% endif %}
 
                 {# Secrétaire du Ministre : n'afficher la transmission que si analyse validée #}

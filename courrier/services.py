@@ -107,7 +107,7 @@ def synchroniser_relances():
         date_resolution=timezone.now()
     )
     
-    # 1. Courriers ARRIVE (attente de transmission par les secrétariats DC / SG / Central)
+    # 1. Courriers ARRIVE (attente de transmission par le Secrétaire SG)
     courriers_arrive = Courrier.objects.filter(
         statut=Courrier.Statut.ARRIVE,
         date_arrivee__lte=seuil
@@ -117,7 +117,7 @@ def synchroniser_relances():
         Relance.objects.filter(courrier=c, est_resolue=False).exclude(etape=Relance.Etape.ARRIVE).update(est_resolue=True, date_resolution=timezone.now())
         
         # Relance pour les secrétariats
-        for role in [User.Role.SECRETAIRE_DC, User.Role.SECRETAIRE_SG, User.Role.SECRETARIAT_CENTRAL]:
+        for role in [User.Role.SECRETAIRE_SG]:
             get_ou_creer_relance(
                 courrier=c,
                 etape=Relance.Etape.ARRIVE,
@@ -142,7 +142,22 @@ def synchroniser_relances():
                 date_debut_etape=date_debut
             )
 
-    # 3. Courriers TRANSMIS_DC / EN_COURS_DC (analyse DC / SG)
+    # 3. Courriers en analyse SG puis DC
+    courriers_sg = Courrier.objects.filter(
+        statut__in=[Courrier.Statut.TRANSMIS_SG, Courrier.Statut.EN_COURS_SG]
+    )
+    for c in courriers_sg:
+        hist_trans = c.historiques.filter(action='TRANSMISSION').order_by('-date_action').first()
+        date_debut = hist_trans.date_action if hist_trans else c.date_arrivee
+        if date_debut <= seuil:
+            get_ou_creer_relance(
+                courrier=c,
+                etape=Relance.Etape.ANALYSE_SG,
+                destinataire_role=User.Role.SG,
+                date_debut_etape=date_debut,
+            )
+
+    # 4. Courriers TRANSMIS_DC / EN_COURS_DC (analyse DC)
     courriers_dc = Courrier.objects.filter(
         statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]
     ).select_related('fiche_analyse', 'fiche_analyse_sg')
@@ -165,10 +180,7 @@ def synchroniser_relances():
             except FicheAnalyseSG.DoesNotExist:
                 sg_valide = False
 
-            # Les anciens courriers, qui ne portaient pas encore le détenteur,
-            # restent compatibles avec le circuit DC + SG historique.
-            responsable = c.responsable_actuel_role
-            if not dc_valide and responsable in (None, User.Role.DC):
+            if not dc_valide:
                 get_ou_creer_relance(
                     courrier=c,
                     etape=Relance.Etape.ANALYSE_DC,
@@ -178,15 +190,7 @@ def synchroniser_relances():
             else:
                 Relance.objects.filter(courrier=c, etape=Relance.Etape.ANALYSE_DC, est_resolue=False).update(est_resolue=True, date_resolution=timezone.now())
 
-            if not sg_valide and responsable in (None, User.Role.SG):
-                get_ou_creer_relance(
-                    courrier=c,
-                    etape=Relance.Etape.ANALYSE_SG,
-                    destinataire_role=User.Role.SG,
-                    date_debut_etape=date_debut
-                )
-            else:
-                Relance.objects.filter(courrier=c, etape=Relance.Etape.ANALYSE_SG, est_resolue=False).update(est_resolue=True, date_resolution=timezone.now())
+            Relance.objects.filter(courrier=c, etape=Relance.Etape.ANALYSE_SG, est_resolue=False).update(est_resolue=True, date_resolution=timezone.now())
 
     # 4. Courriers ANALYSE_VALIDE (attente de transmission au Ministre par le Secrétaire du Ministre)
     courriers_valides = Courrier.objects.filter(

@@ -11,7 +11,7 @@ from django.utils.crypto import get_random_string
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from courrier.models import Courrier, Document, FicheAnalyse, Decision, Affectation, Historique, Notification
+from courrier.models import Courrier, Document, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique, Notification
 from courrier.forms import CourrierForm
 from courrier.views import envoyer_email_affectation, envoyer_email_nouveau_courrier
 from courrier import validators
@@ -93,6 +93,136 @@ class CourrierModelsTestCase(TestCase):
         self.assertEqual(mail.outbox[0].to, ['directeur@example.test'])
         self.assertIn(self.courrier_normal.reference, mail.outbox[0].body)
         self.assertIn(self.courrier_normal.designation, mail.outbox[0].body)
+
+    def test_ministre_voit_les_analyses_dc_et_sg_avant_decision(self):
+        fiche_dc = FicheAnalyse.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=self.dc,
+            observations_dc='Observation du DC',
+            propositions_dc='Proposition du DC',
+            valide=True,
+            date_validation=timezone.now(),
+        )
+        FicheAnalyseSG.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=User.objects.create_user(
+                username='sg_circuit',
+                password=self.test_password,
+                role=User.Role.SG,
+            ),
+            observations_sg='Observation du SG',
+            propositions_sg='Proposition du SG',
+            valide=True,
+            date_validation=timezone.now(),
+        )
+        self.courrier_normal.statut = Courrier.Statut.TRANSMIS_MINISTRE
+        self.courrier_normal.save(update_fields=['statut'])
+
+        self.client.force_login(self.ministre)
+        response = self.client.get(
+            reverse('decision_nouveau', kwargs={'courrier_id': self.courrier_normal.pk})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Observation du DC')
+        self.assertContains(response, 'Proposition du DC')
+        self.assertContains(response, 'Observation du SG')
+        self.assertContains(response, 'Proposition du SG')
+
+    def test_fiche_sg_affiche_observations_et_propositions(self):
+        self.courrier_normal.statut = Courrier.Statut.TRANSMIS_SG
+        self.courrier_normal.save(update_fields=['statut'])
+        self.client.force_login(User.objects.create_user(
+            username='sg_interface',
+            password=self.test_password,
+            role=User.Role.SG,
+        ))
+
+        response = self.client.get(
+            reverse('fiche_sg_nouveau', kwargs={'courrier_id': self.courrier_normal.pk})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id_observations_sg')
+        self.assertContains(response, 'id_propositions_sg')
+
+    def test_dc_ne_peut_pas_valider_sans_fiche_sg_validee(self):
+        FicheAnalyse.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=self.dc,
+            observations_dc='Observation DC',
+        )
+        self.courrier_normal.statut = Courrier.Statut.EN_COURS_DC
+        self.courrier_normal.save(update_fields=['statut'])
+        self.client.force_login(self.dc)
+
+        response = self.client.post(
+            reverse('fiche_valider', kwargs={'courrier_id': self.courrier_normal.pk})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_circuit_sequentiel_sc_sg_dc_ministre(self):
+        secretaire_sg = User.objects.create_user(
+            username='sec_sg_circuit', password=self.test_password,
+            role=User.Role.SECRETAIRE_SG,
+        )
+        secretaire_dc = User.objects.create_user(
+            username='sec_dc_circuit', password=self.test_password,
+            role=User.Role.SECRETAIRE_DC,
+        )
+        secretaire_ministre = User.objects.create_user(
+            username='sec_min_circuit', password=self.test_password,
+            role=User.Role.SECRETAIRE_MINISTRE,
+        )
+        sg = User.objects.create_user(
+            username='sg_circuit', password=self.test_password,
+            role=User.Role.SG,
+        )
+
+        self.courrier_normal.statut = Courrier.Statut.ARRIVE
+        self.courrier_normal.save(update_fields=['statut'])
+
+        self.client.force_login(secretaire_dc)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.ARRIVE)
+
+        self.client.force_login(secretaire_sg)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.TRANSMIS_SG)
+
+        FicheAnalyseSG.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=sg,
+            observations_sg='Avis SG',
+            propositions_sg='Proposition SG',
+        )
+        self.courrier_normal.statut = Courrier.Statut.EN_COURS_SG
+        self.courrier_normal.save(update_fields=['statut'])
+        self.client.force_login(sg)
+        self.client.post(reverse('fiche_sg_valider', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.TRANSMIS_DC)
+
+        self.client.force_login(secretaire_dc)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.EN_COURS_DC)
+
+        FicheAnalyse.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=self.dc,
+            observations_dc='Avis DC',
+            propositions_dc='Proposition DC',
+        )
+        self.client.force_login(self.dc)
+        self.client.post(reverse('fiche_valider', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.ANALYSE_VALIDE)
+
+        self.client.force_login(secretaire_ministre)
+        self.client.post(reverse('courrier_transmettre', kwargs={'courrier_id': self.courrier_normal.pk}))
+        self.courrier_normal.refresh_from_db()
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.TRANSMIS_MINISTRE)
 
     def test_role_filters(self):
         """
