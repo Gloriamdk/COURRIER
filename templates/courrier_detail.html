@@ -280,6 +280,8 @@
                 </div>
                 <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
                     Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}
+                    {% if aff.date_limite_traitement %}<br>Délai fixé par le Ministre : <strong>{{ courrier.delai_traitement_jours }} jour{{ courrier.delai_traitement_jours|pluralize }}</strong> · Date limite : <strong>{{ aff.date_limite_traitement|date:"d/m/Y à H:i" }}</strong>{% endif %}
+                    {% if aff.date_traitement %}<br>Traité le {{ aff.date_traitement|date:"d/m/Y à H:i" }}{% if aff.traite_par %} par {{ aff.traite_par.get_full_name|default:aff.traite_par.username }}{% endif %}{% endif %}
                     {% if aff.note_traitement %}— {{ aff.note_traitement }}{% endif %}
                 </div>
             </div>

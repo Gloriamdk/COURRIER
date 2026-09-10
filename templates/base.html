@@ -107,8 +107,8 @@
             </div>
 
             <div class="navbar-right">
-                <!-- Badge Alertes / Relances (> 3 jours) cliquable vers le Dashboard -->
-                <a href="{% url 'dashboard' %}" class="alert-toggle-btn" title="{% if nb_alertes > 0 %}{{ nb_alertes }} courrier(s) en retard (> 3 jours){% else %}Aucun courrier en retard{% endif %}" style="text-decoration: none; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: {% if nb_alertes > 0 %}#fee2e2{% else %}#f1f5f9{% endif %}; color: {% if nb_alertes > 0 %}#dc2626{% else %}#64748b{% endif %}; margin-right: 8px; border: 1px solid {% if nb_alertes > 0 %}#fca5a5{% else %}#e2e8f0{% endif %};">
+                <!-- Badge Alertes / Relances (> délai Ministre) cliquable vers le Dashboard -->
+                <a href="{% url 'dashboard' %}" class="alert-toggle-btn" title="{% if nb_alertes > 0 %}{{ nb_alertes }} alerte(s) d'échéance{% else %}Aucune alerte d'échéance{% endif %}" style="text-decoration: none; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: {% if nb_alertes > 0 %}#fee2e2{% else %}#f1f5f9{% endif %}; color: {% if nb_alertes > 0 %}#dc2626{% else %}#64748b{% endif %}; margin-right: 8px; border: 1px solid {% if nb_alertes > 0 %}#fca5a5{% else %}#e2e8f0{% endif %};">
                     <span style="font-size: 1.15rem;">🚨</span>
                     {% if nb_alertes > 0 %}
                         <span style="position: absolute; top: -3px; right: -3px; background: #dc2626; color: white; border-radius: 10px; padding: 1px 6px; font-size: 0.72rem; font-weight: 700; box-shadow: 0 0 0 2px white;">{{ nb_alertes }}</span>

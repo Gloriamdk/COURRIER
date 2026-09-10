@@ -199,6 +199,19 @@ class Courrier(models.Model):
         default=Statut.ARRIVE,
         verbose_name="Statut du traitement"
     )
+    # Le statut EN_COURS_DC est commun au circuit DC et SG. Ce rôle conserve
+    # donc le détenteur réel afin de cibler la relance sans ambiguïté.
+    responsable_actuel_role = models.CharField(
+        max_length=50,
+        choices=User.Role.choices,
+        blank=True,
+        null=True,
+        verbose_name="Rôle actuellement détenteur du courrier",
+    )
+    delai_traitement_jours = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Délai de traitement fixé par le Ministre (jours)",
+    )
     # Motif de rejet renseigné par un secrétaire lorsqu'il renvoie le courrier
     motif_rejet = models.TextField(
         verbose_name="Motif de rejet par le secrétariat",
@@ -535,6 +548,15 @@ class Affectation(models.Model):
         null=True,
         verbose_name="Date de finalisation"
     )
+    date_limite_traitement = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Date limite de traitement",
+    )
+    traite_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="affectations_traitees",
+        verbose_name="Traitement confirmé par",
+    )
     note_traitement = models.TextField(
         blank=True,
         verbose_name="Commentaire d'exécution ou rapport de traitement"
@@ -642,7 +664,7 @@ class Notification(models.Model):
 class Relance(models.Model):
     """
     Modèle représentant une alerte / relance automatique lorsqu'un courrier
-    reste sans traitement, transfert ou clôture pendant plus de 3 jours.
+    reste sans traitement, transfert ou clôture au-delà du délai fixé par le Ministre.
     """
     class Etape(models.TextChoices):
         ARRIVE = 'ARRIVE', 'Enregistrement / Secrétariat'
@@ -653,6 +675,10 @@ class Relance(models.Model):
         DECISION = 'DECISION', 'Décision du Ministre'
         AFFECTATION = 'AFFECTATION', 'Affectation aux services'
         TRAITEMENT_SERVICE = 'TRAITEMENT_SERVICE', 'Traitement par le service / agent'
+
+    class Nature(models.TextChoices):
+        ECHEANCE_PROCHE = 'ECHEANCE_PROCHE', 'Échéance proche'
+        RETARD = 'RETARD', 'Courrier en retard'
 
     courrier = models.ForeignKey(
         Courrier,
@@ -687,6 +713,13 @@ class Relance(models.Model):
         choices=Etape.choices,
         default=Etape.ARRIVE,
         verbose_name="Étape administrative"
+    )
+    nature = models.CharField(
+        max_length=30, choices=Nature.choices, blank=True, null=True,
+        verbose_name="Nature de l'alerte",
+    )
+    date_limite = models.DateTimeField(
+        blank=True, null=True, verbose_name="Date limite concernée",
     )
     date_debut_etape = models.DateTimeField(
         verbose_name="Date d'entrée à cette étape (réception / transmission)"
@@ -729,6 +762,12 @@ class Relance(models.Model):
         delta = fin - self.date_debut_etape
         return max(0, delta.days)
 
+    @property
+    def jours_restants(self):
+        if not self.date_limite:
+            return None
+        return max(0, (self.date_limite - timezone.now()).days)
+
     def resoudre(self):
         """Marque la relance comme résolue."""
         if not self.est_resolue:
@@ -747,7 +786,6 @@ class ConfigurationDelai(models.Model):
     Règle de sécurité : Seul le Ministre a le droit de définir ou modifier ce délai.
     """
     delai_jours = models.PositiveIntegerField(
-        default=3,
         verbose_name="Délai limite de traitement (en jours)",
         help_text="Nombre de jours sans traitement avant déclenchement d'une alerte et relance automatique."
     )
@@ -772,10 +810,10 @@ class ConfigurationDelai(models.Model):
 
     @classmethod
     def get_delai_jours(cls):
-        """Retourne le délai actuellement configuré par le Ministre (ou valeur par défaut 3)."""
+        """Retourne le délai défini en base par le Ministre, ou ``None`` s'il ne l'a pas encore fixé."""
         config = cls.objects.first()
         if config and config.delai_jours:
             return config.delai_jours
-        return getattr(settings, 'DELAI_RELANCE_JOURS', 3)
+        return None
 
 

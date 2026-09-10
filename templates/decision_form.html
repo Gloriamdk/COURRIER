@@ -160,6 +160,15 @@
     {% endif %}
 
     <div class="form-group">
+        <label class="form-label" for="{{ form.delai_traitement_jours.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
+            {{ form.delai_traitement_jours.label }}
+        </label>
+        {{ form.delai_traitement_jours }}
+        <small style="color: var(--text-muted);">{{ form.delai_traitement_jours.help_text }}</small>
+        {% if form.delai_traitement_jours.errors %}<small style="color: var(--danger-color);">{{ form.delai_traitement_jours.errors }}</small>{% endif %}
+    </div>
+
+    <div class="form-group">
         <label class="form-label" for="{{ form.instructions_finales.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
             {{ form.instructions_finales.label }}
         </label>

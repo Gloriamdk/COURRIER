@@ -4,7 +4,7 @@ from courrier.models import Relance
 
 
 class Command(BaseCommand):
-    help = "Examine les courriers en attente et génère/actualise les relances pour les courriers sans traitement depuis plus de 3 jours."
+    help = "Examine les courriers en attente et génère/actualise les relances pour les courriers sans traitement au-delà du délai réglementaire fixé par le Ministre."
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE("Synchronisation des alertes et relances en cours..."))

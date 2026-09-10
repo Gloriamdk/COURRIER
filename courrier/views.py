@@ -22,6 +22,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from pathlib import Path
 
 from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Document, Historique, Notification, Affectation, Relance, ConfigurationDelai
@@ -50,12 +51,15 @@ def creer_historique(courrier, utilisateur, action, description):
 def notifier(destinataire, courrier, message):
     """Raccourci pour créer une notification interne."""
     if courrier and courrier.priorite in [Courrier.Priorite.URGENT, Courrier.Priorite.TRES_URGENT]:
-        if "Courrier urgent" not in message and "COURRIER URGENT" not in message:
-            message = f"🚨 [Courrier urgent] {message}"
-    Notification.objects.create(
+        if "COURRIER URGENT" not in message:
+            message = f"🚨 [COURRIER URGENT] {message}"
+    # Une même action peut être rejouée (double clic / requête répétée) : ne pas
+    # empiler des alertes identiques non lues pour le même courrier.
+    Notification.objects.get_or_create(
         destinataire=destinataire,
         courrier=courrier,
         message=message,
+        lu=False,
     )
 
 
@@ -98,6 +102,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # Délai réglementaire actuel configuré par le Ministre
         context['delai_traitement_actuel'] = ConfigurationDelai.get_delai_jours()
+        context['delai_traitement_configure'] = context['delai_traitement_actuel'] is not None
 
         # Courriers urgents sous la responsabilité de l'utilisateur
         context['courriers_urgents_en_cours'] = Courrier.objects.pour_utilisateur(user).filter(
@@ -663,6 +668,12 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
         return context
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.method != 'POST':
+            kwargs['initial'] = {'delai_traitement_jours': self.get_courrier().delai_traitement_jours}
+        return kwargs
+
     def form_valid(self, form):
         try:
             with transaction.atomic():
@@ -674,7 +685,8 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                 response = super().form_valid(form)
 
                 courrier.statut = Courrier.Statut.DECIDE
-                courrier.save(update_fields=['statut'])
+                courrier.delai_traitement_jours = form.cleaned_data['delai_traitement_jours']
+                courrier.save(update_fields=['statut', 'delai_traitement_jours'])
 
                 # Résolution automatique de la relance Décision Ministre
                 resoudre_relances_courrier(courrier, etapes=Relance.Etape.DECISION)
@@ -751,8 +763,22 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             response = super().form_valid(form)
             affectation = self.object
 
+            # La date limite part de l'affectation et du délai propre au courrier.
+            if not courrier.delai_traitement_jours:
+                raise ValueError("Le délai de traitement doit être défini par le Ministre avant l'affectation.")
+            from datetime import timedelta
+            affectation.date_limite_traitement = affectation.date_affectation + timedelta(days=courrier.delai_traitement_jours)
+            affectation.save(update_fields=['date_limite_traitement'])
+            informations_delai = (
+                f"Délai fixé par le Ministre : {courrier.delai_traitement_jours} jour(s). "
+                f"Date limite : {affectation.date_limite_traitement:%d/%m/%Y %H:%M}."
+            )
+
             courrier.statut = Courrier.Statut.AFFECTE
-            courrier.save(update_fields=['statut'])
+            courrier.responsable_actuel_role = (
+                affectation.destinataire.role if affectation.destinataire else User.Role.DIRECTEUR
+            )
+            courrier.save(update_fields=['statut', 'responsable_actuel_role'])
 
             # Résolution automatique de la relance Affectation
             resoudre_relances_courrier(courrier, etapes=Relance.Etape.AFFECTATION)
@@ -776,8 +802,21 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                     destinataire=affectation.destinataire,
                     courrier=courrier,
                     message=f"Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
-                            f"Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
+                            f"{informations_delai} Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
                 )
+            elif affectation.service_concerne:
+                # Lorsqu'une affectation vise un service sans agent nommé, son
+                # directeur est le détenteur opérationnel du courrier.
+                for directeur in User.objects.filter(
+                    role=User.Role.DIRECTEUR,
+                    service_direction=affectation.service_concerne,
+                    is_active=True,
+                ):
+                    notifier(
+                        destinataire=directeur,
+                        courrier=courrier,
+                        message=f"Nouveau courrier affecté à votre direction : {courrier.reference} — {courrier.designation[:60]}. {informations_delai}"
+                    )
 
         messages.success(
             self.request,
@@ -831,7 +870,8 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
 
         # Mise à jour du statut
         courrier.statut = nouveau_statut
-        courrier.save(update_fields=['statut'])
+        courrier.responsable_actuel_role = role_destinataire
+        courrier.save(update_fields=['statut', 'responsable_actuel_role'])
 
         # Résoudre les relances actives de l'étape précédente
         resoudre_relances_courrier(courrier)
@@ -933,15 +973,15 @@ class AffectationStatutUpdateView(LoginRequiredMixin, View):
     (ex: RECU -> EN_COURS -> TRAITE). Résout automatiquement les relances à la finalisation.
     """
     def post(self, request, pk):
-        affectation = get_object_or_404(
-            Affectation.objects.filter(
+        affectations = Affectation.objects.filter(destinataire=request.user)
+        # Le directeur est responsable des affectations non nominatives de sa
+        # direction; un expéditeur ou un affectant ne peut pas les modifier.
+        if request.user.role == User.Role.DIRECTEUR and request.user.service_direction:
+            affectations = Affectation.objects.filter(
                 Q(destinataire=request.user) |
-                Q(service_concerne=request.user.service_direction) |
-                Q(affecte_par=request.user) |
-                Q(courrier__cree_par=request.user)
-            ),
-            pk=pk
-        )
+                Q(destinataire__isnull=True, service_concerne=request.user.service_direction)
+            )
+        affectation = get_object_or_404(affectations, pk=pk)
         nouveau_statut = request.POST.get('statut_traitement')
         note = (request.POST.get('note_traitement') or '').strip()
 
@@ -952,6 +992,7 @@ class AffectationStatutUpdateView(LoginRequiredMixin, View):
             
             if nouveau_statut == Affectation.StatutTraitement.TRAITE:
                 affectation.date_traitement = timezone.now()
+                affectation.traite_par = request.user
                 # Résoudre la relance liée au traitement
                 resoudre_relances_courrier(affectation.courrier, etapes=Relance.Etape.TRAITEMENT_SERVICE)
                 
@@ -1005,8 +1046,10 @@ class ConfigurationDelaiUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
             messages.error(request, "Valeur du délai de traitement invalide.")
             return redirect('dashboard')
 
-        config, _ = ConfigurationDelai.objects.get_or_create(id=1)
-        ancien_delai = config.delai_jours
+        config = ConfigurationDelai.objects.order_by('pk').first()
+        ancien_delai = config.delai_jours if config else None
+        if config is None:
+            config = ConfigurationDelai()
         config.delai_jours = delai
         config.modifie_par = request.user
         config.save()
@@ -1016,7 +1059,8 @@ class ConfigurationDelaiUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
 
         messages.success(
             request,
-            f"✅ Le délai réglementaire de traitement des courriers a été fixé à {delai} jour(s) (anciennement {ancien_delai} jours)."
+            f"✅ Le délai réglementaire de traitement des courriers a été fixé à {delai} jour(s)"
+            + (f" (anciennement {ancien_delai} jour(s))." if ancien_delai else ".")
         )
         return redirect('dashboard')
 
