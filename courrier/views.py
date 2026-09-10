@@ -351,7 +351,7 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             and fiche_sg is not None
             and not fiche_sg.valide
             and fiche_sg.analyse_par_id == user.id
-            and courrier.statut == Courrier.Statut.EN_COURS_DC
+            and courrier.statut == Courrier.Statut.EN_COURS_SG
         )
         context['peut_decider'] = (
             user.role == User.Role.MINISTRE

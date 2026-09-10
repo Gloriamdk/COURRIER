@@ -36,7 +36,9 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
+            background:
+                linear-gradient(rgba(4, 29, 22, 0.58), rgba(4, 29, 22, 0.72)),
+                url("{% static 'images/tourisme-hero.jpg' %}") center center / cover fixed no-repeat;
             color: var(--text-dark);
             display: flex;
             flex-direction: column;
@@ -81,7 +83,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 5%;
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.97);
             border-bottom: 1px solid var(--border-color);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
             z-index: 100;
@@ -145,18 +147,25 @@
         main {
             margin-top: 90px;
             flex: 1;
+            min-height: 620px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 6rem 5%;
             text-align: center;
-            background-color: #ffffff;
+            position: relative;
+            isolation: isolate;
+            background: linear-gradient(90deg, rgba(4, 29, 22, 0.22) 0%, rgba(4, 29, 22, 0.08) 100%);
+            color: white;
+            overflow: hidden;
         }
 
         .hero-container {
             max-width: 900px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         .hero-title {
@@ -164,12 +173,13 @@
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 1.5rem;
-            color: var(--text-dark);
+            color: white;
+            text-shadow: 0 3px 18px rgba(0, 0, 0, 0.28);
         }
 
         .hero-desc {
             font-size: 1.2rem;
-            color: var(--text-muted);
+            color: rgba(255, 255, 255, 0.9);
             line-height: 1.7;
             margin-bottom: 3rem;
             font-weight: 400;
@@ -190,7 +200,7 @@
             font-size: 1.05rem;
             text-decoration: none;
             transition: all 0.2s;
-            box-shadow: 0 4px 6px rgba(0, 106, 78, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
         }
 
         .btn-primary:hover {
@@ -201,8 +211,8 @@
         /* ===== FEATURES SECTION ===== */
         .features {
             padding: 5rem 5%;
-            background: var(--bg-body);
-            border-top: 1px solid var(--border-color);
+            background: rgba(4, 29, 22, 0.48);
+            border-top: 1px solid rgba(255, 255, 255, 0.22);
         }
 
         .features-grid {
@@ -214,7 +224,7 @@
         }
 
         .feature-card {
-            background: white;
+            background: rgba(255, 255, 255, 0.96);
             border-radius: 8px;
             padding: 2.5rem 2rem;
             border: 1px solid var(--border-color);
@@ -262,11 +272,11 @@
 
         /* ===== FOOTER ===== */
         footer {
-            background: white;
-            border-top: 1px solid var(--border-color);
+            background: rgba(4, 29, 22, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.22);
             padding: 2.5rem 5%;
             text-align: center;
-            color: var(--text-muted);
+            color: rgba(255, 255, 255, 0.82);
             font-size: 0.9rem;
         }
 
@@ -291,7 +301,13 @@
 
             main {
                 margin-top: 0;
-                padding: 4rem 5%;
+                min-height: 560px;
+                padding: 4rem 7%;
+                background-position: 62% center;
+            }
+
+            .hero-desc {
+                font-size: 1.05rem;
             }
 
             .logo-subtitle {

@@ -201,6 +201,15 @@
                 <small style="color: var(--text-muted);">Validée le {{ courrier.fiche_analyse_sg.date_validation|date:"d/m/Y à H:i" }}</small>
                 {% endif %}
             </div>
+            {% if peut_valider_fiche_sg %}
+            <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" style="margin-top: 16px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg"
+                        onclick="return confirm('Confirmer la validation de la fiche SG et sa transmission au Secrétaire du DC ?')">
+                    Valider et transmettre au Secrétaire du DC
+                </button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
 
