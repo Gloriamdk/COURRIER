@@ -1,3 +1,7 @@
+import io
+import os
+import zipfile
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -9,7 +13,6 @@ from courrier.models import Courrier, Document, FicheAnalyse, Decision, Affectat
 from courrier.forms import CourrierForm
 from courrier import validators
 from django.conf import settings
-import os
 
 User = get_user_model()
 
@@ -275,6 +278,47 @@ class CourrierModelsTestCase(TestCase):
         self.assertIsNotNone(document.pk)
         # file must exist on disk
         self.assertTrue(os.path.exists(document.fichier.path))
+
+    def test_upload_allowed_office_formats(self):
+        for filename, content_type in (
+            (
+                "allowed.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ),
+            (
+                "allowed.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ),
+        ):
+            stream = io.BytesIO()
+            with zipfile.ZipFile(stream, "w") as archive:
+                archive.writestr("[Content_Types].xml", "<Types/>")
+            fichier = SimpleUploadedFile(filename, stream.getvalue(), content_type=content_type)
+            document = Document.objects.create(
+                courrier=self.courrier_normal,
+                nom=filename,
+                fichier=fichier,
+                taille_octets=fichier.size,
+            )
+            self.assertTrue(os.path.exists(document.fichier.path))
+
+    def test_upload_office_macros_are_rejected(self):
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w") as archive:
+            archive.writestr("word/vbaProject.bin", b"macro")
+        fichier = SimpleUploadedFile(
+            "macro.docx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        document = Document(
+            courrier=self.courrier_normal,
+            nom="Macro",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        with self.assertRaises(ValidationError):
+            document.full_clean()
 
     def test_upload_too_large_is_rejected(self):
         big = b"0" * (validators.MAX_UPLOAD_SIZE + 1)

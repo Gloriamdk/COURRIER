@@ -110,32 +110,32 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ).exclude(statut=Courrier.Statut.TERMINE).order_by('-date_arrivee')[:10]
 
         # Notifications non lues (commun à tous les rôles)
-        context['notifications_non_lues'] = user.notifications.filter(lu=False).order_by('-date_notification')[:5]
+        context['notifications_non_lues'] = user.notifications.filter(lu=False).select_related('courrier').order_by('-date_notification')[:5]
         context['nb_notifications'] = user.notifications.filter(lu=False).count()
 
         if user.role == User.Role.SECRETARIAT_CENTRAL:
-            context['courriers_recents'] = Courrier.objects.filter(cree_par=user).order_by('-date_enregistrement')[:10]
+            context['courriers_recents'] = Courrier.objects.filter(cree_par=user).select_related('cree_par').order_by('-date_enregistrement')[:10]
             context['total_courriers'] = Courrier.objects.filter(cree_par=user).count()
             context['courriers_en_attente'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
         elif user.role in [User.Role.DC, User.Role.SG]:
-            context['courriers_a_analyser'] = Courrier.objects.filter(statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]).order_by('-date_arrivee')[:10]
-            context['analyses_faites'] = FicheAnalyse.objects.filter(analyse_par=user).order_by('-date_analyse')[:10]
+            context['courriers_a_analyser'] = Courrier.objects.filter(statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]).select_related('cree_par').order_by('-date_arrivee')[:10]
+            context['analyses_faites'] = FicheAnalyse.objects.filter(analyse_par=user).select_related('courrier').order_by('-date_analyse')[:10]
             context['total_a_analyser'] = Courrier.objects.filter(statut__in=[Courrier.Statut.TRANSMIS_DC, Courrier.Statut.EN_COURS_DC]).count()
             context['en_cours'] = Courrier.objects.filter(statut=Courrier.Statut.EN_COURS_DC).count()
 
         elif user.role == User.Role.SECRETAIRE_MINISTRE:
-            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).order_by('-date_arrivee')[:10]
+            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).select_related('cree_par').order_by('-date_arrivee')[:10]
             context['total_courriers'] = Courrier.objects.filter(statut=Courrier.Statut.ANALYSE_VALIDE).count()
 
         elif user.role == User.Role.MINISTRE:
-            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.TRANSMIS_MINISTRE).order_by('-date_arrivee')[:10]
-            context['decisions_prises'] = Decision.objects.filter(signe_par=user).order_by('-date_decision')[:10]
+            context['courriers_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.TRANSMIS_MINISTRE).select_related('cree_par').order_by('-date_arrivee')[:10]
+            context['decisions_prises'] = Decision.objects.filter(signe_par=user).select_related('courrier').order_by('-date_decision')[:10]
             context['total_a_decider'] = Courrier.objects.filter(statut=Courrier.Statut.TRANSMIS_MINISTRE).count()
             context['total_decides'] = Decision.objects.filter(signe_par=user).count()
 
         elif user.role in [User.Role.SECRETAIRE_SG, User.Role.SECRETAIRE_DC]:
-            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).order_by('-date_arrivee')[:10]
+            context['courriers_recents'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).select_related('cree_par').order_by('-date_arrivee')[:10]
             context['total_courriers'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
 
         elif user.role in [User.Role.DIRECTEUR, User.Role.AGENT]:
@@ -202,7 +202,9 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         # Sécurité ORM : l'utilisateur ne peut voir que les courriers autorisés
-        return Courrier.objects.pour_utilisateur(self.request.user)
+        return Courrier.objects.pour_utilisateur(self.request.user).select_related(
+            'cree_par', 'fiche_analyse', 'fiche_analyse_sg', 'decision'
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -967,11 +969,13 @@ class MarquerNotificationLueView(LoginRequiredMixin, View):
 # AFFECTATION — Mise à jour du statut de traitement
 # ==============================================================================
 
-class AffectationStatutUpdateView(LoginRequiredMixin, View):
+class AffectationStatutUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
     """
     Permet au destinataire d'une affectation de mettre à jour son statut d'exécution
     (ex: RECU -> EN_COURS -> TRAITE). Résout automatiquement les relances à la finalisation.
     """
+    allowed_roles = [User.Role.DIRECTEUR, User.Role.AGENT]
+
     def post(self, request, pk):
         affectations = Affectation.objects.filter(destinataire=request.user)
         # Le directeur est responsable des affectations non nominatives de sa

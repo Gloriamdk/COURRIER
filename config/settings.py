@@ -46,8 +46,9 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY doit être définie hors développement.")
 
-#ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
-ALLOWED_HOSTS = ["*"]
+# Never use a wildcard host in a deployed instance. Configure additional hosts
+# through DJANGO_ALLOWED_HOSTS when the application is behind a real domain.
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 # En développement, on ajoute automatiquement les origines locales
 _csrf_origins = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 if RUNSERVER or DEBUG:

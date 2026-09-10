@@ -14,14 +14,14 @@ class CourrierForm(forms.ModelForm):
     - Le champ fichier_scan est optionnel et séparé du modèle Courrier.
     """
     fichier_scan = forms.FileField(
-        label="Document numérisé (PDF)",
+        label="Document numérisé",
         required=False,
         widget=forms.FileInput(attrs={
             'class': 'form-control',
-            'accept': 'application/pdf,image/*',
+            'accept': '.pdf,.docx,.xlsx,.jpg,.jpeg,.png',
             'id': 'id_fichier_scan',
         }),
-        help_text="Formats acceptés : PDF, JPG, PNG. Taille max : 10 Mo."
+        help_text="Formats acceptés : PDF, DOCX, XLSX, JPG, PNG. Taille max : 10 Mo."
     )
 
 

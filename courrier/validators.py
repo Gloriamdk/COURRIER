@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import zipfile
 
 from django.core.exceptions import ValidationError
 
@@ -26,6 +27,18 @@ ALLOWED_UPLOADS = {
         "mimes": {"image/png"},
         "signatures": (b"\x89PNG\r\n\x1a\n",),
     },
+    ".docx": {
+        "mimes": {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+        "signatures": (b"PK\x03\x04",),
+    },
+    ".xlsx": {
+        "mimes": {
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+        "signatures": (b"PK\x03\x04",),
+    },
 }
 
 
@@ -51,8 +64,9 @@ def validate_document_upload(uploaded_file):
     - extension autorisée
     - signature (magic bytes)
     - mime (si fourni)
-    - vérification image via Pillow/imghdr pour JPG/PNG
-    - vérification basique PDF : absence de JavaScript embarqué
+    - vérification image via Pillow pour JPG/PNG
+    - vérification des archives Office et rejet des macros/contenus dangereux
+    - vérification PDF : absence de JavaScript et d'actions automatiques
     """
     if not uploaded_file:
         return
@@ -72,7 +86,7 @@ def validate_document_upload(uploaded_file):
     extension = Path(name).suffix.lower()
     rules = ALLOWED_UPLOADS.get(extension)
     if rules is None:
-        raise ValidationError("Format non autorise. Formats acceptes : PDF, JPG, PNG.")
+        raise ValidationError("Format non autorise. Formats acceptes : PDF, DOCX, XLSX, JPG, PNG.")
 
     content_type = getattr(uploaded_file, "content_type", None)
     # Do not rely solely on content_type from client, but use it as additional check
@@ -110,10 +124,26 @@ def validate_document_upload(uploaded_file):
                 uploaded_file.seek(0)
 
     if extension == ".pdf":
-        # Simple heuristic: scan first 64KB for JavaScript hints commonly used in malicious PDFs
+        # Reject active PDF features before storing the document.
         uploaded_file.seek(0)
-        sample = uploaded_file.read(65536)
+        sample = uploaded_file.read()
         uploaded_file.seek(0)
-        # Look for /JavaScript, /JS, /OpenAction which can indicate embedded scripts
-        if b"/JavaScript" in sample or b"/JS" in sample or b"/OpenAction" in sample:
-            raise ValidationError("Le PDF contient des contenus dynamiques potentiellement dangereux (JavaScript).")
+        if any(marker in sample for marker in (b"/JavaScript", b"/JS", b"/OpenAction", b"/AA")):
+            raise ValidationError("Le PDF contient des contenus dynamiques potentiellement dangereux.")
+
+    if extension in (".docx", ".xlsx"):
+        uploaded_file.seek(0)
+        try:
+            with zipfile.ZipFile(uploaded_file) as archive:
+                if archive.testzip() is not None:
+                    raise ValidationError("L'archive Office est corrompue.")
+                for member in archive.infolist():
+                    member_path = Path(member.filename)
+                    if member.filename.startswith(("/", "\\")) or ".." in member_path.parts:
+                        raise ValidationError("L'archive contient un chemin de fichier dangereux.")
+                    if member.filename.lower().endswith(("vbaproject.bin", ".exe", ".js", ".vbs", ".cmd", ".bat")):
+                        raise ValidationError("Les macros et fichiers exécutables ne sont pas autorisés.")
+        except zipfile.BadZipFile:
+            raise ValidationError("Le fichier Office est invalide ou corrompu.")
+        finally:
+            uploaded_file.seek(0)
