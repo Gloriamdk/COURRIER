@@ -102,16 +102,25 @@ def envoyer_email_nouveau_courrier(courrier):
 
 
 def envoyer_email_affectation(affectation):
-    service = affectation.service_concerne or (
+    raw_service = affectation.service_concerne or (
         affectation.destinataire.service_direction if affectation.destinataire else None
     )
-    destinataires = User.objects.filter(
-        role=User.Role.DIRECTEUR,
-        service_direction=service,
-        is_active=True,
-    ).exclude(email='').values_list('email', flat=True) if service else []
+    service = (raw_service or '').strip()
+
+    destinataires = []
+    if service:
+        destinataires = list(
+            User.objects.filter(
+                role=User.Role.DIRECTEUR,
+                service_direction=service,
+                is_active=True,
+            ).exclude(email='').values_list('email', flat=True)
+        )
+
     if affectation.destinataire and affectation.destinataire.role == User.Role.DIRECTEUR:
-        destinataires = list(destinataires) + [affectation.destinataire.email]
+        email_destinataire = (affectation.destinataire.email or '').strip()
+        if email_destinataire:
+            destinataires.append(email_destinataire)
 
     courrier = affectation.courrier
     envoyer_email(

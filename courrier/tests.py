@@ -94,6 +94,26 @@ class CourrierModelsTestCase(TestCase):
         self.assertIn(self.courrier_normal.reference, mail.outbox[0].body)
         self.assertIn(self.courrier_normal.designation, mail.outbox[0].body)
 
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_email_affectation_normalise_le_service_concerne(self):
+        self.dir_daf.email = 'directeur@example.test'
+        self.dir_daf.save(update_fields=['email'])
+        decision = Decision.objects.create(
+            courrier=self.courrier_normal,
+            signe_par=self.ministre,
+        )
+        affectation = Affectation.objects.create(
+            courrier=self.courrier_normal,
+            decision=decision,
+            affecte_par=self.ministre,
+            service_concerne='  DAF  ',
+        )
+
+        envoyer_email_affectation(affectation)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['directeur@example.test'])
+
     def test_ministre_voit_les_analyses_dc_et_sg_avant_decision(self):
         fiche_dc = FicheAnalyse.objects.create(
             courrier=self.courrier_normal,
