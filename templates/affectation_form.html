@@ -279,6 +279,7 @@
             </div>
 
             <!-- Autres champs du formulaire -->
+            {% if user.role != 'DIRECTEUR' %}
             <div class="form-group">
                 <label class="form-label" for="id_service_concerne">
                     {{ form.service_concerne.label }}
@@ -298,6 +299,7 @@
                 </small>
                 {% endif %}
             </div>
+            {% endif %}
 
             <div class="form-group">
                 <label class="form-label" for="id_note_traitement">
@@ -334,29 +336,27 @@
 
         <div class="aff-item" id="aff-existante-{{ aff.pk }}">
 
+            {% if aff.destinataire %}
             <h4>
-                {{ aff.service_concerne }}
+                {{ aff.affecte_par.get_role_display|default:"Utilisateur" }}
             </h4>
 
             <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 4px;">
-
-                {% if aff.destinataire %}
-
                 → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
-
                 <span style="color: var(--text-muted);">
-                    ({{ aff.destinataire.get_role_display }})
+                    ({{ aff.service_concerne }})
                 </span>
-
-                {% else %}
-
-                → <em style="color: var(--text-muted);">
-                    Aucun agent spécifié
-                </em>
-
-                {% endif %}
-
             </p>
+            {% else %}
+            <h4>
+                {{ aff.affecte_par.get_role_display|default:"Utilisateur" }}
+            </h4>
+            <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 4px;">
+                <em style="color: var(--text-muted);">
+                    → {{ aff.service_concerne|default:"DAAF" }}
+                </em>
+            </p>
+            {% endif %}
 
             <small>
                 Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}

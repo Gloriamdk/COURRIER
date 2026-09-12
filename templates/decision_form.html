@@ -94,11 +94,11 @@
     {% endif %}
 </div>
 
-<!-- Analyse du DC -->
+<!-- Fiche d'analyse unique du circuit 1 -->
 {% if fiche_analyse %}
 <div class="fiche-card">
     <h3 style="color: var(--secondary-color); margin-bottom: 1rem; font-size: 1rem;">
-         Analyse du Directeur de Cabinet — {{ fiche_analyse.analyse_par.get_full_name }}
+         Fiche d'analyse — complétée par le SG et le DC
         <small style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;">
             (rédigée le {{ fiche_analyse.date_analyse|date:"d/m/Y à H:i" }})
         </small>
@@ -120,6 +120,18 @@
         <p style="margin-top: 6px; font-weight: 600; color: var(--primary-color);">{{ fiche_analyse.direction_proposee }}</p>
     </div>
     {% endif %}
+    {% endif %}
+    {% if fiche_analyse.observations_sg %}
+    <div style="margin-bottom: 12px;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Observations du SG :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse.observations_sg|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+    {% if fiche_analyse.propositions_sg %}
+    <div style="margin-bottom: 12px;">
+        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions du SG :</strong>
+        <p style="margin-top: 6px;">{{ fiche_analyse.propositions_sg|linebreaksbr }}</p>
+    </div>
     {% endif %}
 </div>
 {% else %}
@@ -159,11 +171,14 @@
 {% endif %}
 
 <!-- Formulaire de décision -->
-<form method="post" class="form-card">
+<form method="post" enctype="multipart/form-data" class="form-card">
     {% csrf_token %}
 
-    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"> Saisie de la Décision</h3>
+    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">
+        {% if circuit_traitement_final %}Signature finale du Ministre{% else %}Saisie de la décision initiale{% endif %}
+    </h3>
 
+    {% if not circuit_traitement_final %}
     <div class="action-group">
         <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 10px;">
             Action rapide / Instruction standard :
@@ -197,6 +212,7 @@
         <small style="color: var(--text-muted);">{{ form.delai_traitement_jours.help_text }}</small>
         {% if form.delai_traitement_jours.errors %}<small style="color: var(--danger-color);">{{ form.delai_traitement_jours.errors }}</small>{% endif %}
     </div>
+    {% endif %}
 
     <div class="form-group">
         <label class="form-label" for="{{ form.instructions_finales.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
@@ -208,12 +224,36 @@
         {% endif %}
     </div>
 
+    {% if decision_initiale %}
+    <div class="form-group">
+        <label class="form-label">{{ form.action_finale.label }}</label>
+        {{ form.action_finale }}
+        {% if form.action_finale.errors %}<small style="color: var(--danger-color);">{{ form.action_finale.errors }}</small>{% endif %}
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="{{ form.observation_correction.id_for_label }}">
+            {{ form.observation_correction.label }}
+        </label>
+        {{ form.observation_correction }}
+        {% if form.observation_correction.errors %}<small style="color: var(--danger-color);">{{ form.observation_correction.errors }}</small>{% endif %}
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="{{ form.document_signe.id_for_label }}">        {% if circuit_traitement_final %}Document signé à déposer{% else %}{{ form.document_signe.label }}{% endif %}</label>
+        {{ form.document_signe }}
+        {% if circuit_traitement_final %}
+            <small style="color: var(--text-muted);">Le document signé est obligatoire pour transmettre ce même courrier au Secrétariat central.</small>
+        {% endif %}
+        <small style="color: var(--text-muted);">Obligatoire pour valider et signer définitivement.</small>
+        {% if form.document_signe.errors %}<small style="color: var(--danger-color);">{{ form.document_signe.errors }}</small>{% endif %}
+    </div>
+    {% endif %}
+
     <div style="display: flex; align-items: center; gap: 12px; margin-top: 1.5rem;">
         <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">
             ← Retour au courrier
         </a>
         <button type="submit" class="btn-submit" id="btn-submit-decision">
-             Valider et Signer la Décision
+             {% if decision_initiale %}Valider et signer définitivement{% else %}Enregistrer la décision et affecter{% endif %}
         </button>
     </div>
 </form>

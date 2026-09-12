@@ -4,7 +4,7 @@ Formulaires — GEC Ministère.
 import re
 
 from django import forms
-from .models import Courrier, FicheAnalyse, Affectation, User
+from .models import Courrier, CourrierSortant, FicheAnalyse, Affectation, User
 from .validators import validate_document_upload
 
 
@@ -115,8 +115,7 @@ class FicheAnalyseSGForm(forms.ModelForm):
     Formulaire pour la fiche d'analyse du Secrétaire Général (SG).
     """
     class Meta:
-        from .models import FicheAnalyseSG
-        model = FicheAnalyseSG
+        model = FicheAnalyse
         fields = ['direction_proposee', 'observations_sg', 'propositions_sg']
         widgets = {
             'direction_proposee': forms.Select(attrs={
@@ -142,6 +141,9 @@ def get_affectation_choices():
     """
     Construit la liste groupée des destinataires pour le formulaire d'affectation.
     Groupe par direction/service, et inclut les agents sans département.
+    Les directeurs ne sont plus des destinataires internes d’affectation:
+    la direction est attribuée par le Ministre, et le Directeur ne peut
+    ensuite rattacher qu’un seul agent de sa propre direction.
     """
     # Ordre d'affichage des groupes (correspondant à service_direction)
     GROUPES_ORDRE = [
@@ -178,7 +180,7 @@ def get_affectation_choices():
     ]
 
     users = User.objects.filter(
-        role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
+        role=User.Role.AGENT,
         is_active=True
     ).order_by('service_direction', 'last_name', 'first_name')
 
@@ -214,6 +216,18 @@ def get_affectation_choices():
     return choices
 
 
+SERVICE_ALIAS = {
+    'DAF': 'DAAF',
+}
+
+
+def normalize_service(service):
+    if not service:
+        return ''
+    value = str(service).strip()
+    return SERVICE_ALIAS.get(value, value)
+
+
 class AffectationForm(forms.ModelForm):
     """
     Formulaire d'affectation d'un courrier à un directeur/agent/service.
@@ -222,17 +236,17 @@ class AffectationForm(forms.ModelForm):
     """
     destinataire = forms.ModelChoiceField(
         queryset=User.objects.filter(
-            role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
+            role=User.Role.AGENT,
             is_active=True
         ).order_by('service_direction', 'last_name'),
-        label="Destinataire (Direction ou Agent)",
-        required=False,   # <-- NON OBLIGATOIRE
-        empty_label="— Sélectionner un destinataire (optionnel) —",
+        label="Destinataire (Agent interne)",
+        required=False,
+        empty_label="— Sélectionner un agent interne (optionnel) —",
         widget=forms.Select(attrs={
             'class': 'form-control',
             'id': 'id_destinataire',
         }),
-        help_text="Choisissez la direction ou l'agent concerné. Ce champ est optionnel."
+        help_text="Choisissez l’agent interne de votre direction. Le directeur ne peut affecter qu’un agent de son département."
     )
 
     class Meta:
@@ -252,23 +266,98 @@ class AffectationForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        request_user = kwargs.pop('request_user', None)
         super().__init__(*args, **kwargs)
-        # Rebuild the queryset with grouped choices using optgroup
+        self.request_user = request_user
+
+        # Base de candidats : agents internes uniquement.
         users = User.objects.filter(
-            role__in=[User.Role.DIRECTEUR, User.Role.AGENT],
+            role=User.Role.AGENT,
             is_active=True
-        ).order_by('service_direction', 'last_name', 'first_name')
+        )
+
+        # Règle de sélection de la vue :
+        # - Ministre : n’autorise que les agents sans direction.
+        # - Directeur : n’autorise que les agents de sa propre direction.
+        if request_user and request_user.role == User.Role.MINISTRE:
+            users = users.filter(service_direction__in=[None, ''])
+
+        elif request_user and request_user.role == User.Role.DIRECTEUR and request_user.service_direction:
+            service = normalize_service(request_user.service_direction)
+            aliases = {service}
+            if service == 'DAAF':
+                aliases.add('DAF')
+            elif service == 'DAF':
+                aliases.add('DAAF')
+            users = users.filter(service_direction__in=list(aliases))
+
+        users = users.order_by('service_direction', 'last_name', 'first_name')
         self.fields['destinataire'].queryset = users
+
+        # Pour le directeur, on cache explicitement le service concerné, parce
+        # qu’il ne doit pas réaffecter le courrier à une autre direction
+        # que la sienne. Le service est donc implicite / inféré.
+        if request_user and request_user.role == User.Role.DIRECTEUR and request_user.service_direction:
+            self.fields['service_concerne'].widget = forms.HiddenInput()
+            self.fields['service_concerne'].required = False
+            self.initial['service_concerne'] = normalize_service(request_user.service_direction)
 
     def clean(self):
         cleaned_data = super().clean()
         destinataire = cleaned_data.get('destinataire')
-        service = cleaned_data.get('service_concerne')
+        service = normalize_service(cleaned_data.get('service_concerne'))
+
+        # Sécurité de la relation directeur → agent : le directeur ne peut pas
+        # rediriger vers une autre direction ni réaffecter un second parcours.
+        if self.request_user and self.request_user.role == User.Role.DIRECTEUR and self.request_user.service_direction:
+            expected = normalize_service(self.request_user.service_direction)
+            if service and normalize_service(service) != expected:
+                raise forms.ValidationError("Vous ne pouvez affecter ce courrier qu’à un agent de votre propre direction.")
+            if destinataire and getattr(destinataire, 'service_direction', None):
+                if normalize_service(destinataire.service_direction) != expected:
+                    raise forms.ValidationError("Le destinataire choisi doit appartenir à votre direction.")
+            if not service:
+                service = expected
+                cleaned_data['service_concerne'] = service
+
+        # L’agent sans direction est la cible du ministre ; jamais un agent
+        # de direction. Donc l’annonce est totalement exclusive entre service
+        # et agent sans rattachement.
+        if self.request_user and self.request_user.role == User.Role.MINISTRE:
+            if destinataire and service:
+                raise forms.ValidationError("Le Ministre choisit soit une direction, soit un agent sans direction.")
 
         if not destinataire and not service:
             raise forms.ValidationError("Sélectionnez au moins un agent ou une direction/service.")
 
-        if destinataire and service and destinataire.service_direction != service:
-            raise forms.ValidationError("Le destinataire choisi ne correspond pas au service sélectionné.")
+        # Un agent porte implicitement la direction de son compte ; on l'infère
+        # automatiquement au service concerné pour le workflow hiérarchique.
+        if destinataire and getattr(destinataire, 'service_direction', None):
+            inferred_service = normalize_service(destinataire.service_direction)
+            if not service:
+                cleaned_data['service_concerne'] = inferred_service
+                service = inferred_service
+
+        # Contrôle de cohérence cross-direction côté serveur.
+        if destinataire and service:
+            agent_service = normalize_service(destinataire.service_direction)
+            if agent_service and agent_service != service:
+                raise forms.ValidationError("Le destinataire choisi ne correspond pas au service sélectionné.")
 
         return cleaned_data
+
+
+class CourrierSortantForm(forms.ModelForm):
+    document_signe = forms.FileField(
+        required=False, label="Document signé à expédier",
+        widget=forms.FileInput(attrs={'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = CourrierSortant
+        fields = ['destinataire', 'objet', 'observation']
+        widgets = {
+            'destinataire': forms.TextInput(attrs={'class': 'form-control'}),
+            'objet': forms.TextInput(attrs={'class': 'form-control'}),
+            'observation': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }

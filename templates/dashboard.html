@@ -450,6 +450,11 @@
                     <td style="padding: 15px 10px;">
                         <div style="display: flex; gap: 6px; align-items: center;">
                             <a href="{% url 'courrier_detail' aff.courrier.pk %}" class="action-btn secondary">Consulter</a>
+                            {% if aff.pk in affectations_a_affecter %}
+                            <a href="{% url 'affectation_nouveau' aff.courrier.pk %}" class="action-btn primary">
+                                Affecter à un agent
+                            </a>
+                            {% endif %}
                             {% if aff.statut_traitement != 'TRAITE' %}
                             <form action="{% url 'affectation_statut_update' aff.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Confirmer que ce courrier a été traité ?');">
                                 {% csrf_token %}

@@ -120,7 +120,7 @@
         {% if fiche_analyse %}
         <div class="card">
             <div class="card-header">
-                <span class="card-title"> Analyse du Directeur de Cabinet</span>
+                <span class="card-title"> Fiche d'analyse du courrier</span>
                 <small style="color: var(--text-muted);">
                     {{ fiche_analyse.analyse_par.get_full_name }} — {{ fiche_analyse.date_analyse|date:"d/m/Y" }}
                     {% if fiche_analyse.valide %}
@@ -131,6 +131,18 @@
                 </small>
             </div>
             <div class="workflow-section">
+                {% if fiche_analyse.observations_sg %}
+                <div class="field-group">
+                    <span class="field-label">Observations du SG</span>
+                    <p class="field-value">{{ fiche_analyse.observations_sg|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if fiche_analyse.propositions_sg %}
+                <div class="field-group">
+                    <span class="field-label">Propositions du SG</span>
+                    <p class="field-value">{{ fiche_analyse.propositions_sg|linebreaksbr }}</p>
+                </div>
+                {% endif %}
                 {% if fiche_analyse.observations_dc %}
                 <div class="field-group">
                     <span class="field-label">Observations</span>
@@ -152,10 +164,20 @@
             {% if peut_valider_fiche %}
             <form method="post" action="{% url 'fiche_valider' courrier.pk %}" style="margin-top: 16px;">
                 {% csrf_token %}
+                <label class="field-label" for="id_observation_validation_dc">Observation du DC</label>
+                <textarea id="id_observation_validation_dc" name="observation" rows="3" class="form-control"
+                          placeholder="Ajoutez une observation avant validation (optionnel)."></textarea>
                 <button type="submit" class="btn btn-success" id="btn-valider-fiche"
                         onclick="return confirm('Confirmer la validation et la transmission au Ministre ?')">
                      Valider et transmettre au Ministre
                 </button>
+            </form>
+            <form method="post" action="{% url 'fiche_correction' courrier.pk %}" style="margin-top: 12px;">
+                {% csrf_token %}
+                <label class="field-label" for="id_correction_dc">Demande de correction du DC</label>
+                <textarea id="id_correction_dc" name="motif" rows="3" class="form-control"
+                          placeholder="Indiquez les corrections demandées..." required></textarea>
+                <button type="submit" class="btn btn-danger">Demander une correction</button>
             </form>
             {% endif %}
             {% if peut_valider_fiche_sg %}
@@ -164,49 +186,6 @@
                 <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg"
                         onclick="return confirm('Confirmer la validation (SG) ?')">
                      Valider (SG)
-                </button>
-            </form>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Fiche d'analyse du SG -->
-        {% if courrier.fiche_analyse_sg %}
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"> Analyse du Secrétaire Général (SG)</span>
-                <small style="color: var(--text-muted);">
-                    {{ courrier.fiche_analyse_sg.analyse_par.get_full_name }} — {{ courrier.fiche_analyse_sg.date_analyse|date:"d/m/Y" }}
-                    {% if courrier.fiche_analyse_sg.valide %}
-                        <span style="color: var(--success-color); font-weight: 700; margin-left: 6px;"> Validée</span>
-                    {% else %}
-                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation</span>
-                    {% endif %}
-                </small>
-            </div>
-            <div class="workflow-section">
-                {% if courrier.fiche_analyse_sg.observations_sg %}
-                <div class="field-group">
-                    <span class="field-label">Observations</span>
-                    <p class="field-value">{{ courrier.fiche_analyse_sg.observations_sg|linebreaksbr }}</p>
-                </div>
-                {% endif %}
-                {% if courrier.fiche_analyse_sg.propositions_sg %}
-                <div class="field-group">
-                    <span class="field-label">Propositions</span>
-                    <p class="field-value">{{ courrier.fiche_analyse_sg.propositions_sg|linebreaksbr }}</p>
-                </div>
-                {% endif %}
-                {% if courrier.fiche_analyse_sg.date_validation %}
-                <small style="color: var(--text-muted);">Validée le {{ courrier.fiche_analyse_sg.date_validation|date:"d/m/Y à H:i" }}</small>
-                {% endif %}
-            </div>
-            {% if peut_valider_fiche_sg %}
-            <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" style="margin-top: 16px;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg"
-                        onclick="return confirm('Confirmer la validation de la fiche SG et sa transmission au Secrétaire du DC ?')">
-                    Valider et transmettre au Secrétaire du DC
                 </button>
             </form>
             {% endif %}
@@ -274,14 +253,18 @@
             <div class="affectation-item" id="affectation-{{ aff.pk }}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <strong>{{ aff.service_concerne }}</strong>
-                        <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.85rem;">
-                            {% if aff.destinataire %}
+                        {% if aff.destinataire %}
+                            <strong>{{ aff.affecte_par.get_role_display|default:"Utilisateur" }}</strong>
+                            <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.85rem;">
                                 → {{ aff.destinataire.get_full_name|default:aff.destinataire.username }}
-                            {% else %}
-                                → <em style="color: var(--text-muted);">Aucun agent spécifié</em>
-                            {% endif %}
-                        </span>
+                                {% if aff.service_concerne %}({{ aff.service_concerne }}){% endif %}
+                            </span>
+                        {% else %}
+                            <strong>{{ aff.affecte_par.get_role_display|default:"Utilisateur" }}</strong>
+                            <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.85rem;">
+                                → <em style="color: var(--text-muted);">{{ aff.service_concerne|default:"DAAF" }}</em>
+                            </span>
+                        {% endif %}
                     </div>
                     <span class="affectation-status statut-{{ aff.statut_traitement }}">
                         {{ aff.get_statut_traitement_display }}
@@ -310,10 +293,38 @@
             </div>
             <div class="action-buttons" style="flex-direction: column;">
 
+                {% if peut_observer_traitement_sg %}
+                    <div class="workflow-section">
+                        <strong>Observations du SG sur le traitement</strong>
+                        <p>Le SG n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
+                    </div>
+                    <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}">
+                        {% csrf_token %}
+                        <textarea name="observation" rows="4" class="form-control" required
+                                  placeholder="Observations sur le travail de l'agent"></textarea>
+                        <button type="submit" name="action" value="valider" class="btn btn-success">Valider et transmettre au Secrétaire du DC</button>
+                        <button type="submit" name="action" value="correction" class="btn btn-danger">Demander une correction</button>
+                    </form>
+                {% endif %}
+
+                {% if peut_observer_traitement_dc %}
+                    <div class="workflow-section">
+                        <strong>Observations du DC sur le traitement</strong>
+                        <p>Le DC n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
+                    </div>
+                    <form method="post" action="{% url 'fiche_valider' courrier.pk %}">
+                        {% csrf_token %}
+                        <textarea name="observation" rows="4" class="form-control" required
+                                  placeholder="Observations sur le travail de l'agent"></textarea>
+                        <button type="submit" name="action" value="valider" class="btn btn-success">Valider et transmettre au Secrétaire du Ministre</button>
+                        <button type="submit" name="action" value="correction" class="btn btn-danger">Demander une correction</button>
+                    </form>
+                {% endif %}
+
                 {% if peut_analyser %}
                     {% if request.user.role == 'SG' %}
                         <a href="{% url 'fiche_sg_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
-                             Rédiger la fiche d'analyse (SG)
+                            Rédiger la fiche d'analyse
                         </a>
                     {% else %}
                         <a href="{% url 'fiche_nouveau' courrier.pk %}" class="btn btn-success" id="btn-rediger-fiche">
@@ -324,10 +335,10 @@
                 
                 {# Boutons pour les secrétaires (transmettre / refuser avec motif obligatoire) #}
                 {# Le Secrétaire SG transmet le courrier au SG depuis ARRIVE. #}
-                {% if request.user.role == 'SECRETAIRE_SG' and courrier.statut == 'ARRIVE' %}
+                {% if request.user.role == 'SECRETAIRE_SG' and courrier.statut == 'ARRIVE' or request.user.role == 'SECRETAIRE_SG' and courrier.statut == 'TRANSMIS_SG' %}
                     <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" style="display:inline-block; margin-top:8px;">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Transmettre au supérieur</button>
+                        <button type="submit" class="btn btn-primary">Transmettre au SG</button>
                     </form>
 
                     <button type="button" class="btn btn-danger" id="btn-open-rejet" style="margin-top:8px;">Rejeter et renvoyer</button>
@@ -373,6 +384,12 @@
                 </a>
                 {% endif %}
 
+                {% if peut_enregistrer_sortant %}
+                <a href="{% url 'courrier_sortant_nouveau' courrier.pk %}" class="btn btn-primary">
+                    Enregistrer le courrier sortant
+                </a>
+                {% endif %}
+
                 {% if peut_affecter %}
                 <a href="{% url 'affectation_nouveau' courrier.pk %}" class="btn btn-warning" id="btn-affecter" style="background: var(--warning-color); color: white;">
                      Affecter aux services
@@ -386,6 +403,58 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Réponses de l'agent et validation hiérarchique -->
+        {% if reponses or peut_repondre or peut_valider_reponse or peut_transmettre_sg %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Réponses et versions</span>
+            </div>
+            {% for reponse in reponses %}
+            <div class="workflow-section">
+                <strong>Version {{ reponse.version }}</strong>
+                <span style="color:var(--text-muted);"> — {{ reponse.auteur.get_full_name|default:reponse.auteur.username }}
+                    — {{ reponse.get_statut_traitement_display }}</span>
+                {% if reponse.observation %}<p class="field-value">{{ reponse.observation|linebreaksbr }}</p>{% endif %}
+                {% if reponse.document %}
+                    <a href="{% url 'document_telecharger' reponse.document.pk %}" target="_blank">Télécharger la réponse</a>
+                {% endif %}
+                {% if peut_valider_reponse and reponse.statut_traitement == 'ENVOYE_DIRECTEUR' %}
+                <form method="post" action="{% url 'reponse_valider' courrier.pk reponse.pk %}" style="margin-top:10px;">
+                    {% csrf_token %}
+                    <textarea name="observation" rows="2" class="form-control" placeholder="Observation de validation ou correction"></textarea>
+                    <button name="decision" value="valider" class="btn btn-success">Valider la réponse</button>
+                    <button name="decision" value="corriger" class="btn btn-danger">Demander une correction</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if peut_transmettre_sg %}
+            <form method="post" action="{% url 'directeur_transmettre_sg' courrier.pk %}" style="margin-top:10px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Transmettre au Secrétaire du SG</button>
+            </form>
+            {% endif %}
+            {% if peut_repondre %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'reponse_nouveau' courrier.pk %}">
+                {% csrf_token %}
+                {% if courrier.reponse_requise %}
+                    <label class="field-label" for="id_observation_reponse">Réponse / observation</label>
+                    <textarea id="id_observation_reponse" name="observation" rows="4" class="form-control" required></textarea>
+                    <label class="field-label" for="id_fichier_reponse" style="margin-top:8px;">Document de réponse (optionnel)</label>
+                    <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
+                    <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre la réponse</button>
+                {% else %}
+                    <input type="hidden" name="mode" value="sans_reponse">
+                    <label class="field-label" for="id_observation_traitement">Compte-rendu du traitement</label>
+                    <textarea id="id_observation_traitement" name="observation" rows="4" class="form-control"
+                              placeholder="Indiquez le traitement effectué (réponse écrite non requise)." required></textarea>
+                    <button type="submit" class="btn btn-primary" style="margin-top:10px;">Envoyer le traitement au Directeur</button>
+                {% endif %}
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <!-- Documents joints -->
         <div class="card">
