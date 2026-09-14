@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Rédiger la Fiche d'Analyse — {{ courrier.reference }}{% endblock %}
-{% block page_title %}Fiche d'Analyse DC{% endblock %}
+{% block page_title %}{% if user.role == 'SG' %}Fiche d'Analyse SG{% else %}Fiche d'Analyse DC{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -83,7 +83,7 @@
             Documents joints ({{ courrier.documents.count }})
         </label>
         {% for doc in courrier.documents.all %}
-        <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener"
+        <a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener"
            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #eff6ff; color: var(--primary-color); border-radius: var(--radius-sm); text-decoration: none; font-size: 0.85rem; margin-right: 8px; margin-bottom: 6px;">
              {{ doc.nom }}
         </a>
@@ -104,6 +104,17 @@
     </div>
     {% endif %}
 
+    {% if user.role == 'SG' %}
+    <div class="form-group">
+        <label class="form-label" for="{{ form.observations_sg.id_for_label }}">
+            {{ form.observations_sg.label }}
+        </label>
+        {{ form.observations_sg }}
+        {% if form.observations_sg.errors %}
+            <small style="color: var(--danger-color);">{{ form.observations_sg.errors }}</small>
+        {% endif %}
+    </div>
+    {% else %}
     <div class="form-group">
         <label class="form-label" for="{{ form.observations_dc.id_for_label }}">
             {{ form.observations_dc.label }}
@@ -113,7 +124,30 @@
             <small style="color: var(--danger-color);">{{ form.observations_dc.errors }}</small>
         {% endif %}
     </div>
+    {% endif %}
 
+    <div class="form-group">
+        <label class="form-label" for="{{ form.direction_proposee.id_for_label }}">
+            Proposition d'affectation (Direction)
+        </label>
+        {{ form.direction_proposee }}
+        <p class="help-text" style="color: var(--text-muted); margin-top:6px;">Sélectionnez la direction/service proposé pour l'affectation.</p>
+        {% if form.direction_proposee.errors %}
+            <small style="color: var(--danger-color);">{{ form.direction_proposee.errors }}</small>
+        {% endif %}
+    </div>
+
+    {% if user.role == 'SG' %}
+    <div class="form-group">
+        <label class="form-label" for="{{ form.propositions_sg.id_for_label }}">
+            {{ form.propositions_sg.label }}
+        </label>
+        {{ form.propositions_sg }}
+        {% if form.propositions_sg.errors %}
+            <small style="color: var(--danger-color);">{{ form.propositions_sg.errors }}</small>
+        {% endif %}
+    </div>
+    {% else %}
     <div class="form-group">
         <label class="form-label" for="{{ form.propositions_dc.id_for_label }}">
             {{ form.propositions_dc.label }}
@@ -123,6 +157,7 @@
             <small style="color: var(--danger-color);">{{ form.propositions_dc.errors }}</small>
         {% endif %}
     </div>
+    {% endif %}
 
     <div style="display: flex; align-items: center; gap: 12px; margin-top: 1rem;">
         <a href="{% url 'courrier_detail' courrier.pk %}" class="btn-back">

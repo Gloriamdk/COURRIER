@@ -9,7 +9,11 @@ class RoleRequiredMixin(UserPassesTestMixin):
 
     def test_func(self):
         # L'utilisateur doit être connecté et avoir le rôle autorisé
-        return self.request.user.is_authenticated and self.request.user.role in self.allowed_roles
+        return (
+            self.request.user.is_authenticated
+            and self.request.user.is_active
+            and self.request.user.role in self.allowed_roles
+        )
 
     def handle_no_permission(self):
         # Si l'utilisateur n'a pas les droits, on lève une erreur 403

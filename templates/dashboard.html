@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tz %}
 
 {% block extra_css %}
 <style>
@@ -91,8 +92,118 @@
 {% block content %}
 <div class="welcome-card">
     <h2>Ministère du Tourisme, de la Culture et des Arts (MTCA)</h2>
-    <p style="margin-top: 10px; opacity: 0.9;">Bienvenue dans votre espace de travail, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+    <p style="margin-top: 10px; opacity: 0.9;">Bienvenue dans votre espace de travail personnel, <strong>{{
+            user.first_name }} {{ user.last_name }}</strong>.</p>
 </div>
+
+<!-- Alertes de l'utilisateur connecté uniquement -->
+{% if alertes_visibles and nb_relances > 0 %}
+<div class="card alert-relance-container"
+    style="background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 25px; border-left: 5px solid {% if nb_relances > 0 %}#dc2626{% else %}#16a34a{% endif %}; overflow: hidden;">
+    <div
+        style="padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; background: {% if nb_relances > 0 %}#fef2f2{% else %}#f0fdf4{% endif %}; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 1.6rem;">🚨</span>
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; color: #991b1b;">Mes courriers en alerte</h3>
+            </div>
+        </div>
+        <div>
+            <span class="priority-badge tres_urgent"
+                style="font-size: 0.9rem; padding: 6px 14px; border-radius: 20px; font-weight: 700; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;">{{
+                nb_relances }} alerte{{ nb_relances|pluralize }}</span>
+        </div>
+    </div>
+
+    <div style="padding: 15px 25px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr
+                    style="border-bottom: 2px solid #fee2e2; text-align: left; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <th style="padding: 10px;">Référence</th>
+                    <th style="padding: 10px;">Objet du courrier</th>
+                    <th style="padding: 10px;">Étape & Date de transmission</th>
+                    <th style="padding: 10px;">Détenteur / Service actuel</th>
+                    <th style="padding: 10px; text-align: center;">Retard accumulé</th>
+                    <th style="padding: 10px; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in relances_actives %}
+                <tr
+                    style="border-bottom: 1px solid var(--border-color); background: {% if r.courrier.priorite == 'URGENT' or r.courrier.priorite == 'TRES_URGENT' %}#fff5f5{% else %}{% cycle '#ffffff' '#fffafa' %}{% endif %};">
+                    <td style="padding: 12px 10px; font-weight: 700; color: var(--primary-color);">
+                        {{ r.courrier.reference }}
+                        {% if r.courrier.priorite == 'URGENT' or r.courrier.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent"
+                            style="display: block; width: fit-content; margin-top: 4px; font-size: 0.72rem; padding: 2px 6px;">🚨
+                            COURRIER URGENT</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 10px; max-width: 250px;">
+                        <div style="font-weight: 600; color: var(--text-color);">{{
+                            r.courrier.designation|truncatechars:65 }}</div>
+                        <small style="color: var(--text-muted);">Exp: {{ r.courrier.expediteur_nom }}</small>
+                    </td>
+                    <td style="padding: 12px 10px;">
+                        <span class="status-badge" style="background: #f1f5f9; color: #334155; font-size: 0.78rem;">{{
+                            r.get_etape_display }}</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                            Transmis le {{ r.date_debut_etape|date:"d/m/Y H:i" }}
+                            <br>Délai : {{ r.courrier.delai_traitement_jours }} jour{{
+                            r.courrier.delai_traitement_jours|pluralize }} · Limite : {{ r.date_limite|date:"d/m/Y H:i"
+                            }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px 10px;">
+                        {% with affectation_alerte=r.courrier.affectations_en_alerte|first %}
+                        {% if affectation_alerte.destinataire %}
+                        <strong style="color: #1e3a8a;">{{
+                            affectation_alerte.destinataire.get_full_name|default:affectation_alerte.destinataire.username
+                            }}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">{{
+                            affectation_alerte.service_concerne|default:affectation_alerte.destinataire.get_role_display
+                            }}</div>
+                        {% elif affectation_alerte.service_concerne %}
+                        <span class="status-badge decide" style="font-size: 0.78rem;">{{
+                            affectation_alerte.service_concerne }}</span>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Service détenteur</div>
+                        {% elif r.destinataire_user %}
+                        <strong style="color: #1e3a8a;">{{
+                            r.destinataire_user.get_full_name|default:r.destinataire_user.username }}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">{{
+                            r.destinataire_user.get_role_display }}</div>
+                        {% elif r.destinataire_role %}
+                        <span class="status-badge arrive" style="font-size: 0.78rem;">{{ r.get_destinataire_role_display
+                            }}</span>
+                        {% elif r.service_concerne %}
+                        <span class="status-badge decide" style="font-size: 0.78rem;">{{ r.service_concerne }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-style: italic;">Secrétariat</span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td style="padding: 12px 10px; text-align: center;">
+                        <span
+                            style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;">
+                            {% if r.nature == 'RETARD' %}COURRIER EN RETARD{% else %}ÉCHÉANCE PROCHE : {{
+                            r.jours_restants }} jour{{ r.jours_restants|pluralize }} restant{{
+                            r.jours_restants|pluralize }}{% endif %}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 10px; text-align: right;">
+                        <a href="{% url 'courrier_detail' r.courrier.pk %}" class="action-btn primary"
+                            style="padding: 7px 12px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                            <span>Ouvrir</span> ➔
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 <!-- ==================== INTERFACE SECRÉTARIAT CENTRAL ==================== -->
 {% if user.role == 'SECRETARIAT_CENTRAL' %}
@@ -118,12 +229,25 @@
         </thead>
         <tbody>
             {% for c in courriers_recents %}
-            <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+            <tr style="border-bottom: 1px solid var(--border-color);" {% if c.id in courriers_en_retard_ids
+                %}class="row-late" {% endif %}>
+                <td style="padding: 15px 10px; font-weight: 600;">
+                    {{ c.reference }}
+                    {% if c.id in courriers_en_retard_ids %}
+                    <span class="late-badge"
+                        title="Délai réglementaire de {{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }} dépassé">⏰
+                        Retard (>{{ delai_traitement_actuel }}j)</span>
+                    {% endif %}
+                </td>
                 <td style="padding: 15px 10px;">{{ c.designation }}</td>
                 <td style="padding: 15px 10px;">{{ c.expediteur_nom }}</td>
                 <td style="padding: 15px 10px;">
-                    <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                    {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                    <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display
+                        }}</span>
+                    {% else %}
+                    <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                    {% endif %}
                 </td>
                 <td style="padding: 15px 10px;">
                     <span class="status-badge arrive">{{ c.get_statut_display }}</span>
@@ -161,11 +285,22 @@
             </thead>
             <tbody>
                 {% for c in courriers_a_analyser %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);" {% if c.id in courriers_en_retard_ids
+                    %}class="row-late" {% endif %}>
+                    <td style="padding: 15px 10px; font-weight: 600;">
+                        {{ c.reference }}
+                        {% if c.id in courriers_en_retard_ids %}
+                        <span class="late-badge">⏰ Échéance à surveiller</span>
+                        {% endif %}
+                    </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display
+                            }}</span>
+                        {% else %}
+                        <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Rédiger l'Analyse</a>
@@ -204,6 +339,65 @@
     </div>
 </div>
 
+<!-- ==================== INTERFACE SECRÉTAIRE DU MINISTRE ==================== -->
+{% elif user.role == 'SECRETAIRE_MINISTRE' %}
+<div class="dashboard-grid">
+    <div class="card"
+        style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers validés à transmettre au Ministre</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr
+                    style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_recents %}
+                <tr style="border-bottom: 1px solid var(--border-color);" {% if c.id in courriers_en_retard_ids
+                    %}class="row-late" {% endif %}>
+                    <td style="padding: 15px 10px; font-weight: 600;">
+                        {{ c.reference }}
+                        {% if c.id in courriers_en_retard_ids %}
+                        <span class="late-badge"
+                            title="Délai réglementaire de {{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }} dépassé">⏰
+                            Retard (>{{ delai_traitement_actuel }}j)</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display
+                            }}</span>
+                        {% else %}
+                        <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Consulter</a>
+                            <form action="{% url 'courrier_transmettre' c.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn primary"
+                                    style="border: none; cursor: pointer;">Transmettre au Ministre</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier
+                        en attente de transmission.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- ==================== INTERFACE MINISTRE ==================== -->
 {% elif user.role == 'MINISTRE' %}
 <div class="dashboard-grid">
@@ -223,11 +417,24 @@
             </thead>
             <tbody>
                 {% for c in courriers_a_decider %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 15px 10px; font-weight: 600;">{{ c.reference }}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);" {% if c.id in courriers_en_retard_ids
+                    %}class="row-late" {% endif %}>
+                    <td style="padding: 15px 10px; font-weight: 600;">
+                        {{ c.reference }}
+                        {% if c.id in courriers_en_retard_ids %}
+                        <span class="late-badge"
+                            title="Délai réglementaire de {{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }} dépassé">⏰
+                            Retard (>{{ delai_traitement_actuel }}j)</span>
+                        {% endif %}
+                    </td>
                     <td style="padding: 15px 10px;">{{ c.designation }}</td>
                     <td style="padding: 15px 10px;">
-                        <span class="priority-badge {{ c.priorite|lower }}">{{ c.get_priorite_display }}</span>
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display
+                            }}</span>
+                        {% else %}
+                        <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">
                         <a href="{% url 'courrier_detail' c.pk %}" class="action-btn primary"
@@ -264,6 +471,145 @@
                 récemment.</li>
             {% endfor %}
         </ul>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE SG ET SECRETAIRES (DC & SG) ==================== -->
+{% elif user.role == 'SG' or user.role == 'SECRETAIRE_SG' or user.role == 'SECRETAIRE_DC' %}
+<div class="dashboard-grid">
+    <div class="card"
+        style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers Récents</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr
+                    style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Expéditeur</th>
+                    <th style="padding: 12px 10px;">Priorité</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courriers_recents %}
+                <tr style="border-bottom: 1px solid var(--border-color);" {% if c.id in courriers_en_retard_ids
+                    %}class="row-late" {% endif %}>
+                    <td style="padding: 15px 10px; font-weight: 600;">
+                        {{ c.reference }}
+                        {% if c.id in courriers_en_retard_ids %}
+                        <span class="late-badge"
+                            title="Délai réglementaire de {{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }} dépassé">⏰
+                            Retard (>{{ delai_traitement_actuel }}j)</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px 10px;">{{ c.designation }}</td>
+                    <td style="padding: 15px 10px;">{{ c.expediteur_nom }}</td>
+                    <td style="padding: 15px 10px;">
+                        {% if c.priorite == 'URGENT' or c.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent" style="font-weight: 700;">🚨 {{ c.get_priorite_display
+                            }}</span>
+                        {% else %}
+                        <span class="priority-badge normal">{{ c.get_priorite_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{% url 'courrier_detail' c.pk %}" class="action-btn secondary">Consulter</a>
+                            {% if user.role == 'SECRETAIRE_DC' or user.role == 'SECRETAIRE_SG' %}
+                            <form action="{% url 'courrier_transmettre' c.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn primary"
+                                    style="border: none; cursor: pointer;">Transmettre</button>
+                            </form>
+                            {% if user.role == 'SECRETAIRE_SG' %}
+                            <form action="{% url 'courrier_refuser' c.pk %}" method="post" style="display:inline;"
+                                onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter ce courrier vers le Secrétariat Central ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn"
+                                    style="border: none; cursor: pointer; background-color: var(--danger-color); color: white;">Refuser</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier
+                        récent.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== INTERFACE DIRECTEURS & AGENTS ==================== -->
+{% elif user.role == 'DIRECTEUR' or user.role == 'AGENT' %}
+<div class="dashboard-grid">
+    <div class="card"
+        style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); grid-column: span 2;">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">Courriers affectés à mon service</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr
+                    style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.9rem;">
+                    <th style="padding: 12px 10px;">Référence</th>
+                    <th style="padding: 12px 10px;">Désignation</th>
+                    <th style="padding: 12px 10px;">Date d'affectation</th>
+                    <th style="padding: 12px 10px;">Statut exécution</th>
+                    <th style="padding: 12px 10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aff in mes_affectations %}
+                <tr style="border-bottom: 1px solid var(--border-color);" {% if aff.courrier_id in
+                    courriers_en_retard_ids %}class="row-late" {% endif %}>
+                    <td style="padding: 15px 10px; font-weight: 600;">
+                        {{ aff.courrier.reference }}
+                        {% if aff.courrier_id in courriers_en_retard_ids %}
+                        <span class="late-badge"
+                            title="Délai réglementaire de {{ delai_traitement_actuel }} jour{{ delai_traitement_actuel|pluralize }} dépassé">⏰
+                            Retard (>{{ delai_traitement_actuel }}j)</span>
+                        {% endif %}
+                        {% if aff.courrier.priorite == 'URGENT' or aff.courrier.priorite == 'TRES_URGENT' %}
+                        <span class="priority-badge tres_urgent"
+                            style="display: block; width: fit-content; margin-top: 4px; font-size: 0.72rem; padding: 2px 6px;">🚨
+                            URGENT</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px 10px;">{{ aff.courrier.designation }}</td>
+                    <td style="padding: 15px 10px;">{{ aff.date_affectation|utc|date:"d/m/Y à H:i" }}
+                        GMT<br><small>Délai : {{ aff.courrier.delai_traitement_jours }} j. · Limite : {{
+                            aff.date_limite_traitement|date:"d/m/Y" }}</small></td>
+                    <td style="padding: 15px 10px;">
+                        <span
+                            class="status-badge {% if aff.statut_traitement == 'TRAITE' %}analyse{% else %}arrive{% endif %}">
+                            {{ aff.get_statut_traitement_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <a href="{% url 'courrier_detail' aff.courrier.pk %}"
+                                class="action-btn secondary">Consulter</a>
+                            {% if aff.pk in affectations_a_affecter %}
+                            <a href="{% url 'affectation_nouveau' aff.courrier.pk %}" class="action-btn primary">
+                                Affecter à un agent
+                            </a>
+                            {% endif %}
+
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">Aucun courrier
+                        affecté actuellement.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endif %}

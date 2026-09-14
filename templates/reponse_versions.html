@@ -1,0 +1,56 @@
+{% if peut_repondre %}
+<section class="card">
+    <div class="card-header"><h2>{% if courrier.statut == 'CORRECTION_DEMANDEE' %}Soumettre une version corrigée{% else %}{% if courrier.reponse_requise %}Préparer la lettre de réponse{% else %}Rapport d’action terrain{% endif %}{% endif %}</h2></div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'reponse_nouveau' courrier.pk %}">
+                {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                {% if courrier.reponse_requise %}
+                    <label class="field-label" for="id_observation_reponse">Réponse / observation</label>
+                    <textarea id="id_observation_reponse" name="observation" rows="8" class="form-control" required></textarea>
+                    <label class="field-label" for="id_fichier_reponse" style="margin-top:8px;">Document de réponse (optionnel)</label>
+                    <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
+                    <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre au Directeur</button>
+                {% else %}
+                    <input type="hidden" name="mode" value="sans_reponse">
+                    <label class="field-label" for="id_observation_traitement">Rapport d’action terrain</label>
+                    <textarea id="id_observation_traitement" name="observation" rows="8" class="form-control"
+                              placeholder="Indiquez le traitement effectué (réponse écrite non requise)." required></textarea>
+                    <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre le rapport au Directeur</button>
+                {% endif %}
+            </form>
+</section>
+{% endif %}
+        <!-- Réponses de l'agent et validation hiérarchique -->
+        {% if reponses or peut_valider_reponse or peut_transmettre_sg %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Réponses et rapports</span>
+            </div>
+            {% for reponse in reponses %}
+            <div class="workflow-section">
+                <strong>Version {{ reponse.version }}</strong><small class="version-date">{{ reponse.date_preparation|date:"d/m/Y à H:i" }}</small>
+                <span style="color:var(--text-muted);"> — {{ reponse.auteur.get_full_name|default:reponse.auteur.username }}
+                    — {{ reponse.get_statut_traitement_display }}</span>
+                {% if reponse.observation %}<p class="field-value">{{ reponse.observation|linebreaksbr }}</p>{% endif %}
+                {% if reponse.document %}
+                    <a href="{% url 'document_telecharger' reponse.document.pk %}" target="_blank" rel="noopener">Télécharger la réponse</a>
+                {% endif %}
+                {% if peut_valider_reponse and reponse.statut_traitement == 'ENVOYE_DIRECTEUR' and reponse.auteur.service_direction == request.user.service_direction %}
+                <form method="post" action="{% url 'reponse_valider' courrier.pk reponse.pk %}" style="margin-top:10px;">
+                    {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                    <label class="field-label" for="validation-{{ reponse.pk }}">Observations du Directeur</label>
+                    <textarea id="validation-{{ reponse.pk }}" name="observation" rows="2" class="form-control" placeholder="Observation de validation ou correction"></textarea>
+                    <div class="response-actions"><button name="decision" value="valider" class="btn btn-success">{% if courrier.reponse_requise %}Valider la réponse{% else %}Valider le rapport et clôturer{% endif %}</button>
+                    <button name="decision" value="corriger" class="btn btn-danger">Demander une correction</button></div>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if peut_transmettre_sg %}
+            <form method="post" action="{% url 'directeur_transmettre_sg' courrier.pk %}" style="margin-top:10px;">
+                {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                <button type="submit" class="btn btn-primary">Transmettre au Secrétaire du SG</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+

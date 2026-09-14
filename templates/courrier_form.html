@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Enregistrer un courrier{% endblock %}
 {% block page_title %}Enregistrer un nouveau courrier{% endblock %}
@@ -143,7 +144,7 @@
         <div class="form-card">
             <p class="form-section-title"> Document numérisé</p>
 
-            <div class="file-drop-zone" id="file-drop-zone" onclick="document.getElementById('{{ form.fichier_scan.id_for_label }}').click()">
+            <div class="file-drop-zone" id="file-drop-zone">
                 <span class="drop-icon"></span>
                 <p>Glissez-déposez votre fichier ici ou <strong>cliquez pour parcourir</strong></p>
                 <p style="font-size: 0.78rem; margin-top: 4px;">PDF, JPG, PNG — max 10 Mo</p>
@@ -170,51 +171,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    // Afficher le nom du fichier sélectionné
-    const fileInput = document.getElementById('{{ form.fichier_scan.id_for_label }}');
-    const fileDisplay = document.getElementById('file-name-display');
-    const fileNameText = document.getElementById('file-name-text');
-    const dropZone = document.getElementById('file-drop-zone');
-
-    if (fileInput) {
-        fileInput.addEventListener('change', function () {
-            if (this.files && this.files.length > 0) {
-                const file = this.files[0];
-                fileNameText.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' Ko)';
-                fileDisplay.style.display = 'block';
-            }
-        });
-    }
-
-    // Drag & drop visuel sur la zone
-    if (dropZone) {
-        dropZone.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', function () {
-            dropZone.classList.remove('dragover');
-        });
-        dropZone.addEventListener('drop', function (e) {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0 && fileInput) {
-                fileInput.files = e.dataTransfer.files;
-                const file = e.dataTransfer.files[0];
-                fileNameText.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' Ko)';
-                fileDisplay.style.display = 'block';
-            }
-        });
-    }
-
-    // Pré-remplir la date d'arrivée avec la date/heure actuelle
-    const dateInput = document.getElementById('id_date_arrivee');
-    if (dateInput && !dateInput.value) {
-        const now = new Date();
-        // Format attendu : YYYY-MM-DDTHH:MM
-        now.setSeconds(0, 0);
-        dateInput.value = now.toISOString().slice(0, 16);
-    }
-</script>
+<script src="{% static 'js/courrier_form.js' %}"></script>
 {% endblock %}

@@ -16,3 +16,14 @@ staticfiles/
 .idea/
 .DS_Store
 *.log
+
+# Documents sensibles (ne pas pousser sur GitHub)
+*.pdf
+GESTION COURRIER.png
+
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+venv/
+.venv/

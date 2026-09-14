@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Courrier, Document, FicheAnalyse, Decision, Affectation, Historique, Notification
+from .models import User, Courrier, Document, FicheAnalyse, FicheAnalyseSG, Decision, Affectation, Historique, Notification, Relance, ConfigurationDelai
+
+@admin.register(ConfigurationDelai)
+class ConfigurationDelaiAdmin(admin.ModelAdmin):
+    list_display = ('delai_jours', 'modifie_par', 'date_modification')
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -24,6 +28,10 @@ class DocumentAdmin(admin.ModelAdmin):
 class FicheAnalyseAdmin(admin.ModelAdmin):
     list_display = ('courrier', 'analyse_par', 'valide', 'date_analyse')
 
+@admin.register(FicheAnalyseSG)
+class FicheAnalyseSGAdmin(admin.ModelAdmin):
+    list_display = ('courrier', 'analyse_par', 'valide', 'date_analyse')
+
 @admin.register(Decision)
 class DecisionAdmin(admin.ModelAdmin):
     list_display = ('courrier', 'signe_par', 'date_decision')
@@ -39,3 +47,10 @@ class HistoriqueAdmin(admin.ModelAdmin):
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('destinataire', 'message', 'lu', 'date_notification')
+
+@admin.register(Relance)
+class RelanceAdmin(admin.ModelAdmin):
+    list_display = ('courrier', 'etape', 'destinataire_role', 'destinataire_user', 'service_concerne', 'date_debut_etape', 'est_resolue', 'date_resolution')
+    list_filter = ('est_resolue', 'etape', 'destinataire_role')
+    search_fields = ('courrier__reference', 'courrier__designation')
+
