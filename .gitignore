@@ -1,22 +1,55 @@
-# Python caches
+# =========================================================
+# PYTHON
+# =========================================================
+
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Django database and media
+# =========================================================
+# ENVIRONNEMENT
+# =========================================================
+
+.env
+.env.*
+!.env.example
+
+# =========================================================
+# DJANGO
+# =========================================================
+
+# Base de données locale
 db.sqlite3
+*.sqlite3
+
+# Fichiers médias générés localement
 media/
+
+# Fichiers statiques collectés
 staticfiles/
 
-# Environment variables
-.env
+# =========================================================
+# SAUVEGARDES LOCALES
+# =========================================================
 
-# IDE and OS files
+backups/
+
+# =========================================================
+# IDE / SYSTÈME
+# =========================================================
+
 .vscode/
 .idea/
 .DS_Store
 *.log
 
-# Documents sensibles (ne pas pousser sur GitHub)
+# =========================================================
+# DOCUMENTS SENSIBLES
+# =========================================================
+
 *.pdf
 GESTION COURRIER.png
+
+
+# Scripts locaux de restauration
+restore_users.py
