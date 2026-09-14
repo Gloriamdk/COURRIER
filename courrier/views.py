@@ -33,7 +33,7 @@ from .forms import CourrierForm, FicheAnalyseForm, FicheAnalyseSGForm, Affectati
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
 from .validators import validate_document_upload
-from .services import synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur
+from .services import cloturer_traitement, synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur
 import mimetypes
 
 
@@ -178,7 +178,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # Synchronisation automatique des relances et alertes en arrière-plan
         synchroniser_relances()
         active_alert_affectations = Affectation.objects.filter(
-            courrier__statut=Courrier.Statut.AFFECTE,
             statut_traitement__in=[
                 Affectation.StatutTraitement.RECU,
                 Affectation.StatutTraitement.EN_COURS,
@@ -209,6 +208,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['nb_notifications'] = user.notifications.filter(lu=False).count()
 
         if user.role == User.Role.SECRETARIAT_CENTRAL:
+            context['courriers_sortants'] = CourrierSortant.objects.select_related('courrier', 'document').order_by('-date_enregistrement')[:20]
             context['courriers_recents'] = Courrier.objects.filter(cree_par=user).select_related('cree_par').order_by('-date_enregistrement')[:10]
             context['total_courriers'] = Courrier.objects.filter(cree_par=user).count()
             context['courriers_en_attente'] = Courrier.objects.filter(statut=Courrier.Statut.ARRIVE).count()
@@ -361,6 +361,7 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
         except Decision.DoesNotExist:
             context['decision'] = None
         context['decision_finale'] = getattr(courrier, 'decision_finale', None)
+        context['courrier_sortant'] = getattr(courrier, 'courrier_sortant', None)
 
         # Affectations
         context['affectations'] = courrier.affectations.select_related('destinataire', 'affecte_par').order_by('-date_affectation')[:100]
@@ -469,8 +470,6 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             and context['decision'] is not None
             and courrier.statut in [
                 Courrier.Statut.DECIDE,
-                Courrier.Statut.SIGNE_PAR_MINISTRE,
-                Courrier.Statut.COURRIER_SORTANT,
             ]
             and (
                 not courrier.affectations.exists()
@@ -494,10 +493,32 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             )
         )
 
+        context['circuit_reponse_actif'] = (
+            context['decision'] is not None and (
+                courrier.affectations.exists() or courrier.reponses_courrier.exists()
+            )
+        )
+
         return context
 
 
 # ==============================================================================
+class CircuitReponseView(CourrierDetailView):
+    """Espace de réponse avec les mêmes droits d'accès que le courrier."""
+    template_name = 'circuit_reponse.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if not context['circuit_reponse_actif']:
+            raise Http404("Le circuit de réponse n'a pas encore commencé.")
+        context['destinataire_transmission'] = {
+            ('SECRETAIRE_SG', 'TRANSMIS_SG'): 'SG',
+            ('SECRETAIRE_DC', 'TRANSMIS_DC'): 'DC',
+            ('SECRETAIRE_MINISTRE', 'ANALYSE_VALIDE'): 'Ministre',
+        }.get((self.request.user.role, self.object.statut))
+        return context
+
+
 # ENREGISTREMENT D'UN COURRIER (Secrétariat Central)
 # ==============================================================================
 
@@ -767,7 +788,7 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             observation = (request.POST.get('observation') or '').strip()
             if not observation:
                 messages.error(request, "L'observation du DC est obligatoire.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
             ancien = courrier.statut
             if request.POST.get('action') == 'correction':
                 courrier.statut = Courrier.Statut.CORRECTION_DEMANDEE
@@ -779,7 +800,7 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                                  nouveau_statut=courrier.statut, observation=observation)
                 notifier_role(User.Role.AGENT, courrier,
                               f"Le DC demande une correction pour {courrier.reference}.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
             courrier.statut = Courrier.Statut.ANALYSE_VALIDE
             courrier.responsable_actuel_role = User.Role.SECRETAIRE_MINISTRE
             courrier.save(update_fields=['statut', 'responsable_actuel_role'])
@@ -789,7 +810,7 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                              nouveau_statut=courrier.statut, observation=observation)
             notifier_role(User.Role.SECRETAIRE_MINISTRE, courrier,
                           f"Le DC a validé le traitement de {courrier.reference}.")
-            return redirect('courrier_detail', pk=courrier_id)
+            return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
         courrier = get_object_or_404(
             Courrier.objects.pour_utilisateur(request.user).filter(
                 statut=Courrier.Statut.EN_COURS_DC,
@@ -849,7 +870,7 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 request,
                 f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du SG."
             )
-        return redirect('courrier_detail', pk=courrier_id)
+        return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
 
 class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -871,7 +892,7 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             observation = (request.POST.get('observation') or '').strip()
             if not observation:
                 messages.error(request, "L'observation du SG est obligatoire.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
             ancien = courrier.statut
             if request.POST.get('action') == 'correction':
                 courrier.statut = Courrier.Statut.CORRECTION_DEMANDEE
@@ -883,7 +904,7 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                                  nouveau_statut=courrier.statut, observation=observation)
                 notifier_role(User.Role.AGENT, courrier,
                               f"Le SG demande une correction pour {courrier.reference}.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
             courrier.statut = Courrier.Statut.TRANSMIS_DC
             courrier.responsable_actuel_role = User.Role.SECRETAIRE_DC
             courrier.save(update_fields=['statut', 'responsable_actuel_role'])
@@ -893,7 +914,7 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                              nouveau_statut=courrier.statut, observation=observation)
             notifier_role(User.Role.SECRETAIRE_DC, courrier,
                           f"Le SG a validé le traitement de {courrier.reference}.")
-            return redirect('courrier_detail', pk=courrier_id)
+            return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
         courrier = get_object_or_404(
             Courrier.objects.pour_utilisateur(request.user).filter(
                 statut=Courrier.Statut.EN_COURS_SG,
@@ -962,7 +983,7 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 request,
                 f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du DC."
             )
-        return redirect('courrier_detail', pk=courrier_id)
+        return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
 
 class FicheAnalyseCorrectionView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -1113,6 +1134,7 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         context['courrier'] = courrier
         context['decision_initiale'] = getattr(courrier, 'decision', None)
         context['decision_finale'] = getattr(courrier, 'decision_finale', None)
+        context['courrier_sortant'] = getattr(courrier, 'courrier_sortant', None)
         context['circuit_traitement_final'] = context['decision_initiale'] is not None
 
         try:
@@ -1128,6 +1150,7 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        kwargs['circuit_final'] = getattr(self.get_courrier(), 'decision', None) is not None
         if self.request.method != 'POST':
             kwargs['initial'] = {'delai_traitement_jours': self.get_courrier().delai_traitement_jours}
         return kwargs
@@ -1135,40 +1158,19 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
+                Courrier.objects.select_for_update().get(pk=self.kwargs['courrier_id'])
                 courrier = self.get_courrier()
-                action_finale = form.cleaned_data.get('action_finale') or 'valider'
+                action_finale = self.request.POST.get('action_finale') or 'valider'
                 decision_initiale = getattr(courrier, 'decision', None)
 
                 if decision_initiale is not None:
                     if getattr(courrier, 'decision_finale', None) is not None:
                         messages.error(self.request, "La décision finale de ce courrier existe déjà.")
                         return redirect('courrier_detail', pk=courrier.pk)
-                    motif = (form.cleaned_data.get('observation_correction') or '').strip()
-                    if action_finale == 'corriger':
-                        if not motif:
-                            form.add_error('observation_correction', "Le motif de correction est obligatoire.")
-                            return self.form_invalid(form)
-                        ancien_statut = courrier.statut
-                        FicheAnalyse.objects.filter(courrier=courrier).delete()
-                        FicheAnalyseSG.objects.filter(courrier=courrier).delete()
-                        courrier.statut = Courrier.Statut.CORRECTION_DEMANDEE
-                        courrier.responsable_actuel_role = User.Role.AGENT
-                        courrier.save(update_fields=['statut', 'responsable_actuel_role'])
-                        creer_historique(
-                            courrier, self.request.user, 'CORRECTION_DEMANDEE_MINISTRE',
-                            f"Correction demandée par le Ministre : {motif}",
-                            role=self.request.user.role,
-                            ancien_statut=ancien_statut,
-                            nouveau_statut=Courrier.Statut.CORRECTION_DEMANDEE,
-                            observation=motif,
-                        )
-                        notifier_role(
-                            User.Role.DIRECTEUR, courrier,
-                            f"Le Ministre demande une correction pour {courrier.reference} : {motif}",
-                        )
-                        messages.success(self.request, "La correction a été demandée et le dossier revient au traitement départemental.")
-                        return redirect('courrier_detail', pk=courrier.pk)
-
+                    if action_finale != 'valider':
+                        raise PermissionDenied("Seule la signature finale est disponible à cette étape.")
+                    if not courrier.reponse_requise or not courrier.reponses_courrier.filter(statut_traitement=ReponseCourrier.Statut.VALIDE).exists():
+                        raise PermissionDenied("Une lettre validée par le Directeur est nécessaire avant signature.")
                     fichier_signe = form.cleaned_data.get('document_signe')
                     if not fichier_signe:
                         form.add_error('document_signe', "Le document signé est obligatoire pour la décision finale.")
@@ -1186,21 +1188,34 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                         instructions_finales=form.cleaned_data.get('instructions_finales') or '',
                         document_signe=document_signe,
                     )
-                    courrier.statut = Courrier.Statut.SIGNE_PAR_MINISTRE
-                    courrier.save(update_fields=['statut'])
+                    cloturer_traitement(courrier, self.request.user)
+                    sortant, _ = CourrierSortant.objects.get_or_create(
+                        courrier=courrier,
+                        defaults={
+                            'enregistre_par': self.request.user,
+                            'destinataire': courrier.expediteur_nom or courrier.expediteur_institution,
+                            'objet': courrier.designation,
+                            'document': document_signe,
+                            'date_expedition': None,
+                            'observation': "Enregistrement automatique après signature finale, transmis au Secrétariat central.",
+                        },
+                    )
+                    creer_historique(courrier, self.request.user, 'ENREGISTREMENT_COURRIER_SORTANT',
+                        f"Courrier sortant {sortant.reference_sortie} enregistré automatiquement pour le Secrétariat central.",
+                        document=document_signe)
                     creer_historique(
                         courrier, self.request.user, 'DECISION_FINALE_MINISTRE',
                         f"Décision finale signée par {self.request.user.get_full_name() or self.request.user.username}.",
                         role=self.request.user.role,
                         ancien_statut=Courrier.Statut.TRANSMIS_MINISTRE,
-                        nouveau_statut=Courrier.Statut.SIGNE_PAR_MINISTRE,
+                        nouveau_statut=Courrier.Statut.TERMINE,
                         document=document_signe,
                     )
                     notifier_role(
                         User.Role.SECRETARIAT_CENTRAL, courrier,
-                        f"Le courrier signé {courrier.reference} est prêt à être enregistré comme courrier sortant.",
+                        f"Le courrier signé {courrier.reference} est traité et enregistré comme courrier sortant.",
                     )
-                    messages.success(self.request, "Décision finale signée et transmise au Secrétariat central.")
+                    messages.success(self.request, "Courrier traité, alertes levées et courrier sortant enregistré pour le Secrétariat central.")
                     return redirect('courrier_detail', pk=courrier.pk)
 
                 form.instance.signe_par = self.request.user
@@ -1343,9 +1358,10 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
     """
     allowed_roles = [User.Role.AGENT]
 
+    @transaction.atomic
     def post(self, request, courrier_id):
         courrier = get_object_or_404(
-            Courrier.objects.pour_utilisateur(request.user).filter(
+            Courrier.objects.select_for_update().pour_utilisateur(request.user).filter(
                 statut__in=[Courrier.Statut.AFFECTE, Courrier.Statut.CORRECTION_DEMANDEE],
                 affectations__destinataire=request.user,
             ),
@@ -1359,12 +1375,11 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             raise PermissionDenied("Ce courrier doit être clôturé sans réponse écrite.")
 
         observation = (request.POST.get('observation') or '').strip()
-        if courrier.reponse_requise and not observation:
-            messages.error(request, "Veuillez saisir une observation ou un texte de réponse avant soumission.")
-            return redirect('courrier_detail', pk=courrier_id)
-        if not courrier.reponse_requise and not observation:
-            observation = "Traitement effectué sans réponse écrite."
+        if not observation:
+            messages.error(request, "Veuillez saisir la réponse ou le rapport de traitement avant soumission.")
+            return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
+        libelle_traitement = 'Lettre de réponse' if courrier.reponse_requise else 'Rapport d’action terrain'
         version = (ReponseCourrier.objects.filter(
             courrier=courrier, auteur=request.user
         ).order_by('-version').values_list('version', flat=True).first() or 0) + 1
@@ -1396,7 +1411,7 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             courrier=courrier,
             utilisateur=request.user,
             action='REPONSE_AGENT_SOUVISEE',
-            description=f"Réponse écrite préparée par l’agent {request.user.get_full_name() or request.user.username} pour soumission au directeur.",
+            description=f"{libelle_traitement} préparé par l’agent {request.user.get_full_name() or request.user.username} pour soumission au directeur.",
             role=request.user.role,
             direction=request.user.service_direction,
             ancien_statut=ancien_statut,
@@ -1413,11 +1428,11 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             notifier(
                 destinataire=directeur,
                 courrier=courrier,
-                message=f"Réponse écrite soumise par l’agent {request.user.get_full_name() or request.user.username} pour {courrier.reference}."
+                message=f"{libelle_traitement} soumis par l’agent {request.user.get_full_name() or request.user.username} pour {courrier.reference}."
             )
 
-        messages.success(request, f"✅ Réponse écrite créée pour {courrier.reference} et envoyée à validation hiérarchique.")
-        return redirect('courrier_detail', pk=courrier_id)
+        messages.success(request, f"✅ {libelle_traitement} enregistré pour {courrier.reference} et envoyée à validation hiérarchique.")
+        return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
 
 class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -1426,18 +1441,21 @@ class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
     """
     allowed_roles = [User.Role.DIRECTEUR]
 
+    @transaction.atomic
     def post(self, request, courrier_id, pk):
         courrier = get_object_or_404(
-            Courrier.objects.pour_utilisateur(request.user).filter(
+            Courrier.objects.select_for_update().pour_utilisateur(request.user).filter(
                 statut=Courrier.Statut.SOUMIS_DIRECTEUR,
             ),
             pk=courrier_id,
         )
         reponse = get_object_or_404(ReponseCourrier.objects.select_related('courrier', 'auteur'), pk=pk, courrier=courrier)
 
-        if request.user.service_direction and request.user.service_direction != reponse.auteur.service_direction:
+        if not request.user.service_direction or normalize_service(request.user.service_direction) != normalize_service(reponse.auteur.service_direction):
             raise PermissionDenied("Un directeur ne peut valider que la réponse d’un agent de sa propre direction.")
 
+        if reponse.statut_traitement != ReponseCourrier.Statut.ENVOYE_DIRECTEUR:
+            raise PermissionDenied("Cette réponse a déjà été examinée.")
         decision = (request.POST.get('decision') or '').strip()
         if decision not in ['valider', 'corriger']:
             decision = 'valider'
@@ -1480,9 +1498,17 @@ class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 nouveau_statut=Courrier.Statut.VALIDE_DIRECTEUR,
                 observation='Réponse validée par la direction du directeur.',
             )
+            if not courrier.reponse_requise:
+                cloturer_traitement(courrier, request.user)
+                creer_historique(courrier, request.user, 'CLOTURE_ACTION_TERRAIN',
+                    "Rapport d’action terrain validé par le Directeur. Courrier traité.",
+                    ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
+                    nouveau_statut=Courrier.Statut.TERMINE)
+                messages.success(request, "Rapport validé : le courrier est traité et les alertes sont levées.")
+                return redirect('circuit_reponse', pk=courrier_id)
             messages.success(request, f"✅ Réponse écrite validée pour {courrier.reference}.")
 
-        return redirect('courrier_detail', pk=courrier_id)
+        return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
 
 class DirecteurTransmettreSGView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -1490,13 +1516,16 @@ class DirecteurTransmettreSGView(LoginRequiredMixin, RoleRequiredMixin, View):
 
     allowed_roles = [User.Role.DIRECTEUR]
 
+    @transaction.atomic
     def post(self, request, courrier_id):
         courrier = get_object_or_404(
-            Courrier.objects.pour_utilisateur(request.user).filter(
+            Courrier.objects.select_for_update().pour_utilisateur(request.user).filter(
                 statut=Courrier.Statut.VALIDE_DIRECTEUR,
             ),
             pk=courrier_id,
         )
+        if not courrier.reponse_requise:
+            raise PermissionDenied("Une action terrain est clôturée par le Directeur et ne suit pas le circuit de signature.")
         service = normalize_service(request.user.service_direction)
         services = {service, 'DAF' if service == 'DAAF' else 'DAAF'}
         if not courrier.reponses_courrier.filter(
@@ -1529,7 +1558,7 @@ class DirecteurTransmettreSGView(LoginRequiredMixin, RoleRequiredMixin, View):
             message=f"Le Directeur a validé et transmis le courrier {courrier.reference} au Secrétaire du SG.",
         )
         messages.success(request, f"✅ {courrier.reference} a été transmis au Secrétaire du SG.")
-        return redirect('courrier_detail', pk=courrier_id)
+        return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
 
 class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
@@ -1560,8 +1589,6 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             pk=self.kwargs['courrier_id'],
             statut__in=[
                 Courrier.Statut.DECIDE,
-                Courrier.Statut.SIGNE_PAR_MINISTRE,
-                Courrier.Statut.COURRIER_SORTANT,
                 Courrier.Statut.AFFECTE,
             ]
         )
@@ -1577,6 +1604,7 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
     def form_valid(self, form):
         with transaction.atomic():
+            Courrier.objects.select_for_update().get(pk=self.kwargs['courrier_id'])
             courrier = self.get_courrier()
             user = self.request.user
             if courrier.affectations.exists() and user.role != User.Role.DIRECTEUR:
@@ -1652,6 +1680,14 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                     service = inferred_service
                 form.instance.service_concerne = service
 
+            if user.role == User.Role.DIRECTEUR:
+                reponse_requise = form.cleaned_data['type_traitement'] == 'LETTRE'
+                if courrier.affectations.filter(destinataire__role=User.Role.AGENT).exists() and courrier.reponse_requise != reponse_requise:
+                    form.add_error('type_traitement', "Ce courrier a déjà un type de traitement pour ses agents. Conservez le même type.")
+                    return self.form_invalid(form)
+                courrier.reponse_requise = reponse_requise
+                courrier.save(update_fields=['reponse_requise'])
+
             response = super().form_valid(form)
             affectation = self.object
 
@@ -1702,7 +1738,7 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                     destinataire=affectation.destinataire,
                     courrier=courrier,
                     message=f"Nouveau courrier affecté à votre service : {courrier.reference} — {courrier.designation[:60]}. "
-                            f"{informations_delai} Décision du Ministre : {courrier.decision.instructions_finales[:80]}..."
+                            f"{informations_delai} Décision du Ministre : {(courrier.decision.instructions_finales or '')[:80]}..."
                 )
             elif affectation.service_concerne:
                 # Lorsqu'une affectation vise un service sans agent nommé, son
@@ -1748,7 +1784,7 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
         if request.user.role == User.Role.SECRETAIRE_SG:
             if courrier.statut not in [Courrier.Statut.ARRIVE, Courrier.Statut.TRANSMIS_SG]:
                 messages.error(request, "Transmission impossible : le courrier n'est pas en attente au Secrétaire du SG.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
             role_destinataire = User.Role.SG
             titre_destinataire = "Secrétaire Général"
@@ -1758,7 +1794,7 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
         elif request.user.role == User.Role.SECRETAIRE_DC:
             if courrier.statut != Courrier.Statut.TRANSMIS_DC:
                 messages.error(request, "Transmission impossible : le courrier n'est pas en attente au Secrétariat du DC.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
             role_destinataire = User.Role.DC
             titre_destinataire = "Directeur de Cabinet"
@@ -1769,7 +1805,7 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
             # Le Secrétaire du Ministre ne peut transmettre que si l'analyse est validée
             if courrier.statut != Courrier.Statut.ANALYSE_VALIDE:
                 messages.error(request, "Transmission impossible : le courrier n'est pas prêt pour transmission au Ministre.")
-                return redirect('courrier_detail', pk=courrier_id)
+                return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
             role_destinataire = User.Role.MINISTRE
             titre_destinataire = "Ministre"
@@ -1778,7 +1814,7 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
 
         else:
             messages.error(request, "Vous n'êtes pas autorisé à transmettre ce courrier.")
-            return redirect('courrier_detail', pk=courrier_id)
+            return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
         # Mise à jour du statut
         courrier.statut = nouveau_statut
@@ -1810,7 +1846,7 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
             request,
             f"✅ Le courrier {courrier.reference} a été transmis au {titre_destinataire}."
         )
-        return redirect('dashboard')
+        return redirect('circuit_reponse', pk=courrier_id) if request.POST.get('retour') == 'circuit_reponse' else redirect('dashboard')
 
 
 class RefuserCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
@@ -1885,7 +1921,7 @@ class MarquerNotificationLueView(LoginRequiredMixin, View):
 class AffectationStatutUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
     """
     Permet au destinataire d'une affectation de mettre à jour son statut d'exécution
-    (ex: RECU -> EN_COURS -> TRAITE). Résout automatiquement les relances à la finalisation.
+    La clôture est réservée aux validations métier du Directeur ou du Ministre.
     """
     allowed_roles = [User.Role.DIRECTEUR, User.Role.AGENT]
 
@@ -1900,6 +1936,10 @@ class AffectationStatutUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
             )
         affectation = get_object_or_404(affectations, pk=pk)
         nouveau_statut = request.POST.get('statut_traitement')
+        if nouveau_statut == Affectation.StatutTraitement.TRAITE:
+            raise PermissionDenied("La clôture nécessite la validation du rapport par le Directeur ou la signature finale du Ministre.")
+        if affectation.statut_traitement == Affectation.StatutTraitement.TRAITE or affectation.courrier.statut == Courrier.Statut.TERMINE:
+            raise PermissionDenied("Ce traitement est déjà clôturé.")
         note = (request.POST.get('note_traitement') or '').strip()
 
         if nouveau_statut in Affectation.StatutTraitement.values:
@@ -1907,32 +1947,7 @@ class AffectationStatutUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
             if note:
                 affectation.note_traitement = note
             
-            if nouveau_statut == Affectation.StatutTraitement.TRAITE:
-                affectation.date_traitement = timezone.now()
-                affectation.traite_par = request.user
-                # Résoudre la relance liée au traitement
-                resoudre_relances_courrier(affectation.courrier, etapes=Relance.Etape.TRAITEMENT_SERVICE)
-                
-                # Créer un historique
-                creer_historique(
-                    courrier=affectation.courrier,
-                    utilisateur=request.user,
-                    action='TRAITEMENT_FINALISE',
-                    description=f"Affectation marquée comme traitée par {request.user.get_full_name() or request.user.username}."
-                )
-
-                # Si toutes les affectations sont traitées, marquer le courrier comme TERMINE
-                if not affectation.courrier.affectations.exclude(statut_traitement=Affectation.StatutTraitement.TRAITE).exists():
-                    affectation.courrier.statut = Courrier.Statut.TERMINE
-                    affectation.courrier.save(update_fields=['statut'])
-                    resoudre_relances_courrier(affectation.courrier)
-                    creer_historique(
-                        courrier=affectation.courrier,
-                        utilisateur=request.user,
-                        action='CLOTURE',
-                        description="Toutes les affectations ont été traitées. Courrier clôturé."
-                    )
-            elif nouveau_statut == Affectation.StatutTraitement.EN_COURS and not affectation.date_reception:
+            if nouveau_statut == Affectation.StatutTraitement.EN_COURS and not affectation.date_reception:
                 affectation.date_reception = timezone.now()
 
             affectation.save()

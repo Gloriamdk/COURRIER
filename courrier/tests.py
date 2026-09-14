@@ -370,6 +370,11 @@ class CourrierModelsTestCase(TestCase):
         self.courrier_normal.delai_traitement_jours = 10
         self.courrier_normal.save(update_fields=['statut', 'delai_traitement_jours'])
 
+        ReponseCourrier.objects.create(
+            courrier=self.courrier_normal, auteur=self.agent,
+            statut_traitement=ReponseCourrier.Statut.VALIDE,
+            observation='Lettre validée par le Directeur.',
+        )
         self.client.force_login(self.ministre)
         response = self.client.post(
             reverse('decision_nouveau', kwargs={'courrier_id': self.courrier_normal.pk}),
@@ -387,7 +392,8 @@ class CourrierModelsTestCase(TestCase):
         self.assertTrue(DecisionFinale.objects.filter(courrier=self.courrier_normal).exists())
         self.assertEqual(Decision.objects.filter(courrier=self.courrier_normal).count(), 1)
         self.courrier_normal.refresh_from_db()
-        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.SIGNE_PAR_MINISTRE)
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.TERMINE)
+        self.assertTrue(CourrierSortant.objects.filter(courrier=self.courrier_normal).exists())
 
     def test_directeur_can_see_affectation_button_on_decided_courrier_detail(self):
         decision = Decision.objects.create(

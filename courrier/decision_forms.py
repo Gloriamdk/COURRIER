@@ -25,6 +25,15 @@ class DecisionForm(forms.ModelForm):
         help_text="Délai propre à ce courrier, fixé par le Ministre.",
         widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 365}),
     )
+    def __init__(self, *args, **kwargs):
+        circuit_final = kwargs.pop('circuit_final', False)
+        super().__init__(*args, **kwargs)
+        if circuit_final:
+            for name in ['instruction_standard', 'instructions_finales', 'delai_traitement_jours', 'action_finale', 'observation_correction']:
+                self.fields.pop(name)
+            self.fields['document_signe'].required = True
+            self.fields['document_signe'].label = 'Lettre signée par le Ministre'
+
     class Meta:
         model = Decision
         fields = ['instruction_standard', 'instructions_finales']

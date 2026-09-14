@@ -214,6 +214,7 @@
     </div>
     {% endif %}
 
+    {% if not circuit_traitement_final %}
     <div class="form-group">
         <label class="form-label" for="{{ form.instructions_finales.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
             {{ form.instructions_finales.label }}
@@ -224,19 +225,10 @@
         {% endif %}
     </div>
 
+    {% endif %}
     {% if decision_initiale %}
-    <div class="form-group">
-        <label class="form-label">{{ form.action_finale.label }}</label>
-        {{ form.action_finale }}
-        {% if form.action_finale.errors %}<small style="color: var(--danger-color);">{{ form.action_finale.errors }}</small>{% endif %}
-    </div>
-    <div class="form-group">
-        <label class="form-label" for="{{ form.observation_correction.id_for_label }}">
-            {{ form.observation_correction.label }}
-        </label>
-        {{ form.observation_correction }}
-        {% if form.observation_correction.errors %}<small style="color: var(--danger-color);">{{ form.observation_correction.errors }}</small>{% endif %}
-    </div>
+    <input type="hidden" name="action_finale" value="valider">
+    <p style="margin-bottom:20px;">La signature clôture le traitement, lève les alertes et enregistre automatiquement la lettre comme courrier sortant au Secrétariat central.</p>
     <div class="form-group">
         <label class="form-label" for="{{ form.document_signe.id_for_label }}">        {% if circuit_traitement_final %}Document signé à déposer{% else %}{{ form.document_signe.label }}{% endif %}</label>
         {{ form.document_signe }}

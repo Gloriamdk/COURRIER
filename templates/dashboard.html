@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tz %}
 
 {% block extra_css %}
 <style>
@@ -122,6 +123,22 @@
 
 <!-- ==================== INTERFACE SECRÉTARIAT CENTRAL ==================== -->
 {% if user.role == 'SECRETARIAT_CENTRAL' %}
+{% if courriers_sortants %}
+<div class="card" style="margin-bottom:24px; padding:24px;">
+    <h3 style="margin-bottom:16px;">Courriers sortants enregistrés</h3>
+    <p style="margin-bottom:16px;">Lettres signées par le Ministre et transmises au Secrétariat central.</p>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; text-align:left;">
+        <thead><tr><th>Référence de sortie</th><th>Destinataire</th><th>Enregistrement</th><th>Dossier</th></tr></thead>
+        <tbody>{% for sortant in courriers_sortants %}<tr>
+            <td style="padding:14px 8px;">{{ sortant.reference_sortie }}</td><td>{{ sortant.destinataire }}</td>
+            <td>{{ sortant.date_enregistrement|utc|date:"d/m/Y H:i" }}</td>
+            <td><a href="{% url 'courrier_detail' sortant.courrier_id %}">Consulter {{ sortant.courrier.reference }}</a></td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endif %}
+
 <div class="card" style="background: white; padding: 25px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h3>Derniers courriers enregistrés</h3>
@@ -441,7 +458,7 @@
                         {% endif %}
                     </td>
                     <td style="padding: 15px 10px;">{{ aff.courrier.designation }}</td>
-                    <td style="padding: 15px 10px;">{{ aff.date_affectation|date:"d/m/Y" }}<br><small>Délai : {{ aff.courrier.delai_traitement_jours }} j. · Limite : {{ aff.date_limite_traitement|date:"d/m/Y" }}</small></td>
+                    <td style="padding: 15px 10px;">{{ aff.date_affectation|utc|date:"d/m/Y à H:i" }} GMT<br><small>Délai : {{ aff.courrier.delai_traitement_jours }} j. · Limite : {{ aff.date_limite_traitement|date:"d/m/Y" }}</small></td>
                     <td style="padding: 15px 10px;">
                         <span class="status-badge {% if aff.statut_traitement == 'TRAITE' %}analyse{% else %}arrive{% endif %}">
                             {{ aff.get_statut_traitement_display }}
@@ -455,13 +472,7 @@
                                 Affecter à un agent
                             </a>
                             {% endif %}
-                            {% if aff.statut_traitement != 'TRAITE' %}
-                            <form action="{% url 'affectation_statut_update' aff.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Confirmer que ce courrier a été traité ?');">
-                                {% csrf_token %}
-                                <input type="hidden" name="statut_traitement" value="TRAITE">
-                                <button type="submit" class="action-btn success" style="border: none; cursor: pointer;">Marquer comme traité</button>
-                            </form>
-                            {% endif %}
+
                         </div>
                     </td>
                 </tr>

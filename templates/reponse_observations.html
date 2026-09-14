@@ -1,0 +1,30 @@
+                {% if peut_observer_traitement_sg %}
+                    <div class="workflow-section">
+                        <strong>Observations du SG sur le traitement</strong>
+                        <p>Le SG n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
+                    </div>
+                    <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}">
+                        {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                        <label class="field-label" for="observation-hierarchie">Vos observations</label>
+                        <textarea id="observation-hierarchie" name="observation" rows="8" class="form-control" required
+                                  placeholder="Observations sur le travail de l'agent"></textarea>
+                        <div class="response-actions"><button type="submit" name="action" value="valider" class="btn btn-success">Valider et transmettre au Secrétaire du DC</button>
+                        <button type="submit" name="action" value="correction" class="btn btn-danger">Demander une correction</button></div>
+                    </form>
+                {% endif %}
+
+                {% if peut_observer_traitement_dc %}
+                    <div class="workflow-section">
+                        <strong>Observations du DC sur le traitement</strong>
+                        <p>Le DC n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
+                    </div>
+                    <form method="post" action="{% url 'fiche_valider' courrier.pk %}">
+                        {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                        <label class="field-label" for="observation-hierarchie">Vos observations</label>
+                        <textarea id="observation-hierarchie" name="observation" rows="8" class="form-control" required
+                                  placeholder="Observations sur le travail de l'agent"></textarea>
+                        <div class="response-actions"><button type="submit" name="action" value="valider" class="btn btn-success">Valider et transmettre au Secrétaire du Ministre</button>
+                        <button type="submit" name="action" value="correction" class="btn btn-danger">Demander une correction</button></div>
+                    </form>
+                {% endif %}
+

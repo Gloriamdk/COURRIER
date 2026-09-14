@@ -36,6 +36,9 @@ def resoudre_relances_courrier(courrier, etapes=None):
     Si `etapes` est spécifié (liste ou valeur unique), seules les relances de ces étapes sont résolues.
     """
     qs = Relance.objects.filter(courrier=courrier, est_resolue=False)
+    if courrier.statut != Courrier.Statut.TERMINE:
+        # Une transmission intermédiaire ne clôture pas le traitement.
+        qs = qs.exclude(etape=Relance.Etape.TRAITEMENT_SERVICE)
     if etapes:
         if isinstance(etapes, (list, tuple, set)):
             qs = qs.filter(etape__in=etapes)
@@ -44,6 +47,21 @@ def resoudre_relances_courrier(courrier, etapes=None):
     
     now = timezone.now()
     qs.update(est_resolue=True, date_resolution=now)
+
+
+@transaction.atomic
+def cloturer_traitement(courrier, utilisateur):
+    """Clôture commune : état partagé, affectations terminées et alertes résolues."""
+    courrier.statut = Courrier.Statut.TERMINE
+    courrier.responsable_actuel_role = (
+        User.Role.SECRETARIAT_CENTRAL if courrier.reponse_requise else User.Role.DIRECTEUR
+    )
+    courrier.save(update_fields=['statut', 'responsable_actuel_role'])
+    courrier.affectations.exclude(statut_traitement=Affectation.StatutTraitement.TRAITE).update(
+        statut_traitement=Affectation.StatutTraitement.TRAITE,
+        date_traitement=timezone.now(), traite_par=utilisateur,
+    )
+    resoudre_relances_courrier(courrier)
 
 
 def get_ou_creer_relance(courrier, etape, date_debut_etape, destinataire_role=None, destinataire_user=None, service_concerne=None, nature=None, date_limite=None):
@@ -286,7 +304,7 @@ def synchroniser_relances():
         statut_traitement__in=[Affectation.StatutTraitement.RECU, Affectation.StatutTraitement.EN_COURS],
         courrier__delai_traitement_jours__isnull=False,
         date_limite_traitement__isnull=False,
-    ).select_related('courrier', 'destinataire')
+    ).exclude(courrier__statut=Courrier.Statut.TERMINE).select_related('courrier', 'destinataire')
 
     actifs = list(active_affectations)
     actif_ids = {a.courrier_id for a in actifs}
@@ -332,7 +350,7 @@ def get_relances_pour_utilisateur(user):
     if not user.is_authenticated or not user.is_active:
         return Relance.objects.none()
 
-    base_qs = Relance.objects.filter(est_resolue=False).select_related('courrier', 'destinataire_user', 'courrier__cree_par')
+    base_qs = Relance.objects.filter(est_resolue=False).exclude(courrier__statut=Courrier.Statut.TERMINE).select_related('courrier', 'destinataire_user', 'courrier__cree_par')
 
     if user.is_superuser:
         return base_qs

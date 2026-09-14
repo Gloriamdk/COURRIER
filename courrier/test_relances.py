@@ -32,19 +32,19 @@ class AlertesEcheanceTests(TestCase):
         synchroniser_relances()
         self.assertEqual(Relance.objects.filter(courrier=self.courrier, est_resolue=False).count(), 5)
 
-    def test_retard_et_confirmation_resolvent_alertes(self):
+    def test_cloture_manuelle_refusee_conserve_alertes(self):
         aff = self.affecter(timezone.now() - timedelta(minutes=1))
         synchroniser_relances()
         self.assertTrue(Relance.objects.filter(courrier=self.courrier, nature=Relance.Nature.RETARD, est_resolue=False).exists())
         self.client.force_login(self.directeur)
         response = self.client.post(f'/courrier/affectation/{aff.pk}/statut/', {'statut_traitement': 'TRAITE'})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         aff.refresh_from_db()
-        self.assertEqual(aff.traite_par, self.directeur)
-        self.assertIsNotNone(aff.date_traitement)
-        self.assertFalse(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
+        self.assertIsNone(aff.traite_par)
+        self.assertIsNone(aff.date_traitement)
+        self.assertTrue(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
 
-    def test_directeur_voit_affectation_de_service_et_peut_la_cloturer(self):
+    def test_directeur_voit_affectation_sans_cloture_manuelle(self):
         aff = Affectation.objects.create(
             courrier=self.courrier,
             decision=self.decision,
@@ -65,14 +65,14 @@ class AlertesEcheanceTests(TestCase):
         response = self.client.get('/courrier/dashboard/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'DAAF')
-        self.assertContains(response, 'Marquer comme traité')
+        self.assertNotContains(response, 'Marquer comme traité')
 
         response = self.client.post(
             f'/courrier/affectation/{aff.pk}/statut/',
             {'statut_traitement': 'TRAITE'},
         )
-        self.assertEqual(response.status_code, 302)
-        self.assertFalse(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Relance.objects.filter(courrier=self.courrier, est_resolue=False).exists())
 
     def test_roles_sans_suivi_ne_voient_pas_les_logos_alertes(self):
         utilisateur = User.objects.create_user(

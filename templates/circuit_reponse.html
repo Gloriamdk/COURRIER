@@ -1,0 +1,97 @@
+{% extends 'courrier_detail.html' %}
+{% block title %}{{ courrier.reference }} — Circuit de réponse{% endblock %}
+{% block page_title %}Circuit de réponse{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .response-page { max-width: 1180px; margin: 0 auto; }
+    .response-heading { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:28px; }
+    .response-eyebrow { color:var(--primary-color); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+    .response-heading h1 { font-size:1.65rem; margin:0 0 8px; }
+    .response-muted { color:var(--text-muted); line-height:1.7; }
+    .response-page .card { padding:28px; border:1px solid var(--border-color); }
+    .response-page h2 { font-size:1.1rem; margin:0; }
+    .response-layout { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:24px; align-items:start; }
+    .response-layout > * { min-width:0; }
+    .response-page form { display:flex; flex-direction:column; gap:16px; }
+    .response-page label { margin:0; }
+    .response-page .form-control { display:block; box-sizing:border-box; width:100%; max-width:100%; padding:14px; border:1px solid #cbd5e1; border-radius:8px; background:white; font:inherit; line-height:1.65; }
+    .response-page textarea { resize:vertical; min-height:140px; }
+    .response-page .form-control:focus { outline:2px solid var(--primary-color); outline-offset:2px; }
+    .response-page input[type=file] { font-size:.85rem; }
+    .response-page .btn { white-space:normal; text-align:center; line-height:1.5; align-self:flex-start; }
+    .response-actions { display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; padding-top:16px; border-top:1px solid var(--border-color); }
+    .response-page .workflow-section { padding:22px; background:#f8fafc; border:1px solid var(--border-color); border-left:3px solid var(--primary-color); margin-bottom:24px; overflow-wrap:anywhere; }
+    .response-page .field-value { margin:16px 0; line-height:1.8; }
+    .version-date { display:block; color:var(--text-muted); margin:6px 0; }
+    .response-note { padding:18px; background:#eff6ff; border-radius:8px; line-height:1.7; margin-bottom:24px; }
+    .response-page .doc-item { display:block; overflow-wrap:anywhere; }
+    .response-actions:empty { display:none; }
+    @media(max-width:1000px) { .response-layout { grid-template-columns:1fr; } }
+    @media(max-width:600px) { .response-heading { flex-direction:column; align-items:flex-start; } .response-page .card { padding:20px; } .response-actions { flex-direction:column; } .response-actions .btn { width:100%; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="response-page">
+    <header class="response-heading">
+        <div>
+            <p class="response-eyebrow">Traitement et validation</p>
+            <h1>{% if courrier.reponse_requise %}Réponse au courrier{% else %}Action terrain — courrier{% endif %} {{ courrier.reference }}</h1>
+            <p class="response-muted">{{ courrier.designation }}</p>
+            <p class="response-muted"><strong>Situation actuelle :</strong> {{ courrier.get_statut_display }}</p>
+        </div>
+        <a class="btn btn-back" href="{% url 'courrier_detail' courrier.pk %}">← Retour au courrier</a>
+    </header>
+    <div class="response-layout">
+        <div>
+            {% if peut_repondre %}
+            <div class="response-note">{% if courrier.statut == 'CORRECTION_DEMANDEE' %}<strong>Une correction est attendue.</strong> Consultez les observations ci-dessous avant de soumettre une nouvelle version.{% else %}<strong>Préparez votre réponse.</strong> {% if courrier.reponse_requise %}La lettre sera validée par le Directeur puis suivra le circuit jusqu’à la signature du Ministre.{% else %}Décrivez l’action réalisée dans un court rapport. Sa validation par le Directeur clôturera le courrier et lèvera les alertes.{% endif %}{% endif %}</div>
+            {% endif %}
+            {% if peut_observer_traitement_sg or peut_observer_traitement_dc %}
+            <section class="card"><h2 style="margin-bottom:24px;">Examiner le traitement</h2>{% include 'reponse_observations.html' %}</section>
+            {% endif %}
+            {% if destinataire_transmission or peut_decider or peut_enregistrer_sortant or peut_affecter %}
+            <section class="card">
+                <div class="card-header"><h2>Prochaine action</h2></div>
+                {% if destinataire_transmission %}
+                <p class="response-muted" style="margin-bottom:20px;">La réponse est prête à être transmise au {{ destinataire_transmission }}.</p>
+                <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}">
+                    {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                    <button type="submit" class="btn btn-primary">Transmettre au {{ destinataire_transmission }}</button>
+                </form>
+                {% endif %}
+                {% if peut_decider or peut_enregistrer_sortant or peut_affecter %}
+                <div class="response-actions">
+                    {% if peut_decider %}<a class="btn btn-primary" href="{% url 'decision_nouveau' courrier.pk %}">Examiner et signer la décision finale</a>{% endif %}
+                    {% if peut_enregistrer_sortant %}<a class="btn btn-primary" href="{% url 'courrier_sortant_nouveau' courrier.pk %}">Enregistrer le courrier sortant</a>{% endif %}
+                    {% if peut_affecter %}<a class="btn btn-primary" href="{% url 'affectation_nouveau' courrier.pk %}">Affecter aux services</a>{% endif %}
+                </div>
+                {% endif %}
+            </section>
+            {% endif %}
+            {% include 'reponse_versions.html' %}
+            {% if not peut_repondre and not peut_valider_reponse and not peut_transmettre_sg and not peut_observer_traitement_sg and not peut_observer_traitement_dc and not destinataire_transmission and not peut_decider and not peut_enregistrer_sortant and not peut_affecter %}
+            <div class="card"><h2>Suivi du dossier</h2><p class="response-muted" style="margin-top:12px;">{% if courrier.statut == 'TERMINE' %}Ce courrier est traité. Les alertes sont levées pour tous les utilisateurs.{% else %}Aucune intervention n’est attendue de votre part à cette étape. Vous pouvez consulter les réponses et les observations du circuit.{% endif %}</p></div>
+            {% endif %}
+            <section class="card">
+                <div class="card-header"><h2>Observations et suivi</h2></div>
+                {% for h in historiques %}
+                <div class="history-item"><div><p class="history-action">{{ h.action }}</p><p class="history-desc">{{ h.description }}</p>{% if h.observation %}<p class="field-value">{{ h.observation|linebreaksbr }}</p>{% endif %}<p class="history-meta">{{ h.utilisateur.get_full_name|default:h.utilisateur.username|default:"Système" }} · {{ h.date_action|date:"d/m/Y à H:i" }}</p></div></div>
+                {% empty %}<p class="response-muted">Aucune observation enregistrée.</p>{% endfor %}
+            </section>
+        </div>
+        <aside>
+            <section class="card">
+                <div class="card-header"><h2>Le courrier</h2></div>
+                <p class="field-label">Expéditeur</p><p class="field-value">{{ courrier.expediteur_nom }}</p>
+                <p class="field-label">Objet</p><p class="field-value">{{ courrier.designation }}</p>
+                <a href="{% url 'courrier_detail' courrier.pk %}">Consulter le dossier complet →</a>
+            </section>
+            <section class="card">
+                <div class="card-header"><h2>Documents</h2></div>
+                {% for doc in documents %}<div class="doc-item"><a href="{% url 'document_telecharger' doc.pk %}" target="_blank" rel="noopener">{{ doc.nom }}</a>{% if doc.taille_octets %}<p class="doc-size">{{ doc.taille_octets|filesizeformat }}</p>{% endif %}</div>{% empty %}<p class="response-muted">Aucun document joint.</p>{% endfor %}
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}

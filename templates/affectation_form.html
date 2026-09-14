@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tz %}
 
 {% block title %}Affectation — {{ courrier.reference }}{% endblock %}
 {% block page_title %}Affectation du courrier{% endblock %}
@@ -301,6 +302,14 @@
             </div>
             {% endif %}
 
+            {% if form.type_traitement %}
+            <div class="form-group">
+                <label class="form-label" for="{{ form.type_traitement.id_for_label }}">Type de traitement *</label>
+                {{ form.type_traitement }}
+                <p style="color:var(--text-muted); margin-top:10px;">{{ form.type_traitement.help_text }}</p>
+                {{ form.type_traitement.errors }}
+            </div>
+            {% endif %}
             <div class="form-group">
                 <label class="form-label" for="id_note_traitement">
                     {{ form.note_traitement.label }}
@@ -359,7 +368,7 @@
             {% endif %}
 
             <small>
-                Affecté le {{ aff.date_affectation|date:"d/m/Y à H:i" }}
+                Affecté le {{ aff.date_affectation|utc|date:"d/m/Y à H:i" }} GMT
             </small>
 
             {% if aff.note_traitement %}

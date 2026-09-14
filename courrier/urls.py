@@ -8,6 +8,7 @@ from .views import (
     CourrierCreateView,
     CourrierUpdateView,
     CourrierDetailView,
+    CircuitReponseView,
     FicheAnalyseCreateView,
     FicheAnalyseSGCreateView,
     FicheAnalyseValidateView,
@@ -38,6 +39,7 @@ urlpatterns = [
     # ── Courriers ─────────────────────────────────────────────────────────────
     path('liste/', CourrierListView.as_view(), name='courrier_liste'),
     path('nouveau/', CourrierCreateView.as_view(), name='courrier_nouveau'),
+    path('<int:pk>/reponses/', CircuitReponseView.as_view(), name='circuit_reponse'),
     path('<int:pk>/', CourrierDetailView.as_view(), name='courrier_detail'),
     path('document/<int:pk>/telecharger/', DocumentDownloadView.as_view(), name='document_telecharger'),
 

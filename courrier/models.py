@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import Q
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -570,6 +570,12 @@ class DecisionFinale(models.Model):
         return f"Décision finale - {self.courrier.reference}"
 
 
+class CompteurCourrierSortant(models.Model):
+    """Dernier numéro attribué par année, conservé même après une suppression."""
+    annee = models.PositiveIntegerField(primary_key=True)
+    dernier_numero = models.PositiveIntegerField(default=0)
+
+
 class CourrierSortant(models.Model):
     """Enregistrement de l'expédition d'une décision signée par le Ministre."""
     courrier = models.OneToOneField(
@@ -589,14 +595,30 @@ class CourrierSortant(models.Model):
     date_expedition = models.DateTimeField(
         default=timezone.now,
         verbose_name="Date d'expédition",
+        null=True, blank=True,
     )
     date_enregistrement = models.DateTimeField(auto_now_add=True)
     observation = models.TextField(blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.reference_sortie:
-            self.reference_sortie = f"SO-{timezone.now():%Y}-{uuid.uuid4().hex[:8].upper()}"
-        super().save(*args, **kwargs)
+        if self.reference_sortie:
+            return super().save(*args, **kwargs)
+        using = kwargs.get('using') or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            annee = timezone.now().year
+            compteur, _ = CompteurCourrierSortant.objects.using(using).get_or_create(annee=annee)
+            # L'incrément verrouille le compteur jusqu'à l'enregistrement du courrier.
+            while True:
+                CompteurCourrierSortant.objects.using(using).filter(pk=annee).update(
+                    dernier_numero=models.F('dernier_numero') + 1,
+                )
+                compteur.refresh_from_db(using=using)
+                reference = f"SO-{annee}-{compteur.dernier_numero:04d}"
+                if not type(self).objects.using(using).filter(reference_sortie=reference).exists():
+                    break
+            self.reference_sortie = reference
+            kwargs['using'] = using
+            return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.reference_sortie} — {self.courrier.reference}"

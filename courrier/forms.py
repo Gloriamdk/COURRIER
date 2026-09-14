@@ -234,6 +234,14 @@ class AffectationForm(forms.ModelForm):
     Organisé en liste déroulante groupée par direction (organigramme MTCA).
     Le destinataire est OPTIONNEL (le Ministre peut valider sans préciser d'agent).
     """
+    type_traitement = forms.ChoiceField(
+        label="Type de traitement",
+        choices=[('', '— Choisir le type de traitement —'),
+                 ('LETTRE', 'Lettre de réponse'), ('TERRAIN', 'Action terrain')],
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="Lettre : validation jusqu’au Ministre. Action terrain : rapport de l’agent, puis clôture par le Directeur.",
+    )
+
     destinataire = forms.ModelChoiceField(
         queryset=User.objects.filter(
             role=User.Role.AGENT,
@@ -269,6 +277,9 @@ class AffectationForm(forms.ModelForm):
         request_user = kwargs.pop('request_user', None)
         super().__init__(*args, **kwargs)
         self.request_user = request_user
+        if not request_user or request_user.role != User.Role.DIRECTEUR:
+            self.fields.pop('type_traitement')
+
 
         # Base de candidats : agents internes uniquement.
         users = User.objects.filter(
