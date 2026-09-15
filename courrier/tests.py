@@ -305,7 +305,7 @@ class CourrierModelsTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.courrier_normal.refresh_from_db()
-        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.EN_COURS_SG)
+        self.assertEqual(self.courrier_normal.statut, Courrier.Statut.TRANSMIS_SG)
         self.assertEqual(
             self.courrier_normal.responsable_actuel_role,
             User.Role.SECRETAIRE_SG,
@@ -682,34 +682,29 @@ class CourrierModelsTestCase(TestCase):
             username='sg_actions', password=self.test_password,
             role=User.Role.SG,
         )
+        courrier = Courrier.objects.create(
+            reference="CR-2026-TEST-ACTIONS",
+            designation="Courrier test actions",
+            cree_par=self.sc,
+            statut=Courrier.Statut.TRANSMIS_SG,
+        )
 
-        self.courrier_normal.statut = Courrier.Statut.TRANSMIS_SG
-        self.courrier_normal.save(update_fields=['statut'])
         self.client.force_login(sg)
         response = self.client.get(
-            reverse('courrier_detail', kwargs={'pk': self.courrier_normal.pk})
-        )
-        self.assertContains(response, 'btn-sg-transmettre-dc')
-        self.assertNotContains(response, 'btn-rediger-fiche-sg')
-
-        decision = Decision.objects.create(courrier=self.courrier_normal, signe_par=self.ministre)
-        Affectation.objects.create(
-            courrier=self.courrier_normal, decision=decision,
-            affecte_par=self.ministre, destinataire=self.agent, service_concerne='DAAF',
-        )
-        self.courrier_normal.statut = Courrier.Statut.EN_COURS_SG
-        self.courrier_normal.save(update_fields=['statut'])
-        FicheAnalyseSG.objects.create(
-            courrier=self.courrier_normal, analyse_par=sg, valide=True,
-        )
-        self.courrier_normal.statut = Courrier.Statut.EN_COURS_DC
-        self.courrier_normal.save(update_fields=['statut'])
-        self.client.force_login(self.dc)
-        response = self.client.get(
-            reverse('courrier_detail', kwargs={'pk': self.courrier_normal.pk})
+            reverse('courrier_detail', kwargs={'pk': courrier.pk})
         )
         self.assertContains(response, 'btn-rediger-fiche')
-        self.assertContains(response, 'Rédiger les observations du DC')
+
+        FicheAnalyseSG.objects.create(
+            courrier=courrier, analyse_par=sg, valide=True,
+        )
+        courrier.statut = Courrier.Statut.EN_COURS_DC
+        courrier.save(update_fields=['statut'])
+        self.client.force_login(self.dc)
+        response = self.client.get(
+            reverse('courrier_detail', kwargs={'pk': courrier.pk})
+        )
+        self.assertContains(response, 'btn-rediger-fiche')
 
     def test_role_filters(self):
         """

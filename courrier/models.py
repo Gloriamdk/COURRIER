@@ -363,6 +363,10 @@ class Document(models.Model):
         # lecture coûteuse du contenu du fichier.
 
     def save(self, *args, **kwargs):
+        # Validation Herozion : Vérification explicite de l'extension avant sauvegarde
+        if self.fichier and not self.fichier.name.lower().endswith((".pdf", ".jpg", ".jpeg", ".png", ".docx", ".xlsx")):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Extension de fichier non autorisée.")
         self.full_clean()
         super().save(*args, **kwargs)
 

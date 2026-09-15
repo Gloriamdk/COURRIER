@@ -4,7 +4,7 @@ Formulaires — GEC Ministère.
 import re
 
 from django import forms
-from .models import Courrier, CourrierSortant, FicheAnalyse, Affectation, User
+from .models import Courrier, CourrierSortant, FicheAnalyse, FicheAnalyseSG, Affectation, User
 from .validators import validate_document_upload
 
 
@@ -16,6 +16,7 @@ class CourrierForm(forms.ModelForm):
     fichier_scan = forms.FileField(
         label="Document numérisé",
         required=False,
+        validators=[validate_document_upload],
         widget=forms.FileInput(attrs={
             'class': 'form-control',
             'accept': '.pdf,.docx,.xlsx,.jpg,.jpeg,.png',
@@ -115,7 +116,7 @@ class FicheAnalyseSGForm(forms.ModelForm):
     Formulaire pour la fiche d'analyse du Secrétaire Général (SG).
     """
     class Meta:
-        model = FicheAnalyse
+        model = FicheAnalyseSG
         fields = ['direction_proposee', 'observations_sg', 'propositions_sg']
         widgets = {
             'direction_proposee': forms.Select(attrs={
@@ -361,7 +362,11 @@ class AffectationForm(forms.ModelForm):
 class CourrierSortantForm(forms.ModelForm):
     document_signe = forms.FileField(
         required=False, label="Document signé à expédier",
-        widget=forms.FileInput(attrs={'class': 'form-control'}),
+        validators=[validate_document_upload],
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.pdf,.docx,.xlsx,.jpg,.jpeg,.png'
+        }),
     )
 
     class Meta:

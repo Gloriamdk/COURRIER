@@ -3,7 +3,7 @@ from django.urls import reverse
 from .models import User, Courrier, Decision, Affectation, ReponseCourrier
 
 
-@override_settings(SECURE_SSL_REDIRECT=False, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class CircuitReponseTests(TestCase):
     @classmethod
     def setUpTestData(cls):
