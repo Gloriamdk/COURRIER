@@ -1,5 +1,6 @@
 from django import forms
 from .models import Decision
+from .validators import validate_document_upload
 
 class DecisionForm(forms.ModelForm):
     action_finale = forms.ChoiceField(
@@ -45,3 +46,9 @@ class DecisionForm(forms.ModelForm):
                 'placeholder': 'Commentaire ou consigne détaillée supplémentaire (optionnel)...'
             }),
         }
+
+    def clean_document_signe(self):
+        fichier = self.cleaned_data.get('document_signe')
+        if fichier:
+            validate_document_upload(fichier)
+        return fichier

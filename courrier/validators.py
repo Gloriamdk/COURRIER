@@ -60,7 +60,8 @@ def validate_document_upload(uploaded_file):
 
     Contrôles effectués :
     - taille maximale
-    - nom de fichier sans path traversal
+    - nom de fichier sans path traversal, null bytes, double extension
+    - longueur maximale du nom de fichier
     - extension autorisée
     - signature (magic bytes)
     - mime (si fourni)
@@ -76,12 +77,28 @@ def validate_document_upload(uploaded_file):
 
     # Nom de fichier
     name = uploaded_file.name or ""
+
+    # Rejet des null bytes dans le nom (contournement classique de l'extension)
+    if "\x00" in name:
+        raise ValidationError("Nom de fichier invalide ou potentiellement dangereux.")
+
+    # Longueur maximale du nom de fichier
+    if len(name) > 255:
+        raise ValidationError("Le nom du fichier est trop long (255 caractères maximum).")
+
     # Reject filenames that include path components (e.g. ../../secret.pdf)
     if name != Path(name).name:
         raise ValidationError("Nom de fichier invalide ou potentiellement dangereux.")
 
     if not _safe_filename(name):
         raise ValidationError("Nom de fichier invalide ou potentiellement dangereux.")
+
+    # Rejet des doubles extensions (ex: fichier.pdf.exe, image.jpg.php)
+    stem = Path(name).stem
+    if "." in stem:
+        inner_ext = Path(stem).suffix.lower()
+        if inner_ext and inner_ext not in ALLOWED_UPLOADS:
+            raise ValidationError("Les fichiers avec double extension ne sont pas autorisés.")
 
     extension = Path(name).suffix.lower()
     rules = ALLOWED_UPLOADS.get(extension)

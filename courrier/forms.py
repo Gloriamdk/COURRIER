@@ -372,3 +372,9 @@ class CourrierSortantForm(forms.ModelForm):
             'objet': forms.TextInput(attrs={'class': 'form-control'}),
             'observation': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def clean_document_signe(self):
+        fichier = self.cleaned_data.get('document_signe')
+        if fichier:
+            validate_document_upload(fichier)
+        return fichier

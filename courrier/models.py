@@ -357,7 +357,10 @@ class Document(models.Model):
 
     def clean(self):
         super().clean()
-        validate_document_upload(self.fichier)
+        # La validation du fichier est assurée par le validateur déclaré sur
+        # le FileField (validators=[validate_document_upload]).  Ne pas
+        # ré-appeler validate_document_upload ici pour éviter une double
+        # lecture coûteuse du contenu du fichier.
 
     def save(self, *args, **kwargs):
         self.full_clean()

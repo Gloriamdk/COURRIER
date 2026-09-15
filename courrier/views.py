@@ -632,11 +632,20 @@ class DocumentDownloadView(LoginRequiredMixin, View):
         except FileNotFoundError:
             raise Http404("Fichier introuvable.")
 
-        # Détermination sûre du type MIME pour l'en-tête Content-Type
-        guessed_type, _ = mimetypes.guess_type(document.fichier.name)
-        content_type = guessed_type or 'application/octet-stream'
+        # Liste blanche de types MIME autorisés selon l'extension du fichier.
+        # Ne jamais faire confiance à mimetypes.guess_type() qui peut être manipulé.
+        SAFE_MIME_TYPES = {
+            '.pdf': 'application/pdf',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }
 
         extension = Path(document.fichier.name).suffix.lower()
+        content_type = SAFE_MIME_TYPES.get(extension, 'application/octet-stream')
+
         filename = f"document-{document.pk}{extension}"
         response = FileResponse(file_handle, as_attachment=True, filename=filename, content_type=content_type)
         # Défense supplémentaire : s'assurer que le navigateur n'interprète pas le contenu

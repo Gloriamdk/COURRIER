@@ -26,6 +26,9 @@ class SecurityHeadersMiddleware:
         )
         response.setdefault("Cross-Origin-Opener-Policy", "same-origin")
         response.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        response.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+        response.setdefault("X-Download-Options", "noopen")
+        response.setdefault("Referrer-Policy", "same-origin")
         if getattr(request, "user", None) and request.user.is_authenticated:
             response.setdefault("Cache-Control", "no-store, max-age=0, private")
         return response

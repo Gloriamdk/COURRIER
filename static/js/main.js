@@ -163,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// ── Utilitaire : récupérer le jeton CSRF depuis les cookies ───────────────
+// ── Utilitaire : récupérer le jeton CSRF depuis le DOM ───────────────
 function getCsrfToken() {
-    const match = document.cookie.match(/csrftoken=([^;]+)/);
-    return match ? match[1] : '';
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    return input ? input.value : '';
 }
