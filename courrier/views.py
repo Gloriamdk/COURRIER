@@ -1379,6 +1379,17 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             messages.error(request, "Veuillez saisir la réponse ou le rapport de traitement avant soumission.")
             return redirect('circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail', pk=courrier_id)
 
+        if courrier.reponse_requise:
+            import bleach
+            allowed_tags = ['p', 'b', 'i', 'u', 'em', 'strong', 'a', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'span']
+            allowed_attributes = {'a': ['href', 'title', 'target'], 'span': ['style'], 'p': ['style', 'class']}
+            observation = bleach.clean(
+                observation,
+                tags=allowed_tags,
+                attributes=allowed_attributes,
+                strip=True
+            )
+
         libelle_traitement = 'Lettre de réponse' if courrier.reponse_requise else 'Rapport d’action terrain'
         version = (ReponseCourrier.objects.filter(
             courrier=courrier, auteur=request.user

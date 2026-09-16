@@ -1,12 +1,15 @@
 {% if peut_repondre %}
 <section class="card">
     <div class="card-header"><h2>{% if courrier.statut == 'CORRECTION_DEMANDEE' %}Soumettre une version corrigée{% else %}{% if courrier.reponse_requise %}Préparer la lettre de réponse{% else %}Rapport d’action terrain{% endif %}{% endif %}</h2></div>
-            <form method="post" enctype="multipart/form-data" action="{% url 'reponse_nouveau' courrier.pk %}">
+            <form id="form-reponse-agent" method="post" enctype="multipart/form-data" action="{% url 'reponse_nouveau' courrier.pk %}">
                 {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
                 {% if courrier.reponse_requise %}
-                    <label class="field-label" for="id_observation_reponse">Réponse / observation</label>
-                    <textarea id="id_observation_reponse" name="observation" rows="8" class="form-control" required></textarea>
-                    <label class="field-label" for="id_fichier_reponse" style="margin-top:8px;">Document de réponse (optionnel)</label>
+                    <label class="field-label" for="id_observation_reponse">Lettre de réponse</label>
+                    <input type="hidden" name="observation" id="id_observation_reponse" required>
+                    <div id="quill-editor" style="height: 300px; background: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+                        {% if reponses %}{{ reponses.0.observation|safe }}{% endif %}
+                    </div>
+                    <label class="field-label" for="id_fichier_reponse" style="margin-top:16px;">Document de réponse (optionnel)</label>
                     <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
                     <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre au Directeur</button>
                 {% else %}
@@ -30,7 +33,15 @@
                 <strong>Version {{ reponse.version }}</strong><small class="version-date">{{ reponse.date_preparation|date:"d/m/Y à H:i" }}</small>
                 <span style="color:var(--text-muted);"> — {{ reponse.auteur.get_full_name|default:reponse.auteur.username }}
                     — {{ reponse.get_statut_traitement_display }}</span>
-                {% if reponse.observation %}<p class="field-value">{{ reponse.observation|linebreaksbr }}</p>{% endif %}
+                {% if reponse.observation %}
+                    <div class="field-value" style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        {% if courrier.reponse_requise %}
+                            {{ reponse.observation|safe }}
+                        {% else %}
+                            {{ reponse.observation|linebreaksbr }}
+                        {% endif %}
+                    </div>
+                {% endif %}
                 {% if reponse.document %}
                     <a href="{% url 'document_telecharger' reponse.document.pk %}" target="_blank" rel="noopener">Télécharger la réponse</a>
                 {% endif %}
