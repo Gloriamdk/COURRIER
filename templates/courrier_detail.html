@@ -117,33 +117,71 @@
             </div>
         </div>
 
-        <!-- Fiche d'analyse du DC -->
-        {% if fiche_analyse %}
+        <!-- Fiche d'analyse du Secrétaire Général (SG) -->
+        {% if fiche_analyse_sg %}
         <div class="card">
             <div class="card-header">
-                <span class="card-title"> Fiche d'analyse du courrier</span>
+                <span class="card-title"> Fiche d'analyse (Secrétaire Général)</span>
                 <small style="color: var(--text-muted);">
-                    {{ fiche_analyse.analyse_par.get_full_name }} — {{ fiche_analyse.date_analyse|date:"d/m/Y" }}
-                    {% if fiche_analyse.valide %}
-                        <span style="color: var(--success-color); font-weight: 700; margin-left: 6px;"> Validée</span>
+                    {{ fiche_analyse_sg.analyse_par.get_full_name|default:fiche_analyse_sg.analyse_par.username }} — {{ fiche_analyse_sg.date_analyse|date:"d/m/Y à H:i" }}
+                    {% if fiche_analyse_sg.valide %}
+                        <span style="color: var(--secondary-color); font-weight: 700; margin-left: 6px;"> Validée</span>
                     {% else %}
-                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation</span>
+                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation (SG)</span>
                     {% endif %}
                 </small>
             </div>
             <div class="workflow-section">
-                {% if fiche_analyse.observations_sg %}
+                {% if fiche_analyse_sg.observations_sg %}
                 <div class="field-group">
                     <span class="field-label">Observations du SG</span>
-                    <p class="field-value">{{ fiche_analyse.observations_sg|linebreaksbr }}</p>
+                    <p class="field-value">{{ fiche_analyse_sg.observations_sg|linebreaksbr }}</p>
                 </div>
                 {% endif %}
-                {% if fiche_analyse.propositions_sg %}
+                {% if fiche_analyse_sg.propositions_sg %}
                 <div class="field-group">
                     <span class="field-label">Propositions du SG</span>
-                    <p class="field-value">{{ fiche_analyse.propositions_sg|linebreaksbr }}</p>
+                    <p class="field-value">{{ fiche_analyse_sg.propositions_sg|linebreaksbr }}</p>
                 </div>
                 {% endif %}
+                {% if fiche_analyse_sg.direction_proposee %}
+                <div class="field-group">
+                    <span class="field-label">Direction / Service proposé</span>
+                    <p class="field-value">{{ fiche_analyse_sg.direction_proposee }}</p>
+                </div>
+                {% endif %}
+                {% if fiche_analyse_sg.date_validation %}
+                <small style="color: var(--text-muted);">Validée le {{ fiche_analyse_sg.date_validation|date:"d/m/Y à H:i" }}</small>
+                {% endif %}
+            </div>
+
+            {% if peut_valider_fiche_sg %}
+            <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" style="margin-top: 16px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg" style="margin-top: 8px;"
+                        onclick="return confirm('Confirmer la validation et la transmission au Cabinet (DC) ?')">
+                     Valider (SG) et transmettre au DC
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Fiche d'analyse du Directeur de Cabinet (DC) -->
+        {% if fiche_analyse %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"> Fiche d'analyse (Directeur de Cabinet)</span>
+                <small style="color: var(--text-muted);">
+                    {{ fiche_analyse.analyse_par.get_full_name|default:fiche_analyse.analyse_par.username }} — {{ fiche_analyse.date_analyse|date:"d/m/Y à H:i" }}
+                    {% if fiche_analyse.valide %}
+                        <span style="color: var(--secondary-color); font-weight: 700; margin-left: 6px;"> Validée</span>
+                    {% else %}
+                        <span style="color: var(--warning-color); font-weight: 700; margin-left: 6px;"> En attente de validation (DC)</span>
+                    {% endif %}
+                </small>
+            </div>
+            <div class="workflow-section">
                 {% if fiche_analyse.observations_dc %}
                 <div class="field-group">
                     <span class="field-label">Observations</span>
@@ -156,39 +194,34 @@
                     <p class="field-value">{{ fiche_analyse.propositions_dc|linebreaksbr }}</p>
                 </div>
                 {% endif %}
+                {% if fiche_analyse.direction_proposee %}
+                <div class="field-group">
+                    <span class="field-label">Direction / Service proposé</span>
+                    <p class="field-value">{{ fiche_analyse.direction_proposee }}</p>
+                </div>
+                {% endif %}
                 {% if fiche_analyse.date_validation %}
                 <small style="color: var(--text-muted);">Validée le {{ fiche_analyse.date_validation|date:"d/m/Y à H:i" }}</small>
                 {% endif %}
             </div>
 
-            <!-- Bouton valider la fiche (DC seulement) -->
             {% if peut_valider_fiche %}
             <form method="post" action="{% url 'fiche_valider' courrier.pk %}" style="margin-top: 16px;">
                 {% csrf_token %}
-                <label class="field-label" for="id_observation_validation_dc">Observation du DC</label>
-                <textarea id="id_observation_validation_dc" name="observation" rows="3" class="form-control"
-                          placeholder="Ajoutez une observation avant validation (optionnel)."></textarea>
-                <button type="submit" class="btn btn-success" id="btn-valider-fiche"
-                        onclick="return confirm('Confirmer la validation et la transmission au Ministre ?')">
-                     Valider et transmettre au Ministre
+                <button type="submit" class="btn btn-success" id="btn-valider-fiche" style="margin-top: 8px;"
+                        onclick="return confirm('Confirmer la validation et la transmission au Secrétaire du Ministre ?')">
+                     Valider et transmettre au Secrétaire du Ministre
                 </button>
             </form>
+            {% if decision %}
             <form method="post" action="{% url 'fiche_correction' courrier.pk %}" style="margin-top: 12px;">
                 {% csrf_token %}
                 <label class="field-label" for="id_correction_dc">Demande de correction du DC</label>
                 <textarea id="id_correction_dc" name="motif" rows="3" class="form-control"
                           placeholder="Indiquez les corrections demandées..." required></textarea>
-                <button type="submit" class="btn btn-danger">Demander une correction</button>
+                <button type="submit" class="btn btn-danger" style="margin-top: 8px;">Demander une correction</button>
             </form>
             {% endif %}
-            {% if peut_valider_fiche_sg %}
-            <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" style="margin-top: 12px;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success" id="btn-valider-fiche-sg"
-                        onclick="return confirm('Confirmer la validation (SG) ?')">
-                     Valider (SG)
-                </button>
-            </form>
             {% endif %}
         </div>
         {% endif %}

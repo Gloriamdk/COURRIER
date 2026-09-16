@@ -5,7 +5,7 @@ def copy_legacy_sg_analysis(apps, schema_editor):
     FicheAnalyse = apps.get_model("courrier", "FicheAnalyse")
     FicheAnalyseSG = apps.get_model("courrier", "FicheAnalyseSG")
 
-    for legacy in FicheAnalyseSG.objects[:1000]:
+    for legacy in FicheAnalyseSG.objects.all()[:1000]:
         try:
             fiche = FicheAnalyse.objects.get(courrier_id=legacy.courrier_id)
         except FicheAnalyse.DoesNotExist:

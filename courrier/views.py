@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.db import IntegrityError, transaction
 from django.db.models import Q, Prefetch
 from django.core.mail import send_mail
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.conf import settings
 from pathlib import Path
 
@@ -427,9 +427,10 @@ class CourrierDetailView(LoginRequiredMixin, DetailView):
             and context['fiche_analyse'] is not None
             and not context['fiche_analyse'].valide
             and context['fiche_analyse'].analyse_par_id == user.id
+            and (fiche_sg is None or fiche_sg.valide)
             and courrier.statut == Courrier.Statut.EN_COURS_DC
         )
-        # Permission pour le SG de valider sa propre fiche
+        # Permission pour le SG de valider sa propre fiche SG
         context['peut_valider_fiche_sg'] = (
             user.role == User.Role.SG
             and fiche_sg is not None
@@ -672,8 +673,7 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         return get_object_or_404(
             Courrier.objects.pour_utilisateur(self.request.user).filter(
                 statut=Courrier.Statut.EN_COURS_DC,
-                fiche_analyse__analyse_sg_par__isnull=False,
-                fiche_analyse__valide_sg=True,
+                fiche_analyse_sg__valide=True,
                 decision__isnull=True,
             ),
             pk=self.kwargs['courrier_id'],
@@ -688,10 +688,21 @@ class FicheAnalyseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 courrier = self.get_courrier()
-                form.instance.analyse_par = self.request.user
-                form.instance.courrier = courrier
-                form.instance = courrier.fiche_analyse
+                fiche_sg = courrier.fiche_analyse_sg
+                
                 fiche = form.save(commit=False)
+                fiche.courrier = courrier
+                fiche.analyse_par = self.request.user
+                
+                # Pré-remplir avec les données du SG si c'est la première fois
+                if not fiche.analyse_sg_par and fiche_sg:
+                    fiche.analyse_sg_par = fiche_sg.analyse_par
+                    fiche.observations_sg = fiche_sg.observations_sg
+                    fiche.propositions_sg = fiche_sg.propositions_sg
+                    fiche.valide_sg = True
+                    fiche.date_analyse_sg = fiche_sg.date_analyse
+                    fiche.date_validation_sg = fiche_sg.date_validation
+
                 fiche.save()
                 self.object = fiche
                 response = redirect(self.get_success_url())
@@ -828,7 +839,8 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 statut=Courrier.Statut.EN_COURS_DC,
                 fiche_analyse__analyse_par=request.user,
                 fiche_analyse__valide=False,
-                fiche_analyse__valide_sg=True,
+            ).filter(
+                Q(fiche_analyse_sg__isnull=True) | Q(fiche_analyse_sg__valide=True)
             ),
             pk=courrier_id,
         )
@@ -847,6 +859,12 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
         # Résolution automatique des relances de l'étape Analyse DC
         resoudre_relances_courrier(courrier, etapes=Relance.Etape.ANALYSE_DC)
 
+        # Passage au statut ANALYSE_VALIDE pour transmission au Ministre
+        ancien_statut = courrier.statut
+        courrier.statut = Courrier.Statut.ANALYSE_VALIDE
+        courrier.responsable_actuel_role = User.Role.SECRETAIRE_MINISTRE
+        courrier.save(update_fields=['statut', 'responsable_actuel_role'])
+
         # Journal d'audit
         creer_historique(
             courrier=courrier,
@@ -854,33 +872,20 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             action='VALIDATION_ANALYSE',
             description=f"Fiche d'analyse validée par le DC {request.user.get_full_name() or request.user.username}.",
             direction=request.user.service_direction,
-            ancien_statut=Courrier.Statut.EN_COURS_DC,
-            nouveau_statut=Courrier.Statut.EN_COURS_DC,
+            ancien_statut=ancien_statut,
+            nouveau_statut=Courrier.Statut.ANALYSE_VALIDE,
             observation=observation or None,
         )
 
-        # Si la fiche SG existe et est validée, on marque l'analyse globale comme validée
-        fiche_sg = courrier.fiche_analyse
-
-        if fiche_sg and fiche_sg.valide:
-            courrier.statut = Courrier.Statut.ANALYSE_VALIDE
-            courrier.save(update_fields=['statut'])
-
-            notifier_role(
-                role=User.Role.SECRETAIRE_MINISTRE,
-                courrier=courrier,
-                message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
-            )
-            messages.success(
-                request,
-                f"✅ Analyse validée. Le Secrétariat du Ministre a été notifié pour transmission."
-            )
-        else:
-            # On reste en attente de la validation complémentaire du SG
-            messages.success(
-                request,
-                f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du SG."
-            )
+        notifier_role(
+            role=User.Role.SECRETAIRE_MINISTRE,
+            courrier=courrier,
+            message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
+        )
+        messages.success(
+            request,
+            f"✅ Fiche d'analyse validée. Le Secrétariat du Ministre a été notifié pour transmission."
+        )
         target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
         return redirect(target_view, pk=courrier_id)
 
@@ -933,24 +938,29 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
         courrier = get_object_or_404(
             Courrier.objects.pour_utilisateur(request.user).filter(
                 statut=Courrier.Statut.EN_COURS_SG,
-                fiche_analyse__analyse_sg_par=request.user,
-                fiche_analyse__valide_sg=False,
+                fiche_analyse_sg__analyse_par=request.user,
+                fiche_analyse_sg__valide=False,
             ),
             pk=courrier_id,
         )
-        fiche = courrier.fiche_analyse
+        fiche_sg = courrier.fiche_analyse_sg
         observation = (request.POST.get('observation') or '').strip()
 
-        fiche.valide_sg = True
-        fiche.date_validation_sg = timezone.now()
-        fields_to_update = ['valide_sg', 'date_validation_sg']
+        fiche_sg.valide = True
+        fiche_sg.date_validation = timezone.now()
+        fields_to_update = ['valide', 'date_validation']
         if observation:
-            fiche.observations_sg = observation
+            fiche_sg.observations_sg = observation
             fields_to_update.append('observations_sg')
-        fiche.save(update_fields=fields_to_update)
+        fiche_sg.save(update_fields=fields_to_update)
 
         # Résolution automatique des relances de l'étape Analyse SG
         resoudre_relances_courrier(courrier, etapes=Relance.Etape.ANALYSE_SG)
+
+        ancien_statut = courrier.statut
+        courrier.statut = Courrier.Statut.TRANSMIS_DC
+        courrier.responsable_actuel_role = User.Role.SECRETAIRE_DC
+        courrier.save(update_fields=['statut', 'responsable_actuel_role'])
 
         creer_historique(
             courrier=courrier,
@@ -958,45 +968,20 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             action='VALIDATION_ANALYSE_SG',
             description=f"Fiche d'analyse (SG) validée par {request.user.get_full_name() or request.user.username}.",
             direction=request.user.service_direction,
-            ancien_statut=Courrier.Statut.EN_COURS_SG,
-            nouveau_statut=Courrier.Statut.EN_COURS_SG,
+            ancien_statut=ancien_statut,
+            nouveau_statut=Courrier.Statut.TRANSMIS_DC,
             observation=observation or None,
         )
 
-        # Si la fiche DC existe et est validée, on marque l'analyse globale comme validée
-        if fiche.valide:
-            courrier.statut = Courrier.Statut.ANALYSE_VALIDE
-            courrier.responsable_actuel_role = User.Role.SECRETAIRE_MINISTRE
-            courrier.save(update_fields=['statut', 'responsable_actuel_role'])
-
-            notifier_role(
-                role=User.Role.SECRETAIRE_MINISTRE,
-                courrier=courrier,
-                message=f"Les analyses SG et DC sont validées pour {courrier.reference}. Le courrier peut être transmis au Ministre."
-            )
-
-            notifier_role(
-                role=User.Role.SECRETAIRE_MINISTRE,
-                courrier=courrier,
-                message=f"Nouveau courrier à soumettre au Ministre : {courrier.reference} — {courrier.designation[:60]}."
-            )
-            messages.success(
-                request,
-                f"✅ Analyse (SG) validée. Le Secrétariat du Ministre a été notifié pour transmission."
-            )
-        else:
-            courrier.statut = Courrier.Statut.TRANSMIS_DC
-            courrier.responsable_actuel_role = User.Role.SECRETAIRE_DC
-            courrier.save(update_fields=['statut', 'responsable_actuel_role'])
-            notifier_role(
-                role=User.Role.SECRETAIRE_DC,
-                courrier=courrier,
-                message=f"La validation SG de {courrier.reference} est terminée. Vous pouvez transmettre le dossier au DC."
-            )
-            messages.success(
-                request,
-                f"✅ Votre validation a été enregistrée. En attente de la validation complémentaire du DC."
-            )
+        notifier_role(
+            role=User.Role.SECRETAIRE_DC,
+            courrier=courrier,
+            message=f"La fiche d'analyse (SG) pour {courrier.reference} est validée. Vous pouvez transmettre le dossier au DC."
+        )
+        messages.success(
+            request,
+            f"✅ Fiche d'analyse (SG) validée avec succès. Courrier transmis au Secrétariat du DC."
+        )
         target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
         return redirect(target_view, pk=courrier_id)
 

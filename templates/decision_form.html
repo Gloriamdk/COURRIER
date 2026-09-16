@@ -98,7 +98,7 @@
 {% if fiche_analyse %}
 <div class="fiche-card">
     <h3 style="color: var(--secondary-color); margin-bottom: 1rem; font-size: 1rem;">
-         Fiche d'analyse — complétée par le SG et le DC
+         Analyse du Directeur de Cabinet
         <small style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;">
             (rédigée le {{ fiche_analyse.date_analyse|date:"d/m/Y à H:i" }})
         </small>
@@ -114,23 +114,11 @@
         <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions :</strong>
         <p style="margin-top: 6px;">{{ fiche_analyse.propositions_dc }}</p>
     </div>
+    {% endif %}
     {% if fiche_analyse.direction_proposee %}
     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #dcfce7;">
         <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Direction proposée :</strong>
         <p style="margin-top: 6px; font-weight: 600; color: var(--primary-color);">{{ fiche_analyse.direction_proposee }}</p>
-    </div>
-    {% endif %}
-    {% endif %}
-    {% if fiche_analyse.observations_sg %}
-    <div style="margin-bottom: 12px;">
-        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Observations du SG :</strong>
-        <p style="margin-top: 6px;">{{ fiche_analyse.observations_sg|linebreaksbr }}</p>
-    </div>
-    {% endif %}
-    {% if fiche_analyse.propositions_sg %}
-    <div style="margin-bottom: 12px;">
-        <strong style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Propositions du SG :</strong>
-        <p style="margin-top: 6px;">{{ fiche_analyse.propositions_sg|linebreaksbr }}</p>
     </div>
     {% endif %}
 </div>

@@ -199,6 +199,17 @@ class CourrierModelsTestCase(TestCase):
         self.assertContains(response, 'id_propositions_sg')
 
     def test_dc_ne_peut_pas_valider_sans_fiche_sg_validee(self):
+        sg_user = User.objects.create_user(
+            username='sg_unvalidated',
+            password=self.test_password,
+            role=User.Role.SG,
+        )
+        FicheAnalyseSG.objects.create(
+            courrier=self.courrier_normal,
+            analyse_par=sg_user,
+            observations_sg='Observation SG non validee',
+            valide=False,
+        )
         FicheAnalyse.objects.create(
             courrier=self.courrier_normal,
             analyse_par=self.dc,
