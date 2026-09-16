@@ -9,7 +9,7 @@ from courrier.views import SecureLogoutView
 from courrier.admin import secure_admin_site
 
 urlpatterns = [
-    path('admin/', secure_admin_site.urls),
+    path('admin-gec-secure/', secure_admin_site.urls),
 
     # Authentification Django native
     path('login/', RateLimitedLoginView.as_view(), name='login'),

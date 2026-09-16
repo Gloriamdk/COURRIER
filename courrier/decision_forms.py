@@ -19,6 +19,7 @@ class DecisionForm(forms.ModelForm):
         required=False,
         label="Document signé (optionnel)",
         help_text="Joindre la décision signée par le Ministre.",
+        validators=[validate_document_upload],
     )
     delai_traitement_jours = forms.IntegerField(
         min_value=1, max_value=365, required=False,
