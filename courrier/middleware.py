@@ -7,10 +7,10 @@ class SecurityHeadersMiddleware:
         "frame-ancestors 'none'; "
         "object-src 'none'; "
         "form-action 'self'; "
-        "img-src 'self' data:; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "script-src 'self'; "
+        "img-src 'self' data: https://cdn.ckeditor.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdn.ckeditor.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.ckeditor.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.ckeditor.com; "
         "connect-src 'self'"
     )
 

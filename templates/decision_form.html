@@ -187,8 +187,14 @@
     </div>
 
     {% if form.errors %}
-    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
-        <span>Veuillez remplir tous les champs obligatoires.</span>
+    <div class="alert alert-error" style="margin-bottom: 1.5rem; padding: 15px; border-radius: 4px; background: #fee2e2; border-left: 4px solid #ef4444; color: #b91c1c;">
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <p style="margin: 0; font-weight: bold;">{{ error }}</p>
+            {% endfor %}
+        {% else %}
+            <span>Veuillez remplir tous les champs obligatoires.</span>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -217,15 +223,25 @@
     {% if decision_initiale %}
     <input type="hidden" name="action_finale" value="valider">
     <p style="margin-bottom:20px;">La signature clôture le traitement, lève les alertes et enregistre automatiquement la lettre comme courrier sortant au Secrétariat central.</p>
-    <div class="form-group">
-        <label class="form-label" for="{{ form.document_signe.id_for_label }}">        {% if circuit_traitement_final %}Document signé à déposer{% else %}{{ form.document_signe.label }}{% endif %}</label>
-        {{ form.document_signe }}
-        {% if circuit_traitement_final %}
-            <small style="color: var(--text-muted);">Le document signé est obligatoire pour transmettre ce même courrier au Secrétariat central.</small>
-        {% endif %}
-        <small style="color: var(--text-muted);">Obligatoire pour valider et signer définitivement.</small>
-        {% if form.document_signe.errors %}<small style="color: var(--danger-color);">{{ form.document_signe.errors }}</small>{% endif %}
+    
+    {% if lettre_reponse_validee %}
+    <div class="form-group" style="padding: 24px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px;">
+        <label class="form-label" style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size:1.1rem; color:var(--text-primary);">Signature électronique de la lettre</label>
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px;">Ouvrez l'éditeur pour importer votre signature électronique (image) directement dans la lettre validée par le Directeur.</p>
+        
+        <button type="button" class="btn btn-primary" onclick="openEditorModal()" style="padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; background: var(--primary-color); color: white; font-weight:600;">Ouvrir la lettre pour signature</button>
+        
+        <div id="editor-preview" style="margin-top:20px; border:1px solid var(--border-color); padding:20px; background:#fff; max-height:300px; overflow-y:auto; border-radius:4px; font-size:0.95em; display: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+        </div>
+        
+        <input type="hidden" id="lettre_html" name="lettre_html">
+        <div id="original_lettre_content" style="display:none;">{{ lettre_reponse_validee.observation|safe }}</div>
     </div>
+    {% else %}
+    <div class="alert alert-warning">
+        Aucune lettre de réponse validée n'a été trouvée pour ce courrier.
+    </div>
+    {% endif %}
     {% endif %}
 
     <div style="display: flex; align-items: center; gap: 12px; margin-top: 1.5rem;">
@@ -237,5 +253,111 @@
         </button>
     </div>
 </form>
+
+<!-- Modal plein écran pour CKEditor - Signature du Ministre -->
+<div id="word-editor-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#f0f2f5; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 24px; border-bottom:1px solid #ccc; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+        <h2 style="margin:0; font-size:1.2rem;">Lettre de réponse — Signature du Ministre</h2>
+        <div>
+            <button type="button" class="btn-back" onclick="closeEditorModal()">Fermer</button>
+            <button type="button" class="btn-submit" onclick="saveEditorModal()">Signer et retourner au formulaire</button>
+        </div>
+    </div>
+    <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
+    <div style="flex:1; overflow-y:auto; padding:40px; display:flex; justify-content:center; background:#e8e8e8;">
+        <div id="word-editor-body" style="width:210mm; min-height:297mm; padding:25mm; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:1px solid #ddd; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6;">
+        </div>
+    </div>
+</div>
+
+<style>
+    .ck.ck-editor__editable_inline { border: none !important; box-shadow: none !important; }
+    .ck-editor__editable_inline:focus { outline: none !important; }
+</style>
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/super-build/ckeditor.js"></script>
+<script>
+    var globalEditor = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var editorBody = document.getElementById('word-editor-body');
+        var previewDiv = document.getElementById('editor-preview');
+        var hiddenInput = document.getElementById('lettre_html');
+        var originalContent = document.getElementById('original_lettre_content');
+
+        if (!editorBody) return;
+
+        // Charger le contenu original de la lettre validée
+        if (originalContent) {
+            editorBody.innerHTML = originalContent.innerHTML;
+        }
+
+        CKEDITOR.DecoupledEditor.create(editorBody, {
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
+                    'bold', 'italic', 'underline', 'strikethrough', '|',
+                    'alignment', '|',
+                    'numberedList', 'bulletedList', '|',
+                    'outdent', 'indent', '|',
+                    'insertTable', 'link', 'imageInsert', '|',
+                    'undo', 'redo'
+                ],
+                shouldNotGroupWhenFull: true
+            },
+            image: {
+                toolbar: ['imageStyle:inline', 'imageStyle:block', 'imageStyle:side', '|', 'imageTextAlternative']
+            },
+            placeholder: 'Le contenu de la lettre validée apparaît ici. Ajoutez votre signature électronique (image)...',
+            removePlugins: [
+                'CKBox', 'CKFinder', 'EasyImage', 'RealTimeCollaborativeComments',
+                'RealTimeCollaborativeTrackChanges', 'RealTimeCollaborativeRevisionHistory',
+                'PresenceList', 'Comments', 'TrackChanges', 'TrackChangesData',
+                'RevisionHistory', 'Pagination', 'WProofreader', 'MathType',
+                'SlashCommand', 'Template', 'DocumentOutline', 'FormatPainter', 'TableOfContents',
+                'PasteFromOfficeEnhanced'
+            ]
+        }).then(function(editor) {
+            globalEditor = editor;
+            var toolbarContainer = document.getElementById('word-toolbar-container');
+            toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+        }).catch(function(error) {
+            console.error('CKEditor init error:', error);
+        });
+
+        // Fonctions globales pour le modal
+        window.openEditorModal = function() {
+            document.getElementById('word-editor-modal').style.display = 'flex';
+            if (globalEditor) { globalEditor.focus(); }
+        };
+
+        window.closeEditorModal = function() {
+            document.getElementById('word-editor-modal').style.display = 'none';
+        };
+
+        window.saveEditorModal = function() {
+            if (globalEditor && hiddenInput) {
+                var html = globalEditor.getData();
+                hiddenInput.value = html;
+
+                // Mettre à jour l'aperçu
+                if (previewDiv) {
+                    previewDiv.innerHTML = html;
+                    previewDiv.style.display = 'block';
+                }
+            }
+            closeEditorModal();
+        };
+
+        var form = document.querySelector('form.form-card');
+        if (form && hiddenInput) {
+            form.addEventListener('submit', function(e) {
+                if (globalEditor && hiddenInput.value === '') {
+                    hiddenInput.value = globalEditor.getData();
+                }
+            });
+        }
+    });
+</script>
 
 {% endblock %}

@@ -30,7 +30,6 @@
     @media(max-width:1000px) { .response-layout { grid-template-columns:1fr; } }
     @media(max-width:600px) { .response-heading { flex-direction:column; align-items:flex-start; } .response-page .card { padding:20px; } .response-actions { flex-direction:column; } .response-actions .btn { width:100%; } }
 </style>
-<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 {% endblock %}
 {% block content %}
 <div class="response-page">
@@ -68,6 +67,19 @@
                     {% if peut_affecter %}<a class="btn btn-primary" href="{% url 'affectation_nouveau' courrier.pk %}">Affecter aux services</a>{% endif %}
                 </div>
                 {% endif %}
+                
+                {% if decision_finale and decision_finale.document_signe %}
+                <div style="margin-top: 15px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+                    <h3 style="font-size: 1rem; color: #166534; margin-bottom: 10px;">Lettre signée par le Ministre</h3>
+                    <a class="btn btn-primary" href="{% url 'document_telecharger' decision_finale.document_signe.pk %}" target="_blank" style="background: #15803d; border-color: #15803d;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Télécharger / Imprimer (PDF)
+                    </a>
+                </div>
+                {% endif %}
             </section>
             {% endif %}
             {% include 'reponse_versions.html' %}
@@ -95,37 +107,104 @@
         </aside>
     </div>
 </div>
-{% endblock %}
-{% block extra_js %}
-<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var editorContainer = document.getElementById('quill-editor');
-        if (editorContainer) {
-            var quill = new Quill(editorContainer, {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        ['bold', 'italic', 'underline'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['clean']
-                    ]
-                },
-                placeholder: 'Rédigez la lettre de réponse ici...'
-            });
 
-            var form = document.getElementById('form-reponse-agent');
-            var hiddenInput = document.getElementById('id_observation_reponse');
-            if (form && hiddenInput) {
-                form.addEventListener('submit', function(e) {
-                    var html = quill.root.innerHTML;
-                    if (quill.getText().trim().length === 0) {
-                        html = '';
-                    }
-                    hiddenInput.value = html;
-                });
+<!-- Scripts de l'éditeur CKEditor 5 (Super Build pour fonctionnalités type Word) -->
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/super-build/ckeditor.js"></script>
+<style>
+    .ck.ck-editor__editable_inline { border: none !important; box-shadow: none !important; }
+    .ck-editor__editable_inline:focus { outline: none !important; }
+</style>
+<script>
+    var globalEditor = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var editorBody = document.querySelector('#word-editor-body');
+        var previewDiv = document.querySelector('#editor-preview');
+        var hiddenInput = document.querySelector('#id_observation_reponse');
+
+        if (editorBody) {
+            CKEDITOR.DecoupledEditor.create(editorBody, {
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
+                        'bold', 'italic', 'underline', 'strikethrough', '|',
+                        'alignment', '|',
+                        'numberedList', 'bulletedList', '|',
+                        'outdent', 'indent', '|',
+                        'insertTable', 'link', 'imageInsert', '|',
+                        'undo', 'redo'
+                    ],
+                    shouldNotGroupWhenFull: true
+                },
+                image: {
+                    toolbar: ['imageStyle:inline', 'imageStyle:block', 'imageStyle:side', '|', 'imageTextAlternative']
+                },
+                list: {
+                    properties: { styles: true, startIndex: true, reversed: true }
+                },
+                placeholder: 'Rédigez la lettre de réponse ici...',
+                removePlugins: [
+                    'CKBox', 'CKFinder', 'EasyImage', 'RealTimeCollaborativeComments',
+                    'RealTimeCollaborativeTrackChanges', 'RealTimeCollaborativeRevisionHistory',
+                    'PresenceList', 'Comments', 'TrackChanges', 'TrackChangesData',
+                    'RevisionHistory', 'Pagination', 'WProofreader', 'MathType',
+                    'SlashCommand', 'Template', 'DocumentOutline', 'FormatPainter', 'TableOfContents',
+                    'PasteFromOfficeEnhanced'
+                ]
+            }).then(editor => {
+                globalEditor = editor;
+                // Append the toolbar to the dedicated container
+                const toolbarContainer = document.querySelector('#word-toolbar-container');
+                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                
+                // Init preview
+                updatePreview();
+            }).catch(error => {
+                console.error(error);
+            });
+        }
+
+        window.openEditorModal = function() {
+            document.getElementById('word-editor-modal').style.display = 'flex';
+            if (globalEditor) { globalEditor.focus(); }
+        };
+
+        window.closeEditorModal = function() {
+            document.getElementById('word-editor-modal').style.display = 'none';
+        };
+
+        window.saveEditorModal = function() {
+            if (globalEditor) {
+                var html = globalEditor.getData();
+                hiddenInput.value = html;
+                updatePreview();
             }
+            closeEditorModal();
+        };
+
+        function updatePreview() {
+            if (hiddenInput && previewDiv) {
+                var content = hiddenInput.value.trim();
+                if (content) {
+                    previewDiv.innerHTML = content;
+                    previewDiv.style.fontStyle = 'normal';
+                    previewDiv.style.color = 'inherit';
+                } else {
+                    previewDiv.innerHTML = "<i>Le texte de la lettre s'affichera ici...</i>";
+                    previewDiv.style.fontStyle = 'italic';
+                    previewDiv.style.color = 'var(--text-muted)';
+                }
+            }
+        }
+        
+        var form = document.getElementById('form-reponse-agent');
+        if(form && hiddenInput) {
+            form.addEventListener('submit', function(e) {
+                if (globalEditor) {
+                    hiddenInput.value = globalEditor.getData();
+                }
+            });
         }
     });
 </script>

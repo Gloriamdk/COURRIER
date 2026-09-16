@@ -33,7 +33,7 @@ class DecisionForm(forms.ModelForm):
         if circuit_final:
             for name in ['instruction_standard', 'instructions_finales', 'delai_traitement_jours', 'action_finale', 'observation_correction']:
                 self.fields.pop(name)
-            self.fields['document_signe'].required = True
+            self.fields['document_signe'].required = False
             self.fields['document_signe'].label = 'Lettre signée par le Ministre'
 
     class Meta:

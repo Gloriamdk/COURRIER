@@ -1145,6 +1145,13 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
         except FicheAnalyseSG.DoesNotExist:
             context['fiche_analyse_sg'] = None
 
+        if courrier.reponse_requise:
+            context['lettre_reponse_validee'] = courrier.reponses_courrier.filter(
+                statut_traitement='VALIDE'
+            ).order_by('-date_preparation').first()
+        else:
+            context['lettre_reponse_validee'] = None
+
         return context
 
     def get_form_kwargs(self):
@@ -1170,17 +1177,34 @@ class DecisionCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                         raise PermissionDenied("Seule la signature finale est disponible à cette étape.")
                     if not courrier.reponse_requise or not courrier.reponses_courrier.filter(statut_traitement=ReponseCourrier.Statut.VALIDE).exists():
                         raise PermissionDenied("Une lettre validée par le Directeur est nécessaire avant signature.")
+                    lettre_html = self.request.POST.get('lettre_html')
                     fichier_signe = form.cleaned_data.get('document_signe')
-                    if not fichier_signe:
-                        form.add_error('document_signe', "Le document signé est obligatoire pour la décision finale.")
+                    
+                    if lettre_html:
+                        import weasyprint
+                        from django.core.files.base import ContentFile
+                        
+                        # Créer un PDF basique à partir du HTML
+                        pdf_bytes = weasyprint.HTML(string=lettre_html).write_pdf()
+                        pdf_file = ContentFile(pdf_bytes, name=f"Lettre_Signee_{courrier.reference.replace('/', '_')}.pdf")
+                        
+                        document_signe = Document.objects.create(
+                            courrier=courrier,
+                            nom=f"Décision finale signée — {courrier.reference}",
+                            fichier=pdf_file,
+                            taille_octets=len(pdf_bytes),
+                        )
+                    elif fichier_signe:
+                        validate_document_upload(fichier_signe)
+                        document_signe = Document.objects.create(
+                            courrier=courrier,
+                            nom=f"Décision finale signée — {courrier.reference}",
+                            fichier=fichier_signe,
+                            taille_octets=fichier_signe.size,
+                        )
+                    else:
+                        form.add_error(None, "Veuillez signer la lettre électroniquement en l'ouvrant dans l'éditeur.")
                         return self.form_invalid(form)
-                    validate_document_upload(fichier_signe)
-                    document_signe = Document.objects.create(
-                        courrier=courrier,
-                        nom=f"Décision finale signée — {courrier.reference}",
-                        fichier=fichier_signe,
-                        taille_octets=fichier_signe.size,
-                    )
                     DecisionFinale.objects.create(
                         courrier=courrier,
                         signe_par=self.request.user,

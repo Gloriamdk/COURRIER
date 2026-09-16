@@ -4,10 +4,28 @@
             <form id="form-reponse-agent" method="post" enctype="multipart/form-data" action="{% url 'reponse_nouveau' courrier.pk %}">
                 {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
                 {% if courrier.reponse_requise %}
-                    <label class="field-label" for="id_observation_reponse">Lettre de réponse</label>
-                    <input type="hidden" name="observation" id="id_observation_reponse" required>
-                    <div id="quill-editor" style="height: 300px; background: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
-                        {% if reponses %}{{ reponses.0.observation|safe }}{% endif %}
+                    <label class="field-label">Lettre de réponse</label>
+                    <button type="button" class="btn btn-secondary" onclick="openEditorModal()">Ouvrir l'éditeur plein écran (Type Word)</button>
+                    <div id="editor-preview" style="margin-top:10px; border:1px solid var(--border-color); padding:16px; background:#f8fafc; max-height:200px; overflow-y:auto; border-radius:8px; font-size:0.9em; color:var(--text-muted);">
+                        <i>Le texte de la lettre s'affichera ici...</i>
+                    </div>
+                    <textarea id="id_observation_reponse" name="observation" style="display:none;" required>{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</textarea>
+                    
+                    <!-- Modal plein écran pour CKEditor -->
+                    <div id="word-editor-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#f0f2f5; flex-direction:column;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 24px; border-bottom:1px solid #ccc; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                            <h2 style="margin:0; font-size:1.2rem;">Rédaction de la lettre</h2>
+                            <div>
+                                <button type="button" class="btn btn-secondary" onclick="closeEditorModal()" style="margin-right:10px;">Fermer</button>
+                                <button type="button" class="btn btn-primary" onclick="saveEditorModal()">Enregistrer et retourner au formulaire</button>
+                            </div>
+                        </div>
+                        <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
+                        <div style="flex:1; overflow-y:auto; padding:40px; display:flex; justify-content:center;">
+                            <div id="word-editor-body" style="width:210mm; min-height:297mm; padding:20mm; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid #ddd;">
+                                {% if reponses %}{{ reponses.0.observation|safe }}{% endif %}
+                            </div>
+                        </div>
                     </div>
                     <label class="field-label" for="id_fichier_reponse" style="margin-top:16px;">Document de réponse (optionnel)</label>
                     <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
