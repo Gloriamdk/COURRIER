@@ -288,7 +288,12 @@
 
         // Charger le contenu original de la lettre validée
         if (originalContent) {
-            editorBody.innerHTML = originalContent.innerHTML;
+            // Sécurisation XSS : Assainir le contenu original avant injection dans l'éditeur
+            if (window.DOMPurify) {
+                editorBody.innerHTML = DOMPurify.sanitize(originalContent.innerHTML);
+            } else {
+                editorBody.textContent = originalContent.textContent;
+            }
         }
 
         CKEDITOR.DecoupledEditor.create(editorBody, {
@@ -342,7 +347,11 @@
 
                 // Mettre à jour l'aperçu
                 if (previewDiv) {
-                    previewDiv.innerHTML = html;
+                    if (window.DOMPurify) {
+                        previewDiv.innerHTML = DOMPurify.sanitize(html);
+                    } else {
+                        previewDiv.textContent = html;
+                    }
                     previewDiv.style.display = 'block';
                 }
             }

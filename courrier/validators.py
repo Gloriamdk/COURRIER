@@ -10,6 +10,8 @@ except Exception:
     Image = None
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+MAX_OFFICE_ARCHIVE_MEMBERS = 200
+MAX_OFFICE_UNCOMPRESSED_SIZE = 25 * 1024 * 1024
 ALLOWED_UPLOADS = {
     ".pdf": {
         "mimes": {"application/pdf"},
@@ -40,6 +42,29 @@ ALLOWED_UPLOADS = {
         "signatures": (b"PK\x03\x04",),
     },
 }
+ALLOWED_EXTENSIONS = frozenset(ALLOWED_UPLOADS)
+BLOCKED_PDF_MARKERS = (
+    b"/JavaScript",
+    b"/JS",
+    b"/OpenAction",
+    b"/AA",
+    b"/Launch",
+    b"/EmbeddedFile",
+    b"/RichMedia",
+    b"/XFA",
+)
+BLOCKED_OFFICE_SUFFIXES = (
+    "vbaproject.bin",
+    ".exe",
+    ".js",
+    ".vbs",
+    ".cmd",
+    ".bat",
+    ".ps1",
+    ".sh",
+    ".scr",
+    ".com",
+)
 
 
 def _safe_filename(name: str) -> bool:
@@ -145,7 +170,7 @@ def validate_document_upload(uploaded_file):
         uploaded_file.seek(0)
         sample = uploaded_file.read()
         uploaded_file.seek(0)
-        if any(marker in sample for marker in (b"/JavaScript", b"/JS", b"/OpenAction", b"/AA")):
+        if any(marker in sample for marker in BLOCKED_PDF_MARKERS):
             raise ValidationError("Le PDF contient des contenus dynamiques potentiellement dangereux.")
 
     if extension in (".docx", ".xlsx"):
@@ -154,11 +179,17 @@ def validate_document_upload(uploaded_file):
             with zipfile.ZipFile(uploaded_file) as archive:
                 if archive.testzip() is not None:
                     raise ValidationError("L'archive Office est corrompue.")
-                for member in archive.infolist():
+                members = archive.infolist()
+                if len(members) > MAX_OFFICE_ARCHIVE_MEMBERS:
+                    raise ValidationError("L'archive Office contient trop de fichiers.")
+                total_uncompressed_size = sum(member.file_size for member in members)
+                if total_uncompressed_size > MAX_OFFICE_UNCOMPRESSED_SIZE:
+                    raise ValidationError("L'archive Office est trop volumineuse une fois décompressée.")
+                for member in members:
                     member_path = Path(member.filename)
                     if member.filename.startswith(("/", "\\")) or ".." in member_path.parts:
                         raise ValidationError("L'archive contient un chemin de fichier dangereux.")
-                    if member.filename.lower().endswith(("vbaproject.bin", ".exe", ".js", ".vbs", ".cmd", ".bat")):
+                    if member.filename.lower().endswith(BLOCKED_OFFICE_SUFFIXES):
                         raise ValidationError("Les macros et fichiers exécutables ne sont pas autorisés.")
         except zipfile.BadZipFile:
             raise ValidationError("Le fichier Office est invalide ou corrompu.")

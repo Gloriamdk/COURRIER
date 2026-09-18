@@ -32,7 +32,7 @@ from .models import Courrier, User, FicheAnalyse, FicheAnalyseSG, Decision, Deci
 from .forms import CourrierForm, FicheAnalyseForm, FicheAnalyseSGForm, AffectationForm, CourrierSortantForm, normalize_service
 from .decision_forms import DecisionForm
 from .utils import RoleRequiredMixin
-from .validators import validate_document_upload
+from .validators import MAX_UPLOAD_SIZE, validate_document_upload
 from .services import cloturer_traitement, synchroniser_relances, resoudre_relances_courrier, get_relances_pour_utilisateur
 import mimetypes
 
@@ -1421,7 +1421,7 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
         
         document = None
         fichier = request.FILES.get('fichier')
-        if fichier and fichier.size > 10 * 1024 * 1024:
+        if fichier and fichier.size > MAX_UPLOAD_SIZE:
             messages.error(request, "Le fichier est trop grand (max 10 Mo).")
             return redirect('courrier_detail', pk=courrier_id)
             
@@ -2033,13 +2033,12 @@ class AffectationStatutUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
 # ==============================================================================
 
 class ConfigurationDelaiUpdateView(LoginRequiredMixin, RoleRequiredMixin, View):
-    permission_classes = []
     """
     Vue permettant exclusivement au Ministre de définir ou modifier le délai
     réglementaire de traitement des courriers (timing).
     """
+    http_method_names = ['post', 'options']
     allowed_roles = [User.Role.MINISTRE]
-    permission_classes = ["IsAdminUser"] # Required by Herozion
 
     def post(self, request):
         delai_str = (request.POST.get('delai_jours') or '').strip()

@@ -1000,6 +1000,40 @@ class CourrierModelsTestCase(TestCase):
         with self.assertRaises(ValidationError):
             document.full_clean()
 
+    def test_upload_office_zip_bomb_is_rejected(self):
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("[Content_Types].xml", "<Types/>")
+            archive.writestr("word/document.xml", b"A" * (validators.MAX_OFFICE_UNCOMPRESSED_SIZE + 1))
+        fichier = SimpleUploadedFile(
+            "huge.docx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        document = Document(
+            courrier=self.courrier_normal,
+            nom="Huge",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        with self.assertRaises(ValidationError):
+            document.full_clean()
+
+    def test_upload_pdf_active_content_is_rejected(self):
+        fichier = SimpleUploadedFile(
+            "active.pdf",
+            b"%PDF-1.4\n1 0 obj << /OpenAction 2 0 R /JavaScript 3 0 R >>",
+            content_type="application/pdf",
+        )
+        document = Document(
+            courrier=self.courrier_normal,
+            nom="Active PDF",
+            fichier=fichier,
+            taille_octets=fichier.size,
+        )
+        with self.assertRaises(ValidationError):
+            document.full_clean()
+
     def test_upload_too_large_is_rejected(self):
         big = b"0" * (validators.MAX_UPLOAD_SIZE + 1)
         fichier = SimpleUploadedFile("big.pdf", big, content_type="application/pdf")
@@ -1133,3 +1167,8 @@ class CourrierModelsTestCase(TestCase):
         resp = self.client.get(admin_delete_url)
         # Expect redirect to login or permission denied (302 -> login)
         self.assertIn(resp.status_code, (302, 403))
+
+    def test_default_admin_route_is_disabled(self):
+        self.client.force_login(self.agent)
+        resp = self.client.get("/admin/")
+        self.assertEqual(resp.status_code, 403)

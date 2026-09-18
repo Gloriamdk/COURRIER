@@ -7,7 +7,7 @@ from django.utils.text import get_valid_filename
 from pathlib import Path
 import uuid
 
-from .validators import validate_document_upload
+from .validators import ALLOWED_EXTENSIONS, validate_document_upload
 
 # ==============================================================================
 # CONSTANTES GLOBALES
@@ -317,6 +317,8 @@ def secure_file_upload_path(instance, filename):
     """
     now = timezone.now()
     extension = Path(get_valid_filename(filename)).suffix.lower()
+    if extension not in ALLOWED_EXTENSIONS:
+        extension = ".bin"
     return f"courriers_scans/{now.year}/{now.month:02d}/{uuid.uuid4().hex}{extension}"
 
 
@@ -357,16 +359,10 @@ class Document(models.Model):
 
     def clean(self):
         super().clean()
-        # La validation du fichier est assurée par le validateur déclaré sur
-        # le FileField (validators=[validate_document_upload]).  Ne pas
-        # ré-appeler validate_document_upload ici pour éviter une double
-        # lecture coûteuse du contenu du fichier.
+        if self.fichier:
+            validate_document_upload(self.fichier)
 
     def save(self, *args, **kwargs):
-        # Validation Herozion : Vérification explicite de l'extension avant sauvegarde
-        if self.fichier and not self.fichier.name.lower().endswith((".pdf", ".jpg", ".jpeg", ".png", ".docx", ".xlsx")):
-            from django.core.exceptions import ValidationError
-            raise ValidationError("Extension de fichier non autorisée.")
         self.full_clean()
         super().save(*args, **kwargs)
 
