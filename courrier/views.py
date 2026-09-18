@@ -1415,30 +1415,60 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             )
 
         libelle_traitement = 'Lettre de réponse' if courrier.reponse_requise else 'Rapport d’action terrain'
-        version = (ReponseCourrier.objects.filter(
-            courrier=courrier, auteur=request.user
-        ).order_by('-version').values_list('version', flat=True).first() or 0) + 1
+        
+        est_brouillon = request.POST.get('action_brouillon') == '1'
+        nouveau_statut = ReponseCourrier.Statut.BROUILLON if est_brouillon else ReponseCourrier.Statut.ENVOYE_DIRECTEUR
+        
         document = None
         fichier = request.FILES.get('fichier')
         if fichier and fichier.size > 10 * 1024 * 1024:
             messages.error(request, "Le fichier est trop grand (max 10 Mo).")
             return redirect('courrier_detail', pk=courrier_id)
-        if fichier:
-            validate_document_upload(fichier)
-            document = Document.objects.create(
+            
+        brouillon_existant = ReponseCourrier.objects.filter(
+            courrier=courrier, auteur=request.user, statut_traitement=ReponseCourrier.Statut.BROUILLON
+        ).first()
+
+        if brouillon_existant:
+            if fichier:
+                validate_document_upload(fichier)
+                document = Document.objects.create(
+                    courrier=courrier,
+                    nom=f"Réponse V{brouillon_existant.version} — {courrier.reference}",
+                    fichier=fichier,
+                    taille_octets=fichier.size,
+                )
+                brouillon_existant.document = document
+            brouillon_existant.observation = observation
+            brouillon_existant.statut_traitement = nouveau_statut
+            brouillon_existant.save()
+        else:
+            version = (ReponseCourrier.objects.filter(
+                courrier=courrier, auteur=request.user
+            ).exclude(statut_traitement=ReponseCourrier.Statut.BROUILLON).order_by('-version').values_list('version', flat=True).first() or 0) + 1
+            
+            if fichier:
+                validate_document_upload(fichier)
+                document = Document.objects.create(
+                    courrier=courrier,
+                    nom=f"Réponse V{version} — {courrier.reference}",
+                    fichier=fichier,
+                    taille_octets=fichier.size,
+                )
+                
+            ReponseCourrier.objects.create(
                 courrier=courrier,
-                nom=f"Réponse V{version} — {courrier.reference}",
-                fichier=fichier,
-                taille_octets=fichier.size,
+                auteur=request.user,
+                version=version,
+                statut_traitement=nouveau_statut,
+                observation=observation,
+                document=document,
             )
-        ReponseCourrier.objects.create(
-            courrier=courrier,
-            auteur=request.user,
-            version=version,
-            statut_traitement=ReponseCourrier.Statut.ENVOYE_DIRECTEUR,
-            observation=observation,
-            document=document,
-        )
+
+        if est_brouillon:
+            messages.success(request, "Le brouillon a été enregistré avec succès.")
+            target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
+            return redirect(target_view, pk=courrier_id)
 
         ancien_statut = courrier.statut
         courrier.statut = Courrier.Statut.SOUMIS_DIRECTEUR

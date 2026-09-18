@@ -5,7 +5,7 @@
                 {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
                 {% if courrier.reponse_requise %}
                     <label class="field-label">Lettre de réponse</label>
-                    <button type="button" class="btn btn-secondary" onclick="openEditorModal()">Ouvrir l'éditeur plein écran (Type Word)</button>
+                    <button type="button" class="btn btn-secondary" onclick="openEditorModal()">Ouvrir l'éditeur </button>
                     <div id="editor-preview" style="margin-top:10px; border:1px solid var(--border-color); padding:16px; background:#f8fafc; max-height:200px; overflow-y:auto; border-radius:8px; font-size:0.9em; color:var(--text-muted);">
                         <i>Le texte de la lettre s'affichera ici...</i>
                     </div>
@@ -17,7 +17,7 @@
                             <h2 style="margin:0; font-size:1.2rem;">Rédaction de la lettre</h2>
                             <div>
                                 <button type="button" class="btn btn-secondary" onclick="closeEditorModal()" style="margin-right:10px;">Fermer</button>
-                                <button type="button" class="btn btn-primary" onclick="saveEditorModal()">Enregistrer et retourner au formulaire</button>
+                                <button type="button" class="btn btn-primary" onclick="saveEditorModal()">Enregistrer </button>
                             </div>
                         </div>
                         <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
@@ -29,12 +29,15 @@
                     </div>
                     <label class="field-label" for="id_fichier_reponse" style="margin-top:16px;">Document de réponse (optionnel)</label>
                     <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
-                    <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre au Directeur</button>
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button type="submit" name="action_brouillon" value="1" class="btn btn-secondary" style="background:#e2e8f0; color:#1e293b; border:1px solid #cbd5e1;">Enregistrer comme brouillon</button>
+                        <button type="submit" class="btn btn-primary">Soumettre au Directeur</button>
+                    </div>
                 {% else %}
                     <input type="hidden" name="mode" value="sans_reponse">
                     <label class="field-label" for="id_observation_traitement">Rapport d’action terrain</label>
                     <textarea id="id_observation_traitement" name="observation" rows="8" class="form-control"
-                              placeholder="Indiquez le traitement effectué (réponse écrite non requise)." required></textarea>
+                              placeholder="Indiquez le traitement effectué (réponse écrite non requise)." required>{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</textarea>
                     <button type="submit" class="btn btn-primary" style="margin-top:10px;">Soumettre le rapport au Directeur</button>
                 {% endif %}
             </form>
@@ -47,6 +50,7 @@
                 <span class="card-title">Réponses et rapports</span>
             </div>
             {% for reponse in reponses %}
+            {% if reponse.statut_traitement != 'BROUILLON' or reponse.auteur == request.user %}
             <div class="workflow-section">
                 <strong>Version {{ reponse.version }}</strong><small class="version-date">{{ reponse.date_preparation|date:"d/m/Y à H:i" }}</small>
                 <span style="color:var(--text-muted);"> — {{ reponse.auteur.get_full_name|default:reponse.auteur.username }}
@@ -73,6 +77,7 @@
                 </form>
                 {% endif %}
             </div>
+            {% endif %}
             {% endfor %}
             {% if peut_transmettre_sg %}
             <form method="post" action="{% url 'directeur_transmettre_sg' courrier.pk %}" style="margin-top:10px;">
