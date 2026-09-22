@@ -2,6 +2,7 @@
 URL patterns — Application courrier (GEC Ministère).
 """
 from django.urls import path
+from .report_views import statistiques
 from .views import (
     DashboardView,
     CourrierListView,
@@ -31,6 +32,9 @@ from .views import (
 )
 
 urlpatterns = [
+    path('rapports/', statistiques, name='rapports_statistiques'),
+    path('rapports/pdf/', statistiques, {'export': 'pdf'}, name='rapports_pdf'),
+    path('rapports/excel/', statistiques, {'export': 'excel'}, name='rapports_excel'),
     # ── Configuration du délai (Ministre) ────────────────────────────────────
     path('configuration-delai/', ConfigurationDelaiUpdateView.as_view(), name='configuration_delai_update'),
     # ── Tableau de bord ──────────────────────────────────────────────────────
