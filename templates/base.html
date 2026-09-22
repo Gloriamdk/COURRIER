@@ -61,6 +61,14 @@
                     </a>
                 </li>
 
+                {% if user.role == 'SG' or user.role == 'DC' or user.role == 'MINISTRE' %}
+                <li class="sidebar-item {% block nav_rapports %}{% endblock %}">
+                    <a href="{% url 'rapports_statistiques' %}" id="nav-rapports">
+                        <span class="nav-icon" aria-hidden="true">▥</span>
+                        <span>Rapports &amp; Statistiques</span>
+                    </a>
+                </li>
+                {% endif %}
                 <!-- Secrétariat Central -->
                 {% if user.role == 'SECRETARIAT_CENTRAL' %}
                 <li class="sidebar-item {% block nav_nouveau %}{% endblock %}">

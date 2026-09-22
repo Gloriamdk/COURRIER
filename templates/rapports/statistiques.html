@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Rapports & Statistiques{% endblock %}
+{% block page_title %}Rapports & Statistiques{% endblock %}
+{% block nav_rapports %}active{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/rapports.css' %}">{% endblock %}
+{% block content %}
+<div class="reports">
+    <header class="report-heading">
+        <div><p class="report-eyebrow">PILOTAGE DU COURRIER · MTCA</p><h1>Rapports &amp; Statistiques</h1>
+        <p>Une vue globale des courriers reçus et de leur traitement.</p></div>
+        {% if report %}<div class="report-actions">
+            <a class="report-button" href="{% url 'rapports_pdf' %}?{{ query_string }}">Exporter PDF</a>
+            <a class="report-button secondary" href="{% url 'rapports_excel' %}?{{ query_string }}">Exporter Excel</a>
+            <button class="report-button secondary" type="button" id="print-report">Imprimer</button>
+        </div>{% endif %}
+    </header>
+    <form method="get" class="report-panel report-filters">
+        <h2>Filtres</h2>{{ form.non_field_errors }}
+        <div class="report-filter-grid">{% for field in form %}
+            <div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+        {% endfor %}</div>
+        <div class="report-actions"><button class="report-button" type="submit">Appliquer les filtres</button>
+        <a class="report-button secondary" href="{% url 'rapports_statistiques' %}">Réinitialiser</a></div>
+        <p class="report-note">Les dates filtrent la réception des courriers. Année, mois et dates se combinent. La confidentialité n’est pas enregistrée dans le modèle actuel.</p>
+    </form>
+    {% if report %}
+    <p class="report-period">Réception : {{ report.filters.start|date:"d/m/Y"|default:"sans borne de début" }} – {{ report.filters.end|date:"d/m/Y"|default:"sans borne de fin" }}
+        {% if report.filters.direction %} · <strong>{{ report.filters.direction }}</strong>{% endif %}
+        · Généré le {{ report.generated_at|date:"d/m/Y H:i" }}</p>
+    <div class="report-kpis">
+        <article><span>Courriers reçus</span><strong>{{ report.kpi.total }}</strong><small>Périmètre sélectionné</small></article>
+        <article><span>Traités</span><strong>{{ report.kpi.treated }}</strong><small>Statut final « Traité »</small></article>
+        <article><span>En cours</span><strong>{{ report.kpi.ongoing }}</strong><small>Tous les non terminés</small></article>
+        <article class="report-alert"><span>En retard</span><strong>{{ report.kpi.late }}</strong><small>Ouverts, échéance dépassée</small></article>
+        <article><span>Taux de traitement</span><strong>{{ report.kpi.rate|floatformat:1 }} %</strong><small>Traités / reçus</small></article>
+        <article><span>Urgents</span><strong>{{ report.kpi.urgent }}</strong><small>Urgent et Très urgent</small></article>
+        <article><span>Confidentiels</span><strong class="unavailable">Non disponible</strong><small>Champ absent du modèle</small></article>
+        <article><span>Clôturés / classés</span><strong>{{ report.kpi.closed }}</strong><small>Même état final que « Traités »</small></article>
+    </div>
+    {% if not report.kpi.total %}<p class="report-empty">Aucun courrier ne correspond aux filtres sélectionnés.</p>{% endif %}
+    <section class="report-panel"><h2>Évolution mensuelle</h2>
+        <p class="report-note">Dates de réception et de clôture des courriers sélectionnés. Les clôtures ultérieures à la période sont affichées. {{ report.unknown_finish }} courrier(s) traité(s) sans date de fin exploitable.</p>
+        <div class="report-chart"><canvas id="monthly-chart" role="img" aria-label="Courriers reçus et traités par mois, données dans le tableau ci-dessous"></canvas></div>
+        <details><summary>Consulter les données mensuelles</summary><div class="report-table-wrap"><table><thead><tr><th>Mois</th><th>Reçus</th><th>Traités</th></tr></thead><tbody>
+        {% for row in report.monthly %}<tr><td>{{ row.month }}</td><td>{{ row.received }}</td><td>{{ row.treated }}</td></tr>{% empty %}<tr><td colspan="3">Aucune donnée.</td></tr>{% endfor %}
+        </tbody></table></div></details>
+    </section>
+    <div class="report-grid">
+        <section class="report-panel"><h2>Répartition par statut</h2><div class="report-chart"><canvas id="status-chart" role="img" aria-label="Répartition par statut, données ci-dessous"></canvas></div>
+            <details><summary>Nombre et part par statut</summary><table><thead><tr><th>Statut réel</th><th>Nombre</th><th>Part</th></tr></thead><tbody>
+            {% for row in report.distributions.statut %}<tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.rate|floatformat:1 }} %</td></tr>{% endfor %}</tbody></table></details>
+        </section>
+        <section class="report-panel"><h2>Courriers par priorité</h2><div class="report-chart"><canvas id="priority-chart" role="img" aria-label="Répartition par priorité, données ci-dessous"></canvas></div>
+            <table><thead><tr><th>Priorité</th><th>Nombre</th><th>Part</th><th>Retards</th></tr></thead><tbody>
+            {% for row in report.distributions.priorite %}<tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.rate|floatformat:1 }} %</td><td>{{ row.late }}</td></tr>{% endfor %}</tbody></table>
+        </section>
+    </div>
+    <section class="report-panel"><h2>Performance par direction</h2>
+        <p class="report-note">Un courrier est compté une fois par direction affectée. Plusieurs directions peuvent partager le même courrier : les lignes ne s’additionnent pas au total global. Cliquez sur une direction pour consulter son rapport.</p>
+        <div class="report-chart direction-chart"><canvas id="direction-chart" role="img" aria-label="Volumes et taux par direction, tableau détaillé ci-dessous"></canvas></div>
+        <div class="report-table-wrap"><table id="directions-table"><caption>Classement descriptif des directions — colonnes triables</caption><thead><tr>
+            <th aria-sort="none"><button type="button" data-sort="0">Direction ↕</button></th>
+            <th aria-sort="none"><button type="button" data-sort="1">Affectés ↕</button></th>
+            <th aria-sort="descending"><button type="button" data-sort="2">Traités ↕</button></th>
+            <th aria-sort="none"><button type="button" data-sort="3">En cours ↕</button></th>
+            <th aria-sort="none"><button type="button" data-sort="4">En retard ↕</button></th>
+            <th aria-sort="none"><button type="button" data-sort="5">Taux ↕</button></th>
+        </tr></thead><tbody>{% for row in report.directions %}
+            <tr><td data-value="{{ row.direction }}"><a href="{{ row.url }}">{{ row.direction }}</a></td>
+                <td data-value="{{ row.total }}">{{ row.total }}</td><td data-value="{{ row.treated }}">{{ row.treated }}</td>
+                <td data-value="{{ row.ongoing }}">{{ row.ongoing }}</td><td data-value="{{ row.late }}">{{ row.late }}</td>
+                <td data-value="{{ row.rate|stringformat:'.1f' }}">{{ row.rate|floatformat:1 }} %</td></tr>
+        {% empty %}<tr class="empty"><td colspan="6">Aucune affectation pour ce périmètre.</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+    <div class="report-grid">
+        <section class="report-panel"><h2>Délais de traitement</h2><dl class="report-metrics">
+            <dt>Délai moyen</dt><dd>{% if report.timing.average != None %}{{ report.timing.average|floatformat:2 }} jours{% else %}Non disponible{% endif %}</dd>
+            <dt>Délai médian</dt><dd>{% if report.timing.median != None %}{{ report.timing.median|floatformat:2 }} jours{% else %}Non disponible{% endif %}</dd>
+            <dt>Traités dans les délais</dt><dd>{{ report.timing.on_time }}</dd>
+            <dt>Traités après échéance</dt><dd>{{ report.timing.after_deadline }}</dd>
+            <dt>Actuellement en retard</dt><dd>{{ report.kpi.late }}</dd>
+            <dt>Respect des délais</dt><dd>{{ report.timing.rate|floatformat:1 }} %</dd>
+        </dl><p class="report-note">Durées calculées sur {{ report.timing.measured }} courrier(s), de la première affectation à la clôture. {{ report.timing.missing }} exclu(s) pour dates absentes ou incohérentes. Le taux de respect porte uniquement sur les clôtures avec date et échéance connues.</p></section>
+        <section class="report-panel"><h2>Courriers urgents</h2><dl class="report-metrics">
+            <dt>Urgents / très urgents</dt><dd>{{ report.urgent.total }}</dd><dt>Traités</dt><dd>{{ report.urgent.treated }}</dd>
+            <dt>En cours</dt><dd>{{ report.urgent.ongoing }}</dd><dt>En retard</dt><dd>{{ report.urgent.late }}</dd>
+            <dt>Taux de traitement</dt><dd>{{ report.urgent.rate|floatformat:1 }} %</dd>
+        </dl></section>
+    </div>
+    <section class="report-panel"><h2>Échéances dépassées</h2><p class="report-note">{{ report.kpi.late }} courrier(s) actuellement en retard. Les 50 premières échéances sont présentées.</p>
+        <div class="report-table-wrap"><table><thead><tr><th>Référence</th><th>Objet</th><th>Première échéance du périmètre</th></tr></thead><tbody>
+            {% for row in report.overdue %}<tr><td><a href="{% url 'courrier_detail' row.pk %}">{{ row.reference }}</a></td><td>{{ row.designation }}</td><td>{{ row.deadline|date:"d/m/Y H:i" }}</td></tr>
+            {% empty %}<tr><td colspan="3">Aucun courrier actuellement en retard.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% if report.comparison %}<section class="report-panel"><h2>Comparaison entre périodes</h2>
+        <p>Période de réception précédente : {{ report.comparison.start|date:"d/m/Y" }} – {{ report.comparison.end|date:"d/m/Y" }}.</p>
+        <p class="report-note">Les deux groupes sont observés à la date de génération ; ce tableau ne reconstitue pas leurs états passés.</p>
+        <table><thead><tr><th>Indicateur</th><th>Actuelle</th><th>Précédente</th><th>Évolution</th></tr></thead><tbody>{% for row in report.comparison.rows %}
+        <tr><td>{{ row.label }}</td><td>{{ row.current }}</td><td>{{ row.previous }}</td><td>{% if row.change != None %}{{ row.change|floatformat:1 }} %{% else %}Non calculable (base nulle){% endif %}</td></tr>{% endfor %}</tbody></table>
+    </section>{% endif %}
+    <section class="report-panel report-synthesis"><h2>Synthèse</h2><ul>{% for line in report.synthesis %}<li>{{ line }}</li>{% endfor %}</ul></section>
+    <details class="report-panel"><summary>Définitions et méthode de calcul</summary>
+        <p>Le statut « Traité » (TERMINE) est le seul état final. Une validation intermédiaire, une signature ou un courrier sortant ne constituent pas une clôture. Les réponses sortantes ne sont pas ajoutées au nombre des courriers entrants.</p>
+        <p>La direction est le service enregistré sur l’affectation, à défaut le service actuel de son destinataire. DAF et DAAF sont regroupés. Sans service connu, l’affectation figure sous « Sans direction renseignée ». Les propositions des fiches d’analyse ne sont pas des affectations.</p>
+        <p>La clôture correspond à la dernière transition historique vers TERMINE, à défaut à la dernière date de traitement des affectations terminées. Les dates manquantes ne sont pas reconstituées. Les délais partent de la première affectation du périmètre.</p>
+        <p>Un retard actuel exige un courrier non terminé, un délai propre au courrier renseigné et une affectation reçue ou en cours avec une échéance dépassée. Le respect des délais compare la clôture à la première échéance enregistrée dans le périmètre sélectionné.</p>
+    </details>
+    {{ report.charts|json_script:"report-chart-data" }}
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/rapports.js' %}"></script>
+{% endblock %}
