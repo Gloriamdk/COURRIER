@@ -1,6 +1,6 @@
 """Server-generated exports share the exact dashboard calculations and filters."""
 from io import BytesIO
-from xml.sax.saxutils import escape
+from html import escape
 
 from django.conf import settings
 from django.utils import timezone

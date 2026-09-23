@@ -75,27 +75,27 @@ def main():
                     page.wait_for_url('**/courrier/rapports/')
                     if role == 'AGENT':
                         response = page.goto(base + '/courrier/rapports/')
-                        assert response.status == 403
+                        assert response.status == 403  # nosec B101
                         print('AGENT: denied (403)')
                     else:
                         page.locator('#monthly-chart').wait_for()
-                        assert page.locator('#nav-rapports').is_visible()
+                        assert page.locator('#nav-rapports').is_visible()  # nosec B101
                         page.wait_for_function('typeof Chart !== "undefined" && Object.keys(Chart.instances).length === 4')
-                        assert not errors, errors
+                        assert not errors, errors  # nosec B101
                         page.locator('button[data-sort="1"]').click()
-                        assert page.locator('th[aria-sort="ascending"]').count() == 1
+                        assert page.locator('th[aria-sort="ascending"]').count() == 1  # nosec B101
                         with page.expect_download() as download:
                             page.get_by_role('link', name='Exporter PDF', exact=True).click()
                         download.value.save_as(output / f'rapport-{role}.pdf')
-                        assert (output / f'rapport-{role}.pdf').read_bytes().startswith(b'%PDF-')
+                        assert (output / f'rapport-{role}.pdf').read_bytes().startswith(b'%PDF-')  # nosec B101
                         page.screenshot(path=str(output / f'{role}-desktop.png'), full_page=True)
                         page.locator('#directions-table tbody a').first.click()
-                        assert page.locator('#id_direction').input_value() == 'DAAF'
-                        assert page.locator('#directions-table tbody tr').count() == 1
+                        assert page.locator('#id_direction').input_value() == 'DAAF'  # nosec B101
+                        assert page.locator('#directions-table tbody tr').count() == 1  # nosec B101
                         page.set_viewport_size({'width': 390, 'height': 844})
                         page.screenshot(path=str(output / f'{role}-mobile.png'), full_page=True)
-                        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Mobile overflow'
-                        assert not errors, errors
+                        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Mobile overflow'  # nosec B101
+                        assert not errors, errors  # nosec B101
                         print(f'{role}: login, menu, 4 charts, sorting, PDF, direction filter, mobile OK')
                     context.close()
                 browser.close()

@@ -938,10 +938,10 @@ class CourrierModelsTestCase(TestCase):
     def test_login_rate_limit_blocks_repeated_failures(self):
         url = reverse("login")
         for _ in range(5):
-            response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})
+            response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})  # nosec
             self.assertEqual(response.status_code, 200)
 
-        blocked_response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})
+        blocked_response = self.client.post(url, {"username": self.sc.username, "password": "wrong-password"})  # nosec
         self.assertEqual(blocked_response.status_code, 429)
 
     # --- Security-focused upload / access tests requested ---

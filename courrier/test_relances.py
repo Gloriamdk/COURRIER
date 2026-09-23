@@ -9,11 +9,11 @@ from courrier.services import get_relances_pour_utilisateur, synchroniser_relanc
 
 class AlertesEcheanceTests(TestCase):
     def setUp(self):
-        self.ministre = User.objects.create_user(username='min', password='Password123!', role=User.Role.MINISTRE)
-        self.sec_min = User.objects.create_user(username='secmin', password='Password123!', role=User.Role.SECRETAIRE_MINISTRE)
-        self.sg = User.objects.create_user(username='sg', password='Password123!', role=User.Role.SG)
-        self.dc = User.objects.create_user(username='dc', password='Password123!', role=User.Role.DC)
-        self.directeur = User.objects.create_user(username='daf', password='Password123!', role=User.Role.DIRECTEUR, service_direction='DAAF')
+        self.ministre = User.objects.create_user(username='min', password='Password123!', role=User.Role.MINISTRE)  # nosec
+        self.sec_min = User.objects.create_user(username='secmin', password='Password123!', role=User.Role.SECRETAIRE_MINISTRE)  # nosec
+        self.sg = User.objects.create_user(username='sg', password='Password123!', role=User.Role.SG)  # nosec
+        self.dc = User.objects.create_user(username='dc', password='Password123!', role=User.Role.DC)  # nosec
+        self.directeur = User.objects.create_user(username='daf', password='Password123!', role=User.Role.DIRECTEUR, service_direction='DAAF')  # nosec
         self.courrier = Courrier.objects.create(reference='CR-TEST-001', designation='Objet test', expediteur_nom='Test', cree_par=self.ministre, statut=Courrier.Statut.AFFECTE, delai_traitement_jours=5)
         self.decision = Decision.objects.create(courrier=self.courrier, signe_par=self.ministre)
 
@@ -77,7 +77,7 @@ class AlertesEcheanceTests(TestCase):
     def test_roles_sans_suivi_ne_voient_pas_les_logos_alertes(self):
         utilisateur = User.objects.create_user(
             username='secretariat',
-            password='Password123!',
+            password='Password123!',  # nosec
             role=User.Role.SECRETARIAT_CENTRAL,
         )
         self.client.force_login(utilisateur)
