@@ -259,8 +259,9 @@
     <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 24px; border-bottom:1px solid #ccc; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin:0; font-size:1.2rem;">Lettre de réponse — Signature du Ministre</h2>
         <div>
+            <button type="button" class="btn-submit" style="background-color: #f59e0b; margin-right:10px;" onclick="insertMinisterSignature()">🖋️ Apposer ma signature</button>
             <button type="button" class="btn-back" onclick="closeEditorModal()">Fermer</button>
-            <button type="button" class="btn-submit" onclick="saveEditorModal()">Signer et retourner au formulaire</button>
+            <button type="button" class="btn-submit" onclick="saveEditorModal()">Enregistrer et retourner au formulaire</button>
         </div>
     </div>
     <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
@@ -356,6 +357,15 @@
                 }
             }
             closeEditorModal();
+        };
+
+        window.insertMinisterSignature = function() {
+            if (globalEditor) {
+                // Signature image en base64 pour éviter les problèmes d'URL relative ou d'upload
+                var signatureHtml = '<div style="text-align: right; margin-top: 30px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAyCAYAAAC8wYgDAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAhGVYSWZNTQAqAAAACAAFARIAAwAAAAEAAQAAARoABQAAAAEAAABKARsABQAAAAEAAABSASgAAwAAAAEAAgAAh2kABAAAAAEAAABaAAAAAAAAAEgAAAABAAAASAAAAAEAAqACAAQAAAABAAAAlqADAAQAAAABAAAAMgAAAAAABQZ1AAADsXp5AAAACXBIWXMAAAsTAAALEwEAmpwYAAABH0lEQVR4Ae3XMU7DQBSF4S0rSkpKkC69A2Vn4CgswDkQDRcgUZHRUKGiqPg3+k/yJ1se2/Px01Nl27Z/z/P8ez6fD3f39+v+/n64v79fd3d3w93d3Xp9fR2urq7W1dXVsFwu1+v1eliWZTgej8N8Ph/m8/kwTdPw+Pi43t/fh6enp3V7ezu8vLyseZ6H5+fn9fX1NbRtu6ZpGq6vr9fT09Pw+vo6fH5+rg8PD8PDw8Pw9va23t/fh+PxeF0sFmHbtg/TNH2d5/m3v/6n+c/v99v3+31YlmW4vb1dl8tlOByO1/V6Pczn83C5XNbb29swn8+v0+l0WCwWwzAMw+l0GqZpGp6fntfb29swn8+v0+l0WCwWwzAMw+l0GqZpGp6fntfb29uwbdv/9/v9/6/3+334+PgY3t/fh8vlcjifz+vhcBhWq9VwPB6v6/V6OB6Ph/f39+H19TWs1+vh6elp2Lbtt7/iH6sL4wM+7AAAAAElFTkSuQmCC" alt="Signature" style="width: 150px; height: auto;" /></div><p>&nbsp;</p>';
+                var currentData = globalEditor.getData();
+                globalEditor.setData(currentData + signatureHtml);
+            }
         };
 
         var form = document.querySelector('form.form-card');

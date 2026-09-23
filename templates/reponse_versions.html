@@ -9,24 +9,35 @@
                     <div id="editor-preview" style="margin-top:10px; border:1px solid var(--border-color); padding:16px; background:#f8fafc; max-height:200px; overflow-y:auto; border-radius:8px; font-size:0.9em; color:var(--text-muted);">
                         <i>Le texte de la lettre s'affichera ici...</i>
                     </div>
-                    <textarea id="id_observation_reponse" name="observation" style="display:none;" required>{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</textarea>
-                    
-                    <!-- Modal plein écran pour CKEditor -->
-                    <div id="word-editor-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#f0f2f5; flex-direction:column;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 24px; border-bottom:1px solid #ccc; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                            <h2 style="margin:0; font-size:1.2rem;">Rédaction de la lettre</h2>
-                            <div>
-                                <button type="button" class="btn btn-secondary" onclick="closeEditorModal()" style="margin-right:10px;">Fermer</button>
-                                <button type="button" class="btn btn-primary" onclick="saveEditorModal()">Enregistrer </button>
-                            </div>
-                        </div>
-                        <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
-                        <div style="flex:1; overflow-y:auto; padding:40px; display:flex; justify-content:center;">
-                            <div id="word-editor-body" style="width:210mm; min-height:297mm; padding:20mm; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid #ddd;">
-                                {% if reponses %}{{ reponses.0.observation|safe }}{% endif %}
-                            </div>
-                        </div>
-                    </div>
+                    <textarea id="id_observation_reponse" name="observation" style="display:none;" required>{% if reponses %}{{ reponses.0.observation|safe }}{% else %}<div style="text-align: left;">
+    <p><strong>Ministère du Tourisme, de la Culture et des Arts</strong></p>
+    <p><strong>CABINET</strong></p>
+    <p><strong>SECRETARIAT GENERAL</strong></p>
+    <p><strong>DIRECTION DES AFFAIRES ADMINISTRATIVES ET FINANCIERES</strong></p>
+</div>
+<div style="text-align: right;">
+    <p>Lomé, le _____________</p>
+</div>
+<div style="text-align: center;">
+    <p><strong>Le Ministre</strong></p>
+</div>
+<div style="text-align: right;">
+    <p><strong>A</strong></p>
+    <p><strong>[Destinataire]</strong></p>
+</div>
+<br>
+<p><strong>Objet :</strong> [Objet de la lettre]</p>
+<p><strong>Réf :</strong> [Référence éventuelle]</p>
+<br>
+<p>[Titre],</p>
+<br>
+<p>[Corps de la lettre]</p>
+<br>
+<p>Je vous prie d'agréer, [Titre], l'assurance de ma considération distinguée.</p>
+<br>
+<div style="text-align: right;">
+    <p><strong>Isaac TCHIAKPE</strong></p>
+</div>{% endif %}</textarea>
                     <label class="field-label" for="id_fichier_reponse" style="margin-top:16px;">Document de réponse (optionnel)</label>
                     <input id="id_fichier_reponse" type="file" name="fichier" class="form-control">
                     <div style="display:flex; gap:10px; margin-top:15px;">
@@ -80,19 +91,32 @@
                     {% endif %}
                     <label class="field-label" for="validation-{{ reponse.pk }}">Observations du Directeur</label>
                     <textarea id="validation-{{ reponse.pk }}" name="observation" rows="2" class="form-control" placeholder="Observation de validation ou correction"></textarea>
-                    <div class="response-actions"><button name="decision" value="valider" class="btn btn-success">{% if courrier.reponse_requise %}Valider la réponse{% else %}Valider le rapport et clôturer{% endif %}</button>
+                    <div class="response-actions"><button name="decision" value="valider" class="btn btn-success">{% if courrier.reponse_requise %}Valider et transmettre au Secrétaire SG{% else %}Valider le rapport et clôturer{% endif %}</button>
                     <button name="decision" value="corriger" class="btn btn-danger">Demander une correction</button></div>
                 </form>
                 {% endif %}
             </div>
             {% endif %}
             {% endfor %}
-            {% if peut_transmettre_sg %}
-            <form method="post" action="{% url 'directeur_transmettre_sg' courrier.pk %}" style="margin-top:10px;">
-                {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
-                <button type="submit" class="btn btn-primary">Transmettre au Secrétaire du SG</button>
-            </form>
-            {% endif %}
+
         </div>
         {% endif %}
 
+{% if courrier.reponse_requise %}
+<!-- Modal plein écran pour CKEditor — disponible pour tous les rôles -->
+<div id="word-editor-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#f0f2f5; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 24px; border-bottom:1px solid #ccc; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+        <h2 style="margin:0; font-size:1.2rem;">Rédaction de la lettre</h2>
+        <div>
+            <button type="button" class="btn btn-secondary" onclick="closeEditorModal()" style="margin-right:10px;">Fermer</button>
+            <button type="button" class="btn btn-primary" onclick="saveEditorModal()">Enregistrer</button>
+        </div>
+    </div>
+    <div id="word-toolbar-container" style="background:white; border-bottom:1px solid #ccc; padding: 0 10px;"></div>
+    <div style="flex:1; overflow-y:auto; padding:40px; display:flex; justify-content:center;">
+        <div id="word-editor-body" style="width:210mm; min-height:297mm; padding:20mm; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid #ddd;">
+            {% if reponses %}{{ reponses.0.observation|safe }}{% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

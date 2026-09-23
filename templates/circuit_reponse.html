@@ -58,7 +58,7 @@
                 <p class="response-muted" style="margin-bottom:20px;">La réponse est prête à être transmise au {{ destinataire_transmission }}.</p>
                 <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" class="form-decision-hierarchie">
                     {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
-                    {% if courrier.reponse_requise and destinataire_transmission in 'SG,DC' %}
+                    {% if courrier.reponse_requise and destinataire_transmission in 'SG,DC,Ministre' %}
                     <div style="margin-bottom:15px; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#f8fafc;">
                         <label class="field-label" style="display:block; margin-bottom:8px;">Modification de la lettre</label>
                         <button type="button" class="btn btn-secondary" onclick="openEditorModalForValidation('sec')">Ouvrir l'éditeur pour modifier la lettre</button>
@@ -117,14 +117,29 @@
     </div>
 </div>
 
-<!-- Scripts de l'éditeur CKEditor 5 (Super Build pour fonctionnalités type Word) -->
-<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/super-build/ckeditor.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if courrier.reponse_requise %}
+<!-- Chargement asynchrone pour ne pas bloquer l'affichage de la page -->
+<script async defer src="https://cdn.ckeditor.com/ckeditor5/39.0.1/super-build/ckeditor.js"></script>
 <style>
     .ck.ck-editor__editable_inline { border: none !important; box-shadow: none !important; }
     .ck-editor__editable_inline:focus { outline: none !important; }
 </style>
-{% block extra_js %}
-{{ block.super }}
-<script src="{% static 'js/circuit_reponse.js' %}"></script>
-{% endblock %}
+{% endif %}
+
+<script>
+    // Définition temporaire si l'utilisateur clique avant que circuit_reponse.js ne soit chargé
+    window.openEditorModalForValidation = window.openEditorModalForValidation || function() {
+        alert("L'éditeur est en cours de chargement... Veuillez patienter quelques secondes puis réessayer.");
+    };
+    window.openEditorModal = window.openEditorModal || function() {
+        alert("L'éditeur est en cours de chargement... Veuillez patienter quelques secondes puis réessayer.");
+    };
+</script>
+
+<!-- Script principal chargé asynchrone aussi -->
+<script defer src="{% static 'js/circuit_reponse.js' %}?v=4"></script>
 {% endblock %}

@@ -1570,31 +1570,57 @@ class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             if lettre_html:
                 reponse.observation = lettre_html
 
-            courrier.statut = Courrier.Statut.VALIDE_DIRECTEUR
-            courrier.responsable_actuel_role = User.Role.DIRECTEUR
-            courrier.save(update_fields=['statut', 'responsable_actuel_role'])
-            reponse.statut_traitement = ReponseCourrier.Statut.VALIDE
-            reponse.save(update_fields=['statut_traitement', 'observation'])
-
-            creer_historique(
-                courrier=courrier,
-                utilisateur=request.user,
-                action='REPONSE_VALIDE_DIRECTEUR',
-                description=f"Réponse écrite validée par le directeur {request.user.get_full_name() or request.user.username}.",
-                direction=request.user.service_direction,
-                ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
-                nouveau_statut=Courrier.Statut.VALIDE_DIRECTEUR,
-                observation='Réponse validée par la direction du directeur.',
-            )
             if not courrier.reponse_requise:
+                courrier.statut = Courrier.Statut.VALIDE_DIRECTEUR
+                courrier.responsable_actuel_role = User.Role.DIRECTEUR
+                courrier.save(update_fields=['statut', 'responsable_actuel_role'])
+                reponse.statut_traitement = ReponseCourrier.Statut.VALIDE
+                reponse.save(update_fields=['statut_traitement', 'observation'])
+                
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=request.user,
+                    action='REPONSE_VALIDE_DIRECTEUR',
+                    description=f"Rapport validé par le directeur {request.user.get_full_name() or request.user.username}.",
+                    direction=request.user.service_direction,
+                    ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
+                    nouveau_statut=Courrier.Statut.VALIDE_DIRECTEUR,
+                    observation='Validation du rapport.',
+                )
+
                 cloturer_traitement(courrier, request.user)
                 creer_historique(courrier, request.user, 'CLOTURE_ACTION_TERRAIN',
                     "Rapport d’action terrain validé par le Directeur. Courrier traité.",
-                    ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
+                    ancien_statut=Courrier.Statut.VALIDE_DIRECTEUR,
                     nouveau_statut=Courrier.Statut.TERMINE)
                 messages.success(request, "Rapport validé : le courrier est traité et les alertes sont levées.")
                 return redirect('circuit_reponse', pk=courrier_id)
-            messages.success(request, f"✅ Réponse écrite validée pour {courrier.reference}.")
+            
+            else:
+                # Validation ET transmission au SG immédiate
+                courrier.statut = Courrier.Statut.TRANSMIS_SG
+                courrier.responsable_actuel_role = User.Role.SECRETAIRE_SG
+                courrier.save(update_fields=['statut', 'responsable_actuel_role'])
+                reponse.statut_traitement = ReponseCourrier.Statut.VALIDE
+                reponse.save(update_fields=['statut_traitement', 'observation'])
+
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=request.user,
+                    action='REPONSE_VALIDE_ET_TRANSMISE_SG',
+                    description=f"Réponse écrite validée et transmise au Secrétariat Général par le directeur {request.user.get_full_name() or request.user.username}.",
+                    direction=request.user.service_direction,
+                    ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
+                    nouveau_statut=Courrier.Statut.TRANSMIS_SG,
+                    observation='Réponse validée et transmise.',
+                )
+                
+                notifier_role(
+                    role=User.Role.SECRETAIRE_SG,
+                    courrier=courrier,
+                    message=f"Le Directeur a validé et transmis le courrier {courrier.reference} au Secrétariat Général.",
+                )
+                messages.success(request, f"✅ Réponse écrite validée et transmise au Secrétaire SG pour {courrier.reference}.")
 
         target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
         return redirect(target_view, pk=courrier_id)
