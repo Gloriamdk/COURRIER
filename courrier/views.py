@@ -811,6 +811,15 @@ class FicheAnalyseValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
                 return redirect(target_view, pk=courrier_id)
             ancien = courrier.statut
+            
+            # Mise à jour de la lettre si modifiée
+            lettre_html = (request.POST.get('lettre_html') or '').strip()
+            if lettre_html:
+                reponse = courrier.reponses_courrier.filter(statut_traitement=ReponseCourrier.Statut.VALIDE).order_by('-version').first()
+                if reponse:
+                    reponse.observation = lettre_html
+                    reponse.save(update_fields=['observation'])
+
             if request.POST.get('action') == 'correction':
                 courrier.statut = Courrier.Statut.CORRECTION_DEMANDEE
                 courrier.responsable_actuel_role = User.Role.AGENT
@@ -912,12 +921,21 @@ class FicheAnalyseSGValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
                 return redirect(target_view, pk=courrier_id)
             ancien = courrier.statut
+            
+            # Mise à jour de la lettre si modifiée
+            lettre_html = (request.POST.get('lettre_html') or '').strip()
+            if lettre_html:
+                reponse = courrier.reponses_courrier.filter(statut_traitement=ReponseCourrier.Statut.VALIDE).order_by('-version').first()
+                if reponse:
+                    reponse.observation = lettre_html
+                    reponse.save(update_fields=['observation'])
+
             if request.POST.get('action') == 'correction':
                 courrier.statut = Courrier.Statut.CORRECTION_DEMANDEE
                 courrier.responsable_actuel_role = User.Role.AGENT
                 courrier.save(update_fields=['statut', 'responsable_actuel_role'])
-                creer_historique(courrier, request.user, 'CORRECTION_DEMANDEE_DC',
-                                 "Correction demandée par le DC sur le travail de l'agent.",
+                creer_historique(courrier, request.user, 'CORRECTION_DEMANDEE_SG',
+                                 "Correction demandée par le SG sur le travail de l'agent.",
                                  ancien_statut=ancien,
                                  nouveau_statut=courrier.statut, observation=observation)
                 notifier_role(User.Role.AGENT, courrier,
@@ -1483,7 +1501,7 @@ class ReponseCourrierCreateView(LoginRequiredMixin, RoleRequiredMixin, View):
             direction=request.user.service_direction,
             ancien_statut=ancien_statut,
             nouveau_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
-            observation=observation,
+            observation=None,
         )
 
         # Notifier le directeur de la même direction
@@ -1533,8 +1551,8 @@ class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
             courrier.responsable_actuel_role = User.Role.AGENT
             courrier.save(update_fields=['statut', 'responsable_actuel_role'])
             reponse.statut_traitement = ReponseCourrier.Statut.CORRECTION
-            reponse.observation = (request.POST.get('observation') or reponse.observation or '').strip()
-            reponse.save(update_fields=['statut_traitement', 'observation'])
+            observation_directeur = (request.POST.get('observation') or '').strip()
+            reponse.save(update_fields=['statut_traitement'])
 
             creer_historique(
                 courrier=courrier,
@@ -1544,15 +1562,19 @@ class ReponseCourrierValidateView(LoginRequiredMixin, RoleRequiredMixin, View):
                 direction=request.user.service_direction,
                 ancien_statut=Courrier.Statut.SOUMIS_DIRECTEUR,
                 nouveau_statut=Courrier.Statut.CORRECTION_DEMANDEE,
-                observation=reponse.observation,
+                observation=observation_directeur,
             )
             messages.error(request, f"✅ Correction demandée sur la réponse de {courrier.reference}.")
         else:
+            lettre_html = (request.POST.get('lettre_html') or '').strip()
+            if lettre_html:
+                reponse.observation = lettre_html
+
             courrier.statut = Courrier.Statut.VALIDE_DIRECTEUR
             courrier.responsable_actuel_role = User.Role.DIRECTEUR
             courrier.save(update_fields=['statut', 'responsable_actuel_role'])
             reponse.statut_traitement = ReponseCourrier.Statut.VALIDE
-            reponse.save(update_fields=['statut_traitement'])
+            reponse.save(update_fields=['statut_traitement', 'observation'])
 
             creer_historique(
                 courrier=courrier,
@@ -1886,6 +1908,14 @@ class TransmettreCourrierView(LoginRequiredMixin, RoleRequiredMixin, View):
             messages.error(request, "Vous n'êtes pas autorisé à transmettre ce courrier.")
             target_view = 'circuit_reponse' if request.POST.get('retour') == 'circuit_reponse' else 'courrier_detail'
             return redirect(target_view, pk=courrier_id)
+
+        # Mise à jour de la lettre si modifiée
+        lettre_html = (request.POST.get('lettre_html') or '').strip()
+        if lettre_html:
+            reponse = courrier.reponses_courrier.filter(statut_traitement=ReponseCourrier.Statut.VALIDE).order_by('-version').first()
+            if reponse:
+                reponse.observation = lettre_html
+                reponse.save(update_fields=['observation'])
 
         # Mise à jour du statut
         courrier.statut = nouveau_statut

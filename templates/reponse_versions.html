@@ -68,8 +68,16 @@
                     <a href="{% url 'document_telecharger' reponse.document.pk %}" target="_blank" rel="noopener">Télécharger la réponse</a>
                 {% endif %}
                 {% if peut_valider_reponse and reponse.statut_traitement == 'ENVOYE_DIRECTEUR' and reponse.auteur.service_direction == request.user.service_direction %}
-                <form method="post" action="{% url 'reponse_valider' courrier.pk reponse.pk %}" style="margin-top:10px;">
+                <form method="post" action="{% url 'reponse_valider' courrier.pk reponse.pk %}" style="margin-top:10px;" class="form-decision-hierarchie">
                     {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                    {% if courrier.reponse_requise %}
+                    <div style="margin-bottom:15px; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#f8fafc;">
+                        <label class="field-label" style="display:block; margin-bottom:8px;">Modification de la lettre</label>
+                        <button type="button" class="btn btn-secondary" onclick="openEditorModalForValidation('{{ reponse.pk }}')">Ouvrir l'éditeur pour modifier la lettre</button>
+                        <input type="hidden" id="lettre_html_{{ reponse.pk }}" name="lettre_html" value="">
+                        <div id="original_lettre_content_{{ reponse.pk }}" style="display:none;">{{ reponse.observation|safe }}</div>
+                    </div>
+                    {% endif %}
                     <label class="field-label" for="validation-{{ reponse.pk }}">Observations du Directeur</label>
                     <textarea id="validation-{{ reponse.pk }}" name="observation" rows="2" class="form-control" placeholder="Observation de validation ou correction"></textarea>
                     <div class="response-actions"><button name="decision" value="valider" class="btn btn-success">{% if courrier.reponse_requise %}Valider la réponse{% else %}Valider le rapport et clôturer{% endif %}</button>

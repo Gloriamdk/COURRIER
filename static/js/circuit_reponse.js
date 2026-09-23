@@ -38,6 +38,13 @@ document.addEventListener("DOMContentLoaded", function() {
             const toolbarContainer = document.querySelector('#word-toolbar-container');
             toolbarContainer.appendChild(editor.ui.view.toolbar.element);
             
+            // Synchroniser l'éditeur à chaque modification pour garder la prévisualisation à jour
+            editor.model.document.on('change:data', function() {
+                if (!currentValidationInput) {
+                    updatePreview();
+                }
+            });
+
             updatePreview();
         }).catch(error => {
             console.error(error);
@@ -45,19 +52,40 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     window.openEditorModal = function() {
+        currentValidationInput = null;
         document.getElementById('word-editor-modal').style.display = 'flex';
         if (globalEditor) { globalEditor.focus(); }
     };
 
+    var currentValidationInput = null;
+
+    window.openEditorModalForValidation = function(id) {
+        currentValidationInput = document.getElementById('lettre_html_' + id);
+        var originalContentDiv = document.getElementById('original_lettre_content_' + id);
+        var originalContent = originalContentDiv ? originalContentDiv.innerHTML : '';
+        
+        document.getElementById('word-editor-modal').style.display = 'flex';
+        if (globalEditor) {
+            var contentToLoad = currentValidationInput.value || originalContent;
+            globalEditor.setData(contentToLoad);
+            globalEditor.focus();
+        }
+    };
+
     window.closeEditorModal = function() {
         document.getElementById('word-editor-modal').style.display = 'none';
+        currentValidationInput = null;
     };
 
     window.saveEditorModal = function() {
         if (globalEditor) {
             var html = globalEditor.getData();
-            hiddenInput.value = html;
-            updatePreview();
+            if (currentValidationInput) {
+                currentValidationInput.value = html;
+            } else if (hiddenInput) {
+                hiddenInput.value = html;
+                updatePreview();
+            }
         }
         closeEditorModal();
     };
@@ -66,31 +94,24 @@ document.addEventListener("DOMContentLoaded", function() {
         if (hiddenInput && previewDiv) {
             var content = hiddenInput.value.trim();
             if (content) {
-                if (window.DOMPurify) {
-                    previewDiv.innerHTML = DOMPurify.sanitize(content);
-                } else {
-                    previewDiv.textContent = content;
-                }
+                // Toujours utiliser innerHTML pour rendre le HTML de l'éditeur correctement
+                previewDiv.innerHTML = content;
                 previewDiv.style.fontStyle = 'normal';
                 previewDiv.style.color = 'inherit';
             } else {
-                // Remplacement sécurisé pour le placeholder
-                previewDiv.textContent = "";
-                var em = document.createElement('i');
-                em.textContent = "Le texte de la lettre s'affichera ici...";
-                previewDiv.appendChild(em);
-                previewDiv.style.fontStyle = 'italic';
-                previewDiv.style.color = 'var(--text-muted)';
+                previewDiv.innerHTML = '<i style="color:var(--text-muted);">Le texte de la lettre s\'affichera ici...</i>';
             }
         }
     }
     
+    // Synchroniser l'éditeur au moment de la soumission du formulaire Agent
     var form = document.getElementById('form-reponse-agent');
     if(form && hiddenInput) {
         form.addEventListener('submit', function(e) {
-            if (globalEditor) {
+            if (globalEditor && !currentValidationInput) {
                 hiddenInput.value = globalEditor.getData();
             }
         });
     }
 });
+

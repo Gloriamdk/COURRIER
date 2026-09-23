@@ -56,8 +56,16 @@
                 <div class="card-header"><h2>Prochaine action</h2></div>
                 {% if destinataire_transmission %}
                 <p class="response-muted" style="margin-bottom:20px;">La réponse est prête à être transmise au {{ destinataire_transmission }}.</p>
-                <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}">
+                <form method="post" action="{% url 'courrier_transmettre' courrier.pk %}" class="form-decision-hierarchie">
                     {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                    {% if courrier.reponse_requise and destinataire_transmission in 'SG,DC' %}
+                    <div style="margin-bottom:15px; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#f8fafc;">
+                        <label class="field-label" style="display:block; margin-bottom:8px;">Modification de la lettre</label>
+                        <button type="button" class="btn btn-secondary" onclick="openEditorModalForValidation('sec')">Ouvrir l'éditeur pour modifier la lettre</button>
+                        <input type="hidden" id="lettre_html_sec" name="lettre_html" value="">
+                        <div id="original_lettre_content_sec" style="display:none;">{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</div>
+                    </div>
+                    {% endif %}
                     <button type="submit" class="btn btn-primary">Transmettre au {{ destinataire_transmission }}</button>
                 </form>
                 {% endif %}

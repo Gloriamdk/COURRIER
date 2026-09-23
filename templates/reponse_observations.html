@@ -3,8 +3,16 @@
                         <strong>Observations du SG sur le traitement</strong>
                         <p>Le SG n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
                     </div>
-                    <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}">
+                    <form method="post" action="{% url 'fiche_sg_valider' courrier.pk %}" class="form-decision-hierarchie">
                         {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                        {% if courrier.reponse_requise %}
+                        <div style="margin-bottom:15px; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#f8fafc;">
+                            <label class="field-label" style="display:block; margin-bottom:8px;">Modification de la lettre</label>
+                            <button type="button" class="btn btn-secondary" onclick="openEditorModalForValidation('sg')">Ouvrir l'éditeur pour modifier la lettre</button>
+                            <input type="hidden" id="lettre_html_sg" name="lettre_html" value="">
+                            <div id="original_lettre_content_sg" style="display:none;">{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</div>
+                        </div>
+                        {% endif %}
                         <label class="field-label" for="observation-hierarchie">Vos observations</label>
                         <textarea id="observation-hierarchie" name="observation" rows="8" class="form-control" required
                                   placeholder="Observations sur le travail de l'agent"></textarea>
@@ -18,8 +26,16 @@
                         <strong>Observations du DC sur le traitement</strong>
                         <p>Le DC n'établit pas une nouvelle fiche. Il observe le travail de l'agent.</p>
                     </div>
-                    <form method="post" action="{% url 'fiche_valider' courrier.pk %}">
+                    <form method="post" action="{% url 'fiche_valider' courrier.pk %}" class="form-decision-hierarchie">
                         {% csrf_token %}<input type="hidden" name="retour" value="circuit_reponse">
+                        {% if courrier.reponse_requise %}
+                        <div style="margin-bottom:15px; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#f8fafc;">
+                            <label class="field-label" style="display:block; margin-bottom:8px;">Modification de la lettre</label>
+                            <button type="button" class="btn btn-secondary" onclick="openEditorModalForValidation('dc')">Ouvrir l'éditeur pour modifier la lettre</button>
+                            <input type="hidden" id="lettre_html_dc" name="lettre_html" value="">
+                            <div id="original_lettre_content_dc" style="display:none;">{% if reponses %}{{ reponses.0.observation|safe }}{% endif %}</div>
+                        </div>
+                        {% endif %}
                         <label class="field-label" for="observation-hierarchie">Vos observations</label>
                         <textarea id="observation-hierarchie" name="observation" rows="8" class="form-control" required
                                   placeholder="Observations sur le travail de l'agent"></textarea>
