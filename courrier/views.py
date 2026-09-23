@@ -260,10 +260,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 )
             else:
                 qs_aff = Affectation.objects.filter(destinataire=user)
-            affectations = list(
-                qs_aff.select_related('courrier', 'decision')
-                .order_by('-date_affectation')[:10]
-            )
+                
+            # Déduplication par courrier_id pour éviter que le même courrier 
+            # s'affiche plusieurs fois (ex: multiple affectations correspondantes)
+            affectations = []
+            seen_courriers = set()
+            for aff in qs_aff.select_related('courrier', 'decision').order_by('-date_affectation'):
+                if aff.courrier_id not in seen_courriers:
+                    affectations.append(aff)
+                    seen_courriers.add(aff.courrier_id)
+                if len(affectations) >= 10:
+                    break
             context['mes_affectations'] = affectations
             context['affectations_a_affecter'] = {
                 aff.pk for aff in affectations
@@ -1723,7 +1730,7 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             courrier = self.get_courrier()
             user = self.request.user
             if courrier.affectations.exists() and user.role != User.Role.DIRECTEUR:
-                raise PermissionDenied("Ce courrier a déjà été affecté ; aucune nouvelle affectation n’est autorisée.")
+                raise PermissionDenied("Ce courrier a déjà été affecté ; aucune nouvelle affectation n'est autorisée.")
 
             if not courrier.delai_traitement_jours:
                 messages.error(
@@ -1732,6 +1739,66 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
                 )
                 return redirect('courrier_detail', pk=courrier.pk)
 
+            # ── Multi-sélection pour le Ministre ──
+            services_multiples = self.request.POST.getlist('services_multiples')
+            if user.role == User.Role.MINISTRE and services_multiples:
+                from datetime import timedelta
+                note = form.cleaned_data.get('note_traitement', '')
+                noms_services = []
+
+                for service_nom in services_multiples:
+                    aff = Affectation(
+                        courrier=courrier,
+                        decision=courrier.decision,
+                        affecte_par=user,
+                        service_concerne=service_nom,
+                        note_traitement=note,
+                    )
+                    aff.save()
+                    aff.date_limite_traitement = aff.date_affectation + timedelta(days=courrier.delai_traitement_jours)
+                    aff.save(update_fields=['date_limite_traitement'])
+                    noms_services.append(service_nom)
+
+                    # Notifier les directeurs du département
+                    for directeur in User.objects.filter(
+                        role=User.Role.DIRECTEUR,
+                        service_direction=service_nom,
+                        is_active=True,
+                    ):
+                        notifier(
+                            destinataire=directeur,
+                            courrier=courrier,
+                            message=f"Nouveau courrier affecté à votre direction : {courrier.reference} — {courrier.designation[:60]}."
+                        )
+                    
+                    transaction.on_commit(lambda a=aff: envoyer_email_affectation(a))
+
+                ancien_statut = courrier.statut
+                courrier.statut = Courrier.Statut.AFFECTE
+                courrier.responsable_actuel_role = User.Role.DIRECTEUR
+                courrier.save(update_fields=['statut', 'responsable_actuel_role'])
+
+                resoudre_relances_courrier(courrier, etapes=Relance.Etape.AFFECTATION)
+
+                liste_services = ', '.join(noms_services)
+                creer_historique(
+                    courrier=courrier,
+                    utilisateur=user,
+                    action='AFFECTATION',
+                    description=f"Courrier affecté aux directions : {liste_services} par {user.get_full_name() or user.username}.",
+                    role=user.role,
+                    ancien_statut=ancien_statut,
+                    nouveau_statut=Courrier.Statut.AFFECTE,
+                    observation=f"Affectation multi-directions : {liste_services}.",
+                )
+
+                messages.success(
+                    self.request,
+                    f"✅ Courrier {courrier.reference} affecté à {len(noms_services)} département(s) : {liste_services}."
+                )
+                return redirect('courrier_detail', pk=courrier.pk)
+
+            # ── Affectation simple (Directeur, DC, Secrétariat Central) ──
             form.instance.affecte_par = self.request.user
             form.instance.courrier = courrier
             form.instance.decision = courrier.decision
@@ -1743,7 +1810,7 @@ class AffectationCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
             # Sécurité métier stricte :
             # - le Ministre peut choisir une direction ou un agent sans direction;
             # - le Directeur ne doit pas réaffecter un courrier deux fois;
-            # - le Directeur ne peut affecter qu’un seul agent de sa propre direction;
+            # - le Directeur ne peut affecter qu'un seul agent de sa propre direction;
             # - le Directeur ne peut pas remettre le courrier vers une autre direction.
             if user.role == User.Role.DIRECTEUR and user.service_direction:
                 expected = normalize_service(user.service_direction)

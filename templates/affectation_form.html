@@ -286,7 +286,22 @@
                     {{ form.service_concerne.label }}
                 </label>
 
+                {% if user.role == 'MINISTRE' %}
+                {# Multi-sélection pour le Ministre : cocher plusieurs départements #}
+                <p class="help-text" style="margin-bottom:10px;">Cochez un ou plusieurs départements à affecter.</p>
+                <div id="multi-service-container" style="max-height:300px; overflow-y:auto; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px; background:#f8fafc;">
+                    {% for val, label in form.fields.service_concerne.choices %}
+                    {% if val %}
+                    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer; border-bottom:1px solid #f1f5f9;">
+                        <input type="checkbox" name="services_multiples" value="{{ val }}" style="width:18px; height:18px; accent-color:var(--primary-color);">
+                        <span style="font-size:0.92rem;">{{ label }}</span>
+                    </label>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
                 {{ form.service_concerne }}
+                {% endif %}
 
                 {% if form.service_concerne.help_text %}
                 <p class="help-text">

@@ -332,10 +332,18 @@ class AffectationForm(forms.ModelForm):
                 service = expected
                 cleaned_data['service_concerne'] = service
 
+        is_ministre = self.request_user and self.request_user.role == User.Role.MINISTRE
+        
+        # Pour le Ministre, si des services multiples sont envoyés via POST,
+        # on accepte le formulaire tel quel (le traitement des multiples est géré dans la vue).
+        services_multiples = self.data.getlist('services_multiples') if hasattr(self, 'data') else []
+        if is_ministre and services_multiples:
+            return cleaned_data
+
         # L’agent sans direction est la cible du ministre ; jamais un agent
         # de direction. Donc l’annonce est totalement exclusive entre service
         # et agent sans rattachement.
-        if self.request_user and self.request_user.role == User.Role.MINISTRE:
+        if is_ministre:
             if destinataire and service:
                 raise forms.ValidationError("Le Ministre choisit soit une direction, soit un agent sans direction.")
 

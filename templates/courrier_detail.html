@@ -357,6 +357,8 @@
                         <button type="submit" class="btn btn-primary">Transmettre au SG</button>
                     </form>
 
+                    {# Bouton "Rejeter" uniquement dans le 1er circuit (courrier entrant), pas dans le circuit de réponse #}
+                    {% if courrier.statut == 'ARRIVE' %}
                     <button type="button" class="btn btn-danger" id="btn-open-rejet" style="margin-top:8px;">Rejeter et renvoyer</button>
 
                     <!-- Modal de saisie du motif -->
@@ -376,6 +378,7 @@
                             </form>
                         </div>
                     </div>
+                    {% endif %}
                 {% endif %}
 
                 {# Le Secrétaire DC transmet au DC après validation de la fiche SG. #}

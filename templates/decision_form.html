@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Décision Ministre — {{ courrier.reference }}{% endblock %}
 {% block page_title %}Décision Finale du Ministre{% endblock %}
@@ -287,13 +288,13 @@
 
         if (!editorBody) return;
 
-        // Charger le contenu original de la lettre validée
-        if (originalContent) {
-            // Sécurisation XSS : Assainir le contenu original avant injection dans l'éditeur
-            if (window.DOMPurify) {
-                editorBody.innerHTML = DOMPurify.sanitize(originalContent.innerHTML);
-            } else {
-                editorBody.textContent = originalContent.textContent;
+        // Charger le contenu original de la lettre validée dans l'éditeur
+        if (originalContent && originalContent.innerHTML.trim()) {
+            editorBody.innerHTML = originalContent.innerHTML;
+            // Pré-remplir aussi l'aperçu sur la page
+            if (previewDiv) {
+                previewDiv.innerHTML = originalContent.innerHTML;
+                previewDiv.style.display = 'block';
             }
         }
 
@@ -346,13 +347,9 @@
                 var html = globalEditor.getData();
                 hiddenInput.value = html;
 
-                // Mettre à jour l'aperçu
+                // Mettre à jour l'aperçu avec le HTML rendu
                 if (previewDiv) {
-                    if (window.DOMPurify) {
-                        previewDiv.innerHTML = DOMPurify.sanitize(html);
-                    } else {
-                        previewDiv.textContent = html;
-                    }
+                    previewDiv.innerHTML = html;
                     previewDiv.style.display = 'block';
                 }
             }
@@ -361,8 +358,11 @@
 
         window.insertMinisterSignature = function() {
             if (globalEditor) {
-                // Signature image en base64 pour éviter les problèmes d'URL relative ou d'upload
-                var signatureHtml = '<div style="text-align: right; margin-top: 30px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAyCAYAAAC8wYgDAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAhGVYSWZNTQAqAAAACAAFARIAAwAAAAEAAQAAARoABQAAAAEAAABKARsABQAAAAEAAABSASgAAwAAAAEAAgAAh2kABAAAAAEAAABaAAAAAAAAAEgAAAABAAAASAAAAAEAAqACAAQAAAABAAAAlqADAAQAAAABAAAAMgAAAAAABQZ1AAADsXp5AAAACXBIWXMAAAsTAAALEwEAmpwYAAABH0lEQVR4Ae3XMU7DQBSF4S0rSkpKkC69A2Vn4CgswDkQDRcgUZHRUKGiqPg3+k/yJ1se2/Px01Nl27Z/z/P8ez6fD3f39+v+/n64v79fd3d3w93d3Xp9fR2urq7W1dXVsFwu1+v1eliWZTgej8N8Ph/m8/kwTdPw+Pi43t/fh6enp3V7ezu8vLyseZ6H5+fn9fX1NbRtu6ZpGq6vr9fT09Pw+vo6fH5+rg8PD8PDw8Pw9va23t/fh+PxeF0sFmHbtg/TNH2d5/m3v/6n+c/v99v3+31YlmW4vb1dl8tlOByO1/V6Pczn83C5XNbb29swn8+v0+l0WCwWwzAMw+l0GqZpGp6fntfb29swn8+v0+l0WCwWwzAMw+l0GqZpGp6fntfb29uwbdv/9/v9/6/3+334+PgY3t/fh8vlcjifz+vhcBhWq9VwPB6v6/V6OB6Ph/f39+H19TWs1+vh6elp2Lbtt7/iH6sL4wM+7AAAAAElFTkSuQmCC" alt="Signature" style="width: 150px; height: auto;" /></div><p>&nbsp;</p>';
+                var signatureUrl = "{% static 'images/signature_ministre.webp' %}";
+                var signatureHtml = '<div style="text-align: right; margin-top: 30px;">'
+                    + '<img src="' + signatureUrl + '" alt="Signature du Ministre" '
+                    + 'style="width: 180px; height: auto;" />'
+                    + '</div><p>&nbsp;</p>';
                 var currentData = globalEditor.getData();
                 globalEditor.setData(currentData + signatureHtml);
             }
